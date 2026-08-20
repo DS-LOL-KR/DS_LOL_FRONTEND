@@ -34,7 +34,7 @@ export interface TableProps<T> {
 }
 
 // TODO: sorting, pagination, empty/loading states.
-export function Table<T extends Record<string, unknown>>({ columns, data }: TableProps<T>) {
+export function Table<T extends object>({ columns, data }: TableProps<T>) {
   return (
     <StyledTable>
       <thead>
@@ -49,7 +49,9 @@ export function Table<T extends Record<string, unknown>>({ columns, data }: Tabl
           <tr key={i}>
             {columns.map((col) => (
               <td key={col.key}>
-                {col.render ? col.render(row) : String(row[col.key as keyof T] ?? '')}
+                {col.render
+                  ? col.render(row)
+                  : String((row as Record<string, unknown>)[col.key] ?? '')}
               </td>
             ))}
           </tr>

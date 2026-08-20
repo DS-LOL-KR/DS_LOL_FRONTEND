@@ -3,9 +3,9 @@ import styled from 'styled-components';
 import { Navbar } from './Navbar';
 
 const Main = styled.main`
-  max-width: 1080px;
+  max-width: 1368px;
   margin: 0 auto;
-  padding: ${({ theme }) => theme.space.xl}px ${({ theme }) => theme.space.lg}px;
+  padding: ${({ theme }) => theme.space.xl}px 36px;
 `;
 
 export interface PageLayoutProps {
