@@ -66,7 +66,7 @@ const MetricLabel = styled.p`
 const MetricValue = styled.p<{ $tone?: 'success' | 'tier2' | 'tier1' }>`
   margin-top: 5px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 26px;
+  font-size: 29px;
   font-weight: 600;
   letter-spacing: -0.6px;
   color: ${({ theme, $tone }) => {
@@ -78,7 +78,7 @@ const MetricValue = styled.p<{ $tone?: 'success' | 'tier2' | 'tier1' }>`
 `;
 
 const MetricUnit = styled.span`
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 400;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -109,7 +109,7 @@ const ColumnTitle = styled.p`
 
 const ColumnHint = styled.span`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-size: 13px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -140,7 +140,7 @@ const Bar = styled.div<{ $height: number; $current: boolean }>`
 
 const BarIndex = styled.span`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-size: 12px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -200,7 +200,7 @@ const ChangeDelta = styled.span<{ $positive: boolean }>`
   width: 56px;
   text-align: right;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
   color: ${({ theme, $positive }) => ($positive ? theme.color.state.success : theme.color.state.danger)};
 `;

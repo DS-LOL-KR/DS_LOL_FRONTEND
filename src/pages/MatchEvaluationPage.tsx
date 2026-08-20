@@ -84,7 +84,7 @@ const ProgressRow = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 12px 0;
-  font-size: 12px;
+  font-size: 14px;
 `;
 
 const ProgressHint = styled.span`
@@ -138,7 +138,7 @@ const TeammateName = styled.span`
 
 const TeammateLane = styled.span`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.3px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -152,7 +152,7 @@ const TeammateKda = styled.span`
   display: block;
   margin-top: 3px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-size: 13px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 

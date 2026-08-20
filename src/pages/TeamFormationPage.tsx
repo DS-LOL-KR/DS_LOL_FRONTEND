@@ -88,14 +88,14 @@ const MetricLabel = styled.p`
 const MetricValue = styled.p`
   margin-top: 5px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 26px;
+  font-size: 29px;
   font-weight: 600;
   letter-spacing: -0.6px;
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
 const MetricUnit = styled.span`
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 400;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -183,7 +183,7 @@ const TeamSideTag = styled.span<{ $team: Team }>`
 
 const TeamMmrSum = styled.span`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-size: 13px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -192,7 +192,7 @@ const RosterHeaderRow = styled.div`
   gap: 12px;
   padding-bottom: 8px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.5px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -212,7 +212,7 @@ const PlayerRow = styled.div`
 const PosCell = styled.span`
   width: 44px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.3px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -244,7 +244,7 @@ const MmrCell = styled.span`
   width: 52px;
   text-align: right;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: ${({ theme }) => theme.color.text.primary};
 `;
@@ -253,7 +253,7 @@ const RecentCell = styled.span<{ $positive: boolean }>`
   width: 44px;
   text-align: right;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px;
+  font-size: 14px;
   color: ${({ theme, $positive }) => ($positive ? theme.color.text.secondary : theme.color.text.secondary)};
   opacity: ${({ $positive }) => ($positive ? 1 : 0.8)};
 `;
@@ -277,7 +277,7 @@ const RationaleTitle = styled.p`
 
 const RationaleHint = styled.span`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-size: 13px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -287,7 +287,7 @@ const RationaleRow = styled.div`
   gap: 20px;
   padding: 13px 0;
   border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-  font-size: 13px;
+  font-size: 15px;
 
   &:last-child {
     border-bottom: none;

@@ -45,9 +45,8 @@ export const Button = styled.button<{ $variant?: Variant; $size?: Size }>`
         color: ${theme.color.state.danger};
       `;
     return css`
-      background: ${theme.gradient.button};
-      color: ${theme.color.text.primary};
-      box-shadow: 0 6px 18px rgba(64, 115, 255, 0.42);
+      background: ${theme.color.text.primary};
+      color: #121315;
     `;
   }}
 

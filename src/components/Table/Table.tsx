@@ -3,6 +3,7 @@ import styled from 'styled-components';
 
 const StyledTable = styled.table`
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
 
   th, td {
@@ -10,6 +11,7 @@ const StyledTable = styled.table`
     text-align: left;
     font: ${({ theme }) => theme.font.body14};
     border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
+    overflow: hidden;
   }
 
   th {
@@ -26,6 +28,10 @@ export interface Column<T> {
   key: string;
   header: string;
   render?: (row: T) => ReactNode;
+  /** Fixed column width (px). Without this, `table-layout: fixed` splits width evenly,
+   * which is almost never what a numeric/action column wants. */
+  width?: number;
+  align?: 'left' | 'center' | 'right';
 }
 
 export interface TableProps<T> {
@@ -37,10 +43,15 @@ export interface TableProps<T> {
 export function Table<T extends object>({ columns, data }: TableProps<T>) {
   return (
     <StyledTable>
+      <colgroup>
+        {columns.map((col) => (
+          <col key={col.key} style={col.width ? { width: col.width } : undefined} />
+        ))}
+      </colgroup>
       <thead>
         <tr>
           {columns.map((col) => (
-            <th key={col.key}>{col.header}</th>
+            <th key={col.key} style={{ textAlign: col.align ?? 'left' }}>{col.header}</th>
           ))}
         </tr>
       </thead>
@@ -48,7 +59,7 @@ export function Table<T extends object>({ columns, data }: TableProps<T>) {
         {data.map((row, i) => (
           <tr key={i}>
             {columns.map((col) => (
-              <td key={col.key}>
+              <td key={col.key} style={{ textAlign: col.align ?? 'left' }}>
                 {col.render
                   ? col.render(row)
                   : String((row as Record<string, unknown>)[col.key] ?? '')}

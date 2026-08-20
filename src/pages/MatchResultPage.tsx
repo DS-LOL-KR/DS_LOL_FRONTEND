@@ -89,7 +89,7 @@ const PlayerName = styled.span`
 const PlayerLane = styled.span`
   width: 44px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-size: 13px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -97,7 +97,7 @@ const PlayerDelta = styled.span<{ $positive: boolean }>`
   width: 48px;
   text-align: right;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: ${({ theme, $positive }) => ($positive ? theme.color.state.success : theme.color.state.danger)};
 `;
@@ -130,7 +130,7 @@ const ChangeReason = styled.span`
 
 const ChangeDelta = styled.span<{ $positive: boolean }>`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: ${({ theme, $positive }) => ($positive ? theme.color.state.success : theme.color.state.danger)};
 `;

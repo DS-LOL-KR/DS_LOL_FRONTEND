@@ -92,14 +92,14 @@ const MetricLabel = styled.p`
 const MetricValue = styled.p<{ $tone?: 'success' }>`
   margin-top: 5px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 26px;
+  font-size: 29px;
   font-weight: 600;
   letter-spacing: -0.6px;
   color: ${({ theme, $tone }) => ($tone === 'success' ? theme.color.state.success : theme.color.text.primary)};
 `;
 
 const MetricUnit = styled.span`
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 400;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -130,13 +130,13 @@ const ResultCell = styled.span<{ $win: boolean }>`
 
 const KdaCell = styled.span`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px;
+  font-size: 14px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
 const MmrCell = styled.span<{ $positive: boolean }>`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: ${({ theme, $positive }) => ($positive ? theme.color.state.success : theme.color.state.danger)};
 `;
@@ -152,14 +152,16 @@ export function MatchHistoryPage() {
   }, [groupId]);
 
   const columns: Column<MatchRow>[] = [
-    { key: 'playedAt', header: '일시' },
+    { key: 'playedAt', header: '일시', width: 120 },
     { key: 'game', header: '게임' },
-    { key: 'team', header: '팀', render: (m) => <TeamCell $team={m.team}>{m.team === 'blue' ? '블루' : '레드'}</TeamCell> },
-    { key: 'result', header: '결과', render: (m) => <ResultCell $win={m.result === '승'}>{m.result}</ResultCell> },
-    { key: 'kda', header: 'KDA', render: (m) => <KdaCell>{m.kda}</KdaCell> },
+    { key: 'team', header: '팀', width: 80, render: (m) => <TeamCell $team={m.team}>{m.team === 'blue' ? '블루' : '레드'}</TeamCell> },
+    { key: 'result', header: '결과', width: 60, render: (m) => <ResultCell $win={m.result === '승'}>{m.result}</ResultCell> },
+    { key: 'kda', header: 'KDA', width: 110, align: 'right', render: (m) => <KdaCell>{m.kda}</KdaCell> },
     {
       key: 'mmrDelta',
       header: 'MMR',
+      width: 70,
+      align: 'right',
       render: (m) => (
         <MmrCell $positive={m.mmrDelta >= 0}>{m.mmrDelta > 0 ? `+${m.mmrDelta}` : m.mmrDelta}</MmrCell>
       ),
@@ -167,6 +169,8 @@ export function MatchHistoryPage() {
     {
       key: 'action',
       header: '',
+      width: 90,
+      align: 'right',
       render: (m) => (
         <Button $variant="ghost" $size="sm" onClick={() => navigate(`/matches/${m.id}`)}>
           상세

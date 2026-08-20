@@ -107,7 +107,7 @@ const TierName = styled.span<{ $tier: Tier }>`
 
 const TierCount = styled.span`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px;
+  font-size: 14px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -126,7 +126,7 @@ const MemberRow = styled.div`
 const LaneTag = styled.span`
   width: 46px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.3px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -142,7 +142,7 @@ const Record = styled.span`
   width: 90px;
   text-align: right;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px;
+  font-size: 14px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -150,7 +150,7 @@ const Mmr = styled.span`
   width: 60px;
   text-align: right;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: ${({ theme }) => theme.color.text.primary};
 `;

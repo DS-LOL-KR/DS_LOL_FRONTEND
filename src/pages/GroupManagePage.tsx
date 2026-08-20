@@ -79,7 +79,7 @@ const InviteLinkBox = styled.div`
   border: 1px solid ${({ theme }) => theme.color.border.base};
   background: ${({ theme }) => theme.color.surface.subtle};
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
+  font-size: 15px;
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
@@ -232,14 +232,17 @@ export function GroupManagePage() {
     {
       key: 'internalTier',
       header: '내부 티어',
+      width: 100,
       render: (m) => <TierCell $tier={m.internalTier}>{m.internalTier}티어</TierCell>,
     },
-    { key: 'mainLane', header: '주 라인' },
-    { key: 'mmr', header: 'MMR' },
-    { key: 'joinedAt', header: '가입일' },
+    { key: 'mainLane', header: '주 라인', width: 90 },
+    { key: 'mmr', header: 'MMR', width: 80, align: 'right' },
+    { key: 'joinedAt', header: '가입일', width: 100, align: 'right' },
     {
       key: 'action',
       header: '관리',
+      width: 200,
+      align: 'right',
       render: (m) =>
         m.isOwner ? (
           <NoAction>—</NoAction>

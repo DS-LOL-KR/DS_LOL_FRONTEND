@@ -136,17 +136,21 @@ export function GroupsPage() {
 
   const columns: Column<Group>[] = [
     { key: 'name', header: '그룹', render: (row) => row.name },
-    { key: 'game', header: '게임', render: (row) => gameName(row.gameId) },
-    { key: 'memberCount', header: '인원', render: (row) => `${row.memberCount} / ${row.memberCap}` },
+    { key: 'game', header: '게임', width: 160, render: (row) => gameName(row.gameId) },
+    { key: 'memberCount', header: '인원', width: 90, align: 'right', render: (row) => `${row.memberCount} / ${row.memberCap}` },
     {
       key: 'tier',
       header: '내 티어',
+      width: 90,
+      align: 'right',
       render: (row) => <TierCell $tier={row.myInternalTier}>{row.myInternalTier}티어</TierCell>,
     },
-    { key: 'role', header: '역할', render: (row) => (row.myRole === 'owner' ? '그룹장' : '멤버') },
+    { key: 'role', header: '역할', width: 70, align: 'right', render: (row) => (row.myRole === 'owner' ? '그룹장' : '멤버') },
     {
       key: 'action',
       header: '',
+      width: 90,
+      align: 'right',
       render: (row) => (
         <Button $variant="ghost" $size="sm" onClick={() => enterGroup(row.id)}>
           입장

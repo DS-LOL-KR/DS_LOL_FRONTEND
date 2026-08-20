@@ -179,7 +179,7 @@ const ParticipantName = styled.span`
 
 const ParticipantLane = styled.span`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.3px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
