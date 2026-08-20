@@ -37,6 +37,11 @@ const Header = styled.div`
   border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
 `;
 
+const HeaderActions = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.space.xs}px;
+`;
+
 const Title = styled.p`
   font: ${({ theme }) => theme.font.title26};
   letter-spacing: -0.5px;
@@ -260,9 +265,14 @@ export function GroupManagePage() {
             그룹원 {members.length}명 · 내 역할 {owner?.isOwner ? '그룹장' : '멤버'}
           </Subtitle>
         </div>
-        <Button $variant="dangerGhost" $size="sm" onClick={() => setDeleteOpen(true)}>
-          그룹 삭제
-        </Button>
+        <HeaderActions>
+          <Button $size="sm" onClick={() => navigate(`/groups/${groupId}/matches/new`)}>
+            새 내전 만들기
+          </Button>
+          <Button $variant="dangerGhost" $size="sm" onClick={() => setDeleteOpen(true)}>
+            그룹 삭제
+          </Button>
+        </HeaderActions>
       </Header>
       <InviteRow>
         <InviteLabel>초대 링크</InviteLabel>
