@@ -1,6 +1,6 @@
 import styled, { css } from 'styled-components';
 
-type Variant = 'primary' | 'ghost' | 'danger';
+type Variant = 'primary' | 'ghost' | 'danger' | 'dangerGhost';
 type Size = 'md' | 'sm';
 
 export const Button = styled.button<{ $variant?: Variant; $size?: Size }>`
@@ -37,6 +37,12 @@ export const Button = styled.button<{ $variant?: Variant; $size?: Size }>`
       return css`
         background: ${theme.color.state.danger};
         color: ${theme.color.text.primary};
+      `;
+    if ($variant === 'dangerGhost')
+      return css`
+        background: ${theme.color.surface.subtle};
+        border: 1px solid ${theme.color.state.danger};
+        color: ${theme.color.state.danger};
       `;
     return css`
       background: ${theme.gradient.button};
