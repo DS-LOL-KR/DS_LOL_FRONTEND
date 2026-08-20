@@ -120,7 +120,9 @@ export function GroupsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
 
-  const rows = groups?.length ? groups.map((g) => ({ ...g, game: '', memberCap: g.memberCount, tier: 2 as const, role: '멤버' as const })) : MOCK_GROUPS;
+  const rows = Array.isArray(groups) && groups.length > 0
+    ? groups.map((g) => ({ ...g, game: '', memberCap: g.memberCount, tier: 2 as const, role: '멤버' as const }))
+    : MOCK_GROUPS;
 
   const columns: Column<GroupRow>[] = [
     { key: 'name', header: '그룹', render: (row) => row.name },
