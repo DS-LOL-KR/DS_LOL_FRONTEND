@@ -7,6 +7,7 @@ import { TierTablePage } from './pages/TierTablePage';
 import { ScrimCreatePage } from './pages/ScrimCreatePage';
 import { TeamFormationPage } from './pages/TeamFormationPage';
 import { ScrimResultPage } from './pages/ScrimResultPage';
+import { ScrimEvaluationPage } from './pages/ScrimEvaluationPage';
 import { MatchHistoryPage } from './pages/MatchHistoryPage';
 import { StatsPage } from './pages/StatsPage';
 
@@ -23,6 +24,7 @@ function App() {
         <Route path="/groups/:id/tiers" element={<TierTablePage />} />
         <Route path="/groups/:id/scrims/new" element={<ScrimCreatePage />} />
         <Route path="/scrims/:id/teams" element={<TeamFormationPage />} />
+        <Route path="/scrims/:id/evaluate" element={<ScrimEvaluationPage />} />
         <Route path="/scrims/:id" element={<ScrimResultPage />} />
         <Route path="/groups/:id/matches" element={<MatchHistoryPage />} />
         <Route path="/stats" element={<StatsPage />} />
