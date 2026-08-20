@@ -20,3 +20,24 @@ export const Input = styled.input`
     border-color: ${({ theme }) => theme.color.accent.blue};
   }
 `;
+
+// TODO: add error state, char counter once designs land.
+export const Textarea = styled.textarea`
+  width: 100%;
+  padding: ${({ theme }) => theme.space.sm}px ${({ theme }) => theme.space.md}px;
+  border-radius: ${({ theme }) => theme.radius.sm}px;
+  border: 1px solid ${({ theme }) => theme.color.border.base};
+  background: ${({ theme }) => theme.color.surface.subtle};
+  color: ${({ theme }) => theme.color.text.primary};
+  font: ${({ theme }) => theme.font.body14};
+  resize: vertical;
+
+  &::placeholder {
+    color: ${({ theme }) => theme.color.text.secondary};
+  }
+
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.color.accent.blue};
+  }
+`;
