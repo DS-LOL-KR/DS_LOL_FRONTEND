@@ -5,6 +5,7 @@ import { Input, Textarea } from '../components/Input/Input';
 import { Button } from '../components/Button/Button';
 import { Modal } from '../components/Modal/Modal';
 import { useProfile, useUpdateProfile, useUploadProfileImage } from '../features/profile/hooks';
+import { useLogout } from '../features/auth/hooks';
 import {
   useGames,
   useLinkGameAccount,
@@ -48,6 +49,12 @@ const Brand = styled.span`
   font: ${({ theme }) => theme.font.sub15};
   letter-spacing: 0.4px;
   color: ${({ theme }) => theme.color.text.primary};
+`;
+
+const TopBarRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.space.md}px;
 `;
 
 const PageName = styled.span`
@@ -228,6 +235,7 @@ export function ProfileSetupPage() {
   const { data: games } = useGames();
   const { data: gameAccounts } = useMyGameAccounts();
   const linkGameAccount = useLinkGameAccount();
+  const logout = useLogout();
 
   const [nickname, setNickname] = useState('');
   const [bio, setBio] = useState('');
@@ -261,11 +269,20 @@ export function ProfileSetupPage() {
     );
   };
 
+  const handleLogout = () => {
+    logout.mutate(undefined, { onSuccess: () => navigate('/login') });
+  };
+
   return (
     <Screen>
       <TopBar>
         <Brand>DS_LOL</Brand>
-        <PageName>프로필 설정</PageName>
+        <TopBarRight>
+          <PageName>프로필 설정</PageName>
+          <Button $variant="ghost" $size="sm" onClick={handleLogout} disabled={logout.isPending}>
+            로그아웃
+          </Button>
+        </TopBarRight>
       </TopBar>
       <Body>
         <Form onSubmit={handleSave}>

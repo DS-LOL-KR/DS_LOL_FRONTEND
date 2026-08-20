@@ -1,6 +1,6 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import { useLogout, useMe } from '../../features/auth/hooks';
+import { useMe } from '../../features/auth/hooks';
 import { useActiveGroupId } from '../../utils/activeGroup';
 
 const Bar = styled.nav`
@@ -36,7 +36,7 @@ const MenuLink = styled(Link)<{ $active?: boolean }>`
   color: ${({ theme, $active }) => ($active ? theme.color.text.primary : theme.color.text.secondary)};
 `;
 
-const UserGroup = styled.div`
+const UserGroup = styled(Link)`
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.space.xs}px;
@@ -47,25 +47,17 @@ const UserName = styled.span`
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
-const UserAvatar = styled.button`
+const UserAvatar = styled.div`
   width: 24px;
   height: 24px;
   border-radius: 3px;
-  border: none;
-  cursor: pointer;
   background: ${({ theme }) => theme.color.border.strong};
 `;
 
 export function Navbar() {
   const { pathname } = useLocation();
-  const navigate = useNavigate();
   const { data: me } = useMe();
   const activeGroupId = useActiveGroupId();
-  const logout = useLogout();
-
-  const handleLogout = () => {
-    logout.mutate(undefined, { onSuccess: () => navigate('/login') });
-  };
 
   const navItems = [
     {
@@ -96,9 +88,9 @@ export function Navbar() {
           ))}
         </Menu>
       </LeftGroup>
-      <UserGroup>
+      <UserGroup to="/onboarding" title="내 프로필">
         <UserName>{me?.nickname ?? '재현'}</UserName>
-        <UserAvatar onClick={handleLogout} title="로그아웃" aria-label="로그아웃" />
+        <UserAvatar />
       </UserGroup>
     </Bar>
   );

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/Button/Button';
@@ -131,11 +132,20 @@ const BarGroup = styled.div`
   justify-content: flex-end;
 `;
 
-const Bar = styled.div<{ $height: number; $current: boolean }>`
+const Bar = styled.button<{ $height: number }>`
   width: 100%;
   height: ${({ $height }) => $height}px;
+  border: none;
   border-radius: 2px;
-  background: ${({ theme, $current }) => ($current ? theme.color.text.primary : theme.color.border.base)};
+  padding: 0;
+  cursor: pointer;
+  background: ${({ theme }) => theme.color.border.base};
+  transition: background 0.12s ease;
+
+  &:hover,
+  &:focus-visible {
+    background: ${({ theme }) => theme.color.text.primary};
+  }
 `;
 
 const BarIndex = styled.span`
@@ -206,6 +216,7 @@ const ChangeDelta = styled.span<{ $positive: boolean }>`
 `;
 
 export function StatsPage() {
+  const navigate = useNavigate();
   const [refreshing, setRefreshing] = useState(false);
   const { data: mmrHistory } = useMyMmrHistory();
   const { data: gameAccounts } = useMyGameAccounts();
@@ -276,7 +287,11 @@ export function StatsPage() {
           <BarChart>
             {barHeights.map((height, i) => (
               <BarGroup key={i}>
-                <Bar $height={height} $current={i === barHeights.length - 1} />
+                <Bar
+                  $height={height}
+                  title={`${trendSeries[i].playedAt} · ${trendSeries[i].mmrAfter} MMR`}
+                  onClick={() => navigate(`/matches/${trendSeries[i].matchId}`)}
+                />
                 <BarIndex>{i + 1}</BarIndex>
               </BarGroup>
             ))}
