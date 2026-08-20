@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { useMe } from './features/auth/hooks';
 import { LoginPage } from './pages/LoginPage';
 import { ProfileSetupPage } from './pages/ProfileSetupPage';
 import { GroupsPage } from './pages/GroupsPage';
@@ -11,12 +12,20 @@ import { ScrimEvaluationPage } from './pages/ScrimEvaluationPage';
 import { MatchHistoryPage } from './pages/MatchHistoryPage';
 import { StatsPage } from './pages/StatsPage';
 
-// TODO: add auth guard / redirect for protected routes once auth flow is wired up.
+// GET /users/me doubles as the session check: 200 means the Google OAuth
+// cookie is valid, anything else (401, network error, no backend) means logged out.
+function RootGate() {
+  const { data, isLoading, isError } = useMe();
+  if (isLoading) return null;
+  return <Navigate to={isError || !data ? '/login' : '/groups'} replace />;
+}
+
+// TODO: guard the /groups, /stats, etc. routes the same way once more pages need it.
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/groups" replace />} />
+        <Route path="/" element={<RootGate />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/onboarding" element={<ProfileSetupPage />} />
         <Route path="/groups" element={<GroupsPage />} />

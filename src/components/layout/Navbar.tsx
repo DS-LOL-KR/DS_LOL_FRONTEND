@@ -1,7 +1,7 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import logo from '../../assets/logo.svg';
-import { useMe } from '../../features/auth/hooks';
+import { useLogout, useMe } from '../../features/auth/hooks';
+import { useActiveGroupId } from '../../utils/activeGroup';
 
 const Bar = styled.nav`
   display: flex;
@@ -17,18 +17,6 @@ const LeftGroup = styled.div`
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.space.xl}px;
-`;
-
-const BrandGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.space.xs}px;
-`;
-
-const Logo = styled.img`
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
 `;
 
 const Brand = styled.span`
@@ -48,12 +36,6 @@ const MenuLink = styled(Link)<{ $active?: boolean }>`
   color: ${({ theme, $active }) => ($active ? theme.color.text.primary : theme.color.text.secondary)};
 `;
 
-const MenuLabel = styled.span`
-  font: ${({ theme }) => theme.font.small13};
-  color: ${({ theme }) => theme.color.text.secondary};
-  cursor: default;
-`;
-
 const UserGroup = styled.div`
   display: flex;
   align-items: center;
@@ -65,47 +47,58 @@ const UserName = styled.span`
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
-const UserAvatar = styled.div`
+const UserAvatar = styled.button`
   width: 24px;
   height: 24px;
   border-radius: 3px;
+  border: none;
+  cursor: pointer;
   background: ${({ theme }) => theme.color.border.strong};
 `;
 
-const NAV_ITEMS: Array<{ key: string; label: string; to?: string; match: (pathname: string) => boolean }> = [
-  { key: 'scrims', label: '내전', match: (p) => p.includes('/matches') || p.startsWith('/scrims') },
-  { key: 'groups', label: '그룹', to: '/groups', match: (p) => p === '/groups' },
-  { key: 'tiers', label: '티어표', match: (p) => p.includes('/tiers') },
-  { key: 'stats', label: '전적', to: '/stats', match: (p) => p === '/stats' },
-];
-
-// TODO: real auth state (login/logout) and active-group switcher once that flow lands.
 export function Navbar() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { data: me } = useMe();
+  const activeGroupId = useActiveGroupId();
+  const logout = useLogout();
+
+  const handleLogout = () => {
+    logout.mutate(undefined, { onSuccess: () => navigate('/login') });
+  };
+
+  const navItems = [
+    {
+      key: 'matches',
+      label: '내전',
+      to: activeGroupId ? `/groups/${activeGroupId}/matches` : '/groups',
+      active: pathname.includes('/matches'),
+    },
+    { key: 'groups', label: '그룹', to: '/groups', active: pathname === '/groups' },
+    {
+      key: 'tiers',
+      label: '티어표',
+      to: activeGroupId ? `/groups/${activeGroupId}/tiers` : '/groups',
+      active: pathname.includes('/tiers'),
+    },
+    { key: 'stats', label: '전적', to: '/stats', active: pathname === '/stats' },
+  ];
 
   return (
     <Bar>
       <LeftGroup>
-        <BrandGroup>
-          <Logo src={logo} alt="DS_LOL" />
-          <Brand>DS_LOL</Brand>
-        </BrandGroup>
+        <Brand>DS_LOL</Brand>
         <Menu>
-          {NAV_ITEMS.map((item) =>
-            item.to ? (
-              <MenuLink key={item.key} to={item.to} $active={item.match(pathname)}>
-                {item.label}
-              </MenuLink>
-            ) : (
-              <MenuLabel key={item.key}>{item.label}</MenuLabel>
-            ),
-          )}
+          {navItems.map((item) => (
+            <MenuLink key={item.key} to={item.to} $active={item.active}>
+              {item.label}
+            </MenuLink>
+          ))}
         </Menu>
       </LeftGroup>
       <UserGroup>
         <UserName>{me?.nickname ?? '재현'}</UserName>
-        <UserAvatar />
+        <UserAvatar onClick={handleLogout} title="로그아웃" aria-label="로그아웃" />
       </UserGroup>
     </Bar>
   );

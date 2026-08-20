@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { LoginButton } from '../features/auth/components/LoginButton';
 
@@ -40,21 +39,14 @@ const Disclaimer = styled.p`
   opacity: 0.7;
 `;
 
-// TODO: replace with real Google OAuth flow, then call useLogin() with the ID token.
 export function LoginPage() {
-  const navigate = useNavigate();
-
-  const handleGoogleLogin = () => {
-    navigate('/onboarding');
-  };
-
   return (
     <Screen>
       <Panel>
         <Title>DS_LOL</Title>
         <Subtitle>친구들과 하는 내전, 팀 짜기부터 전적까지</Subtitle>
         <ButtonRow>
-          <LoginButton onClick={handleGoogleLogin} />
+          <LoginButton />
         </ButtonRow>
         <Disclaimer>가입하면 이용약관과 개인정보 처리방침에 동의하게 됩니다</Disclaimer>
       </Panel>

@@ -1,13 +1,17 @@
 import { apiClient } from '../../api/client';
-import type { LoginRequest, LoginResponse, User } from './types';
+import type { User } from './types';
 
-// TODO: wire up real Google OAuth login flow.
-export async function login(payload: LoginRequest): Promise<LoginResponse> {
-  const { data } = await apiClient.post<LoginResponse>('/auth/login', payload);
-  return data;
+// GET /auth/google is a server-side redirect into Google's OAuth consent screen,
+// not a fetchable JSON endpoint — navigate the browser to it directly.
+export function googleLoginUrl(): string {
+  return `${apiClient.defaults.baseURL}/auth/google`;
 }
 
 export async function getMe(): Promise<User> {
-  const { data } = await apiClient.get<User>('/auth/me');
+  const { data } = await apiClient.get<User>('/users/me');
   return data;
+}
+
+export async function logout(): Promise<void> {
+  await apiClient.post('/auth/logout');
 }
