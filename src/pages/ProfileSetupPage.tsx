@@ -1,9 +1,34 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Input, Textarea } from '../components/Input/Input';
 import { Button } from '../components/Button/Button';
-import { useProfile, useUpdateProfile } from '../features/profile/hooks';
+import { Modal } from '../components/Modal/Modal';
+import { useProfile, useUpdateProfile, useUploadProfileImage } from '../features/profile/hooks';
+import {
+  useGames,
+  useLinkGameAccount,
+  useMyGameAccounts,
+  useRefreshGameAccount,
+} from '../features/game-accounts/hooks';
+import type { Game, GameAccount } from '../features/game-accounts/types';
+import { asArrayOrFallback } from '../utils/asArrayOrFallback';
+
+// TODO: no backend yet — shown when GET /games or /users/me/game-accounts is empty.
+const MOCK_GAMES: Game[] = [
+  { id: 1, name: '리그 오브 레전드', code: 'LOL' },
+  { id: 2, name: '발로란트', code: 'VALORANT' },
+];
+const MOCK_GAME_ACCOUNTS: GameAccount[] = [
+  {
+    id: 1,
+    gameId: 1,
+    game: MOCK_GAMES[0],
+    summonerName: 'Hide on bush #KR1',
+    syncedAt: '12분 전 동기화',
+    stats: { id: 1, gameAccountId: 1, officialTier: '다이아몬드 IV', internalMmr: 1990 },
+  },
+];
 
 const Screen = styled.div`
   min-height: 100vh;
@@ -182,19 +207,57 @@ const Footer = styled.div`
   padding-top: ${({ theme }) => theme.space.lg}px;
 `;
 
+const ModalTitle = styled.p`
+  font: ${({ theme }) => theme.font.sub17};
+  color: ${({ theme }) => theme.color.text.primary};
+  margin-bottom: ${({ theme }) => theme.space.md}px;
+`;
+
+const ModalActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: ${({ theme }) => theme.space.xs}px;
+  margin-top: ${({ theme }) => theme.space.md}px;
+`;
+
 export function ProfileSetupPage() {
   const navigate = useNavigate();
   const { data: profile } = useProfile();
   const updateProfile = useUpdateProfile();
+  const uploadProfileImage = useUploadProfileImage();
+  const { data: games } = useGames();
+  const { data: gameAccounts } = useMyGameAccounts();
+  const linkGameAccount = useLinkGameAccount();
 
   const [nickname, setNickname] = useState('');
   const [bio, setBio] = useState('');
+  const [linkingGameId, setLinkingGameId] = useState<number | null>(null);
+  const [riotIdInput, setRiotIdInput] = useState('');
+
+  useEffect(() => {
+    if (!profile) return;
+    setNickname(profile.nickname);
+    setBio(profile.bio);
+  }, [profile]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     updateProfile.mutate(
-      { riotId: profile?.riotId },
+      { nickname, bio },
       { onSuccess: () => navigate('/groups') },
+    );
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadProfileImage.mutate(file);
+  };
+
+  const handleLinkGameAccount = () => {
+    if (linkingGameId === null || !riotIdInput.trim()) return;
+    linkGameAccount.mutate(
+      { gameId: linkingGameId, riotId: riotIdInput },
+      { onSuccess: () => { setLinkingGameId(null); setRiotIdInput(''); } },
     );
   };
 
@@ -211,14 +274,14 @@ export function ProfileSetupPage() {
           <Spacer $size={24} />
           <Divider />
           <Row>
-            <Avatar />
+            <Avatar $src={profile?.avatarUrl ?? undefined} />
             <AvatarInfo>
               <AvatarName>프로필 이미지</AvatarName>
               <AvatarHint>JPG, PNG · 5MB 이하</AvatarHint>
             </AvatarInfo>
             <Button as="label" $variant="ghost" $size="sm">
-              파일 선택
-              <FileInput type="file" accept="image/png,image/jpeg" />
+              {uploadProfileImage.isPending ? '업로드 중...' : '파일 선택'}
+              <FileInput type="file" accept="image/png,image/jpeg" onChange={handleAvatarChange} />
             </Button>
           </Row>
           <Divider />
@@ -246,27 +309,36 @@ export function ProfileSetupPage() {
           <Field>
             <FieldLabel>게임 계정 연동</FieldLabel>
             <GameAccounts>
-              <AccountCard>
-                <AccountInfo>
-                  <AccountNameRow>
-                    <AccountName $linked>Hide on bush #KR1</AccountName>
-                    <LinkedTag>연동됨</LinkedTag>
-                  </AccountNameRow>
-                  <AccountHint>티어는 라이엇 API에서 자동으로 가져와요 · 12분 전 동기화</AccountHint>
-                </AccountInfo>
-                <TierBlock>
-                  <TierLabel>게임 티어</TierLabel>
-                  <TierValue>다이아몬드 IV</TierValue>
-                </TierBlock>
-                <Button $variant="ghost" $size="sm">동기화</Button>
-              </AccountCard>
-              <AccountCard>
-                <AccountInfo>
-                  <AccountName>발로란트</AccountName>
-                  <AccountHint>연동하면 티어와 전적을 자동으로 불러와요</AccountHint>
-                </AccountInfo>
-                <Button $variant="ghost" $size="sm">계정 연동</Button>
-              </AccountCard>
+              {asArrayOrFallback(games, MOCK_GAMES).map((game) => {
+                const accountList = asArrayOrFallback(gameAccounts, MOCK_GAME_ACCOUNTS);
+                const account = accountList.find((a) => a.gameId === game.id);
+                return account ? (
+                  <AccountCard key={game.id}>
+                    <AccountInfo>
+                      <AccountNameRow>
+                        <AccountName $linked>{account.summonerName}</AccountName>
+                        <LinkedTag>연동됨</LinkedTag>
+                      </AccountNameRow>
+                      <AccountHint>티어는 라이엇 API에서 자동으로 가져와요 · {account.syncedAt}</AccountHint>
+                    </AccountInfo>
+                    <TierBlock>
+                      <TierLabel>게임 티어</TierLabel>
+                      <TierValue>{account.stats.officialTier}</TierValue>
+                    </TierBlock>
+                    <RefreshAccountButton accountId={String(account.id)} />
+                  </AccountCard>
+                ) : (
+                  <AccountCard key={game.id}>
+                    <AccountInfo>
+                      <AccountName>{game.name}</AccountName>
+                      <AccountHint>연동하면 티어와 전적을 자동으로 불러와요</AccountHint>
+                    </AccountInfo>
+                    <Button $variant="ghost" $size="sm" onClick={() => setLinkingGameId(game.id)}>
+                      계정 연동
+                    </Button>
+                  </AccountCard>
+                );
+              })}
             </GameAccounts>
             <FieldHint>
               티어는 직접 고칠 수 없어요. 그룹 내부 티어는 전적·평가를 합산해 따로 계산돼요
@@ -280,6 +352,31 @@ export function ProfileSetupPage() {
           </Footer>
         </Form>
       </Body>
+
+      <Modal open={linkingGameId !== null} onClose={() => setLinkingGameId(null)}>
+        <ModalTitle>게임 계정 연동</ModalTitle>
+        <Input
+          value={riotIdInput}
+          onChange={(e) => setRiotIdInput(e.target.value)}
+          placeholder="Hide on bush#KR1"
+          autoFocus
+        />
+        <ModalActions>
+          <Button $variant="ghost" $size="sm" onClick={() => setLinkingGameId(null)}>취소</Button>
+          <Button $size="sm" onClick={handleLinkGameAccount} disabled={linkGameAccount.isPending}>
+            연동
+          </Button>
+        </ModalActions>
+      </Modal>
     </Screen>
+  );
+}
+
+function RefreshAccountButton({ accountId }: { accountId: string }) {
+  const refresh = useRefreshGameAccount();
+  return (
+    <Button $variant="ghost" $size="sm" onClick={() => refresh.mutate(accountId)} disabled={refresh.isPending}>
+      {refresh.isPending ? '동기화 중...' : '동기화'}
+    </Button>
   );
 }

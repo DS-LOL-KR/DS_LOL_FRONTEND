@@ -1,17 +1,19 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { getTierTable, updateTier } from './api';
-import type { UpdateTierRequest } from './types';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { getTierTable, recalculateTiers } from './api';
+import type { Lane } from './types';
 
-export function useTierTable(groupId: string) {
+export function useTierTable(groupId: string, position?: Lane) {
   return useQuery({
-    queryKey: ['tiers', groupId],
-    queryFn: () => getTierTable(groupId),
+    queryKey: ['tiers', groupId, position ?? 'ALL'],
+    queryFn: () => getTierTable(groupId, position),
     enabled: Boolean(groupId),
   });
 }
 
-export function useUpdateTier(groupId: string) {
+export function useRecalculateTiers(groupId: string) {
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: UpdateTierRequest) => updateTier(groupId, payload),
+    mutationFn: () => recalculateTiers(groupId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tiers', groupId] }),
   });
 }

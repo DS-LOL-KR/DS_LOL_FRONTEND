@@ -2,24 +2,22 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/Button/Button';
+import { useMyMmrHistory } from '../features/matches/hooks';
+import type { MmrHistoryEntry } from '../features/matches/types';
+import { useMyGameAccounts, useRefreshGameAccount } from '../features/game-accounts/hooks';
+import type { GameAccount } from '../features/game-accounts/types';
+import { asArrayOrFallback } from '../utils/asArrayOrFallback';
 
-interface MmrChange {
-  label: string;
-  reason: string;
-  delta: number;
-}
-
-// TODO: this page renders per-group MMR (그룹 내부 티어), but the route is currently
-// global (/stats) while useMmr/useRecalculateMmr need a groupId — likely belongs at
-// /groups/:id/stats once group-scoped navigation exists. Mocked until then.
-const TREND = [40, 59, 45, 64, 82, 69, 91, 78, 101, 123];
-const CHANGES: MmrChange[] = [
-  { label: '08.08 내전', reason: '승리 +10 · 상대 티어 +2 · 팀원 평가 +2', delta: 14 },
-  { label: '08.07 내전', reason: '패배 -12 · 개인 지표 +3', delta: -9 },
-  { label: '08.05 발로란트', reason: '승리 +10 · 팀원 평가 +1', delta: 11 },
-  { label: '08.03 내전', reason: '승리 +10 · 상대 티어 +2', delta: 12 },
-  { label: '08.01 내전', reason: '패배 -12 · 팀원 평가 +4', delta: -8 },
-  { label: '07.29 내전', reason: '패배 -12 · 개인 지표 +1', delta: -11 },
+// TODO: no backend yet — shown when GET /users/me/mmr-history returns nothing.
+// The 그룹 내부 티어 metric also stays mocked: it's a per-group value, but this
+// route (/stats) is global — likely wants a /groups/:id/stats variant later.
+const MOCK_HISTORY: MmrHistoryEntry[] = [
+  { matchId: '1', playedAt: '08.08 내전', reason: '승리 +10 · 상대 티어 +2 · 팀원 평가 +2', delta: 14, mmrAfter: 1832 },
+  { matchId: '2', playedAt: '08.07 내전', reason: '패배 -12 · 개인 지표 +3', delta: -9, mmrAfter: 1818 },
+  { matchId: '3', playedAt: '08.05 발로란트', reason: '승리 +10 · 팀원 평가 +1', delta: 11, mmrAfter: 1827 },
+  { matchId: '4', playedAt: '08.03 내전', reason: '승리 +10 · 상대 티어 +2', delta: 12, mmrAfter: 1816 },
+  { matchId: '5', playedAt: '08.01 내전', reason: '패배 -12 · 팀원 평가 +4', delta: -8, mmrAfter: 1804 },
+  { matchId: '6', playedAt: '07.29 내전', reason: '패배 -12 · 개인 지표 +1', delta: -11, mmrAfter: 1812 },
 ];
 
 const Header = styled.div`
@@ -209,10 +207,31 @@ const ChangeDelta = styled.span<{ $positive: boolean }>`
 
 export function StatsPage() {
   const [refreshing, setRefreshing] = useState(false);
+  const { data: mmrHistory } = useMyMmrHistory();
+  const { data: gameAccounts } = useMyGameAccounts();
+  const refreshGameAccount = useRefreshGameAccount();
+
+  const history = asArrayOrFallback<MmrHistoryEntry>(mmrHistory, MOCK_HISTORY);
+  const trendSeries = [...history].reverse();
+  const mmrValues = trendSeries.map((h) => h.mmrAfter);
+  const minMmr = Math.min(...mmrValues);
+  const maxMmr = Math.max(...mmrValues);
+  const mmrRange = maxMmr - minMmr || 1;
+  const barHeights = mmrValues.map((v) => 30 + ((v - minMmr) / mmrRange) * 93);
+
+  const currentMmr = trendSeries[trendSeries.length - 1]?.mmrAfter ?? 1832;
+  const recentDelta = history.reduce((sum, h) => sum + h.delta, 0);
+  const myGameAccounts = asArrayOrFallback<GameAccount>(gameAccounts, []);
+  const officialTier = myGameAccounts[0]?.stats.officialTier ?? '다이아 IV';
 
   const handleRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    const account = myGameAccounts[0];
+    if (account) {
+      refreshGameAccount.mutate(String(account.id), { onSettled: () => setRefreshing(false) });
+    } else {
+      setTimeout(() => setRefreshing(false), 800);
+    }
   };
 
   return (
@@ -229,11 +248,13 @@ export function StatsPage() {
       <Metrics>
         <Metric>
           <MetricLabel>현재 MMR</MetricLabel>
-          <MetricValue>1832</MetricValue>
+          <MetricValue>{currentMmr}</MetricValue>
         </Metric>
         <Metric>
           <MetricLabel>30일 변동</MetricLabel>
-          <MetricValue $tone="success">+52</MetricValue>
+          <MetricValue $tone={recentDelta >= 0 ? 'success' : undefined}>
+            {recentDelta > 0 ? `+${recentDelta}` : recentDelta}
+          </MetricValue>
         </Metric>
         <Metric>
           <MetricLabel>그룹 내부 티어</MetricLabel>
@@ -243,19 +264,19 @@ export function StatsPage() {
         </Metric>
         <Metric>
           <MetricLabel>게임 공식 티어</MetricLabel>
-          <MetricValue $tone="tier1">다이아 IV</MetricValue>
+          <MetricValue $tone="tier1">{officialTier}</MetricValue>
         </Metric>
       </Metrics>
       <Columns>
         <TrendColumn>
           <ColumnHeader>
             <ColumnTitle>MMR 추이</ColumnTitle>
-            <ColumnHint>최근 10경기</ColumnHint>
+            <ColumnHint>최근 {trendSeries.length}경기</ColumnHint>
           </ColumnHeader>
           <BarChart>
-            {TREND.map((height, i) => (
+            {barHeights.map((height, i) => (
               <BarGroup key={i}>
-                <Bar $height={height} $current={i === TREND.length - 1} />
+                <Bar $height={height} $current={i === barHeights.length - 1} />
                 <BarIndex>{i + 1}</BarIndex>
               </BarGroup>
             ))}
@@ -266,10 +287,10 @@ export function StatsPage() {
             <ChangesTitle>변동 내역</ChangesTitle>
             <ChangesHint>항목별 내역</ChangesHint>
           </ChangesHeader>
-          {CHANGES.map((c) => (
-            <ChangeRow key={c.label}>
+          {history.map((c) => (
+            <ChangeRow key={c.matchId}>
               <ChangeInfo>
-                <ChangeLabel>{c.label}</ChangeLabel>
+                <ChangeLabel>{c.playedAt}</ChangeLabel>
                 <ChangeReason>{c.reason}</ChangeReason>
               </ChangeInfo>
               <ChangeDelta $positive={c.delta >= 0}>{c.delta > 0 ? `+${c.delta}` : c.delta}</ChangeDelta>

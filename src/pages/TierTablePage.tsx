@@ -1,35 +1,29 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/Button/Button';
+import { useRecalculateTiers, useTierTable } from '../features/tiers/hooks';
+import type { Lane, TierEntry } from '../features/tiers/types';
+import { asArrayOrFallback } from '../utils/asArrayOrFallback';
+import { setActiveGroupId } from '../utils/activeGroup';
 
 type Tier = 1 | 2 | 3 | 4 | 5;
-type Lane = 'TOP' | 'JGL' | 'MID' | 'BOT' | 'SUP';
 const LANES: Lane[] = ['TOP', 'JGL', 'MID', 'BOT', 'SUP'];
 const TIERS: Tier[] = [1, 2, 3, 4, 5];
 
-interface TierMember {
-  name: string;
-  lane: Lane;
-  tier: Tier;
-  wins: number;
-  losses: number;
-  mmr: number;
-}
-
-// TODO: no /groups/:id/tiers endpoint yet — swap this mock for a real query
-// once the group internal-tier calculation API lands.
-const MOCK_MEMBERS: TierMember[] = [
-  { name: '성현', lane: 'MID', tier: 1, wins: 12, losses: 4, mmr: 1990 },
-  { name: '준서', lane: 'MID', tier: 1, wins: 15, losses: 6, mmr: 2015 },
-  { name: '민석', lane: 'JGL', tier: 2, wins: 9, losses: 7, mmr: 1865 },
-  { name: '지우', lane: 'BOT', tier: 2, wins: 11, losses: 5, mmr: 1902 },
-  { name: '현우', lane: 'TOP', tier: 2, wins: 8, losses: 8, mmr: 1858 },
-  { name: '하늘', lane: 'BOT', tier: 2, wins: 10, losses: 6, mmr: 1889 },
-  { name: '재훈', lane: 'TOP', tier: 3, wins: 6, losses: 9, mmr: 1780 },
-  { name: '도현', lane: 'JGL', tier: 3, wins: 5, losses: 10, mmr: 1702 },
-  { name: '태윤', lane: 'SUP', tier: 3, wins: 4, losses: 8, mmr: 1673 },
-  { name: '서진', lane: 'SUP', tier: 4, wins: 3, losses: 11, mmr: 1616 },
+// TODO: no backend yet — shown when GET /groups/:id/tiers returns nothing.
+const MOCK_MEMBERS: TierEntry[] = [
+  { userId: '1', nickname: '성현', lane: 'MID', tier: 1, wins: 12, losses: 4, mmr: 1990 },
+  { userId: '2', nickname: '준서', lane: 'MID', tier: 1, wins: 15, losses: 6, mmr: 2015 },
+  { userId: '3', nickname: '민석', lane: 'JGL', tier: 2, wins: 9, losses: 7, mmr: 1865 },
+  { userId: '4', nickname: '지우', lane: 'BOT', tier: 2, wins: 11, losses: 5, mmr: 1902 },
+  { userId: '5', nickname: '현우', lane: 'TOP', tier: 2, wins: 8, losses: 8, mmr: 1858 },
+  { userId: '6', nickname: '하늘', lane: 'BOT', tier: 2, wins: 10, losses: 6, mmr: 1889 },
+  { userId: '7', nickname: '재훈', lane: 'TOP', tier: 3, wins: 6, losses: 9, mmr: 1780 },
+  { userId: '8', nickname: '도현', lane: 'JGL', tier: 3, wins: 5, losses: 10, mmr: 1702 },
+  { userId: '9', nickname: '태윤', lane: 'SUP', tier: 3, wins: 4, losses: 8, mmr: 1673 },
+  { userId: '10', nickname: '서진', lane: 'SUP', tier: 4, wins: 3, losses: 11, mmr: 1616 },
 ];
 
 const Header = styled.div`
@@ -167,15 +161,23 @@ const EmptyLabel = styled.span`
 `;
 
 export function TierTablePage() {
+  const { id: groupId } = useParams();
   const [lane, setLane] = useState<Lane | 'ALL'>('ALL');
+  const { data: tierTable } = useTierTable(groupId ?? '', lane === 'ALL' ? undefined : lane);
+  const recalculateTiers = useRecalculateTiers(groupId ?? '');
 
+  useEffect(() => {
+    if (groupId) setActiveGroupId(groupId);
+  }, [groupId]);
+
+  const allMembers = asArrayOrFallback<TierEntry>(tierTable, MOCK_MEMBERS);
   const filtered = useMemo(
-    () => (lane === 'ALL' ? MOCK_MEMBERS : MOCK_MEMBERS.filter((m) => m.lane === lane)),
-    [lane],
+    () => (lane === 'ALL' ? allMembers : allMembers.filter((m) => m.lane === lane)),
+    [allMembers, lane],
   );
 
   const byTier = useMemo(() => {
-    const groups = new Map<Tier, TierMember[]>();
+    const groups = new Map<Tier, TierEntry[]>();
     for (const t of TIERS) groups.set(t, []);
     for (const m of filtered) groups.get(m.tier)?.push(m);
     return groups;
@@ -190,7 +192,9 @@ export function TierTablePage() {
         </div>
         <HeaderActions>
           <Button $variant="ghost" $size="sm">라인별로 보기</Button>
-          <Button $size="sm">티어 재선정</Button>
+          <Button $size="sm" onClick={() => recalculateTiers.mutate()} disabled={recalculateTiers.isPending}>
+            티어 재선정
+          </Button>
         </HeaderActions>
       </Header>
       <LaneTabs>
@@ -215,9 +219,9 @@ export function TierTablePage() {
                 <EmptyLabel>해당 티어 없음</EmptyLabel>
               ) : (
                 members.map((m) => (
-                  <MemberRow key={m.name}>
+                  <MemberRow key={m.userId}>
                     <LaneTag>{m.lane}</LaneTag>
-                    <MemberName>{m.name}</MemberName>
+                    <MemberName>{m.nickname}</MemberName>
                     <Record>{m.wins}승 {m.losses}패</Record>
                     <Mmr>{m.mmr}</Mmr>
                   </MemberRow>

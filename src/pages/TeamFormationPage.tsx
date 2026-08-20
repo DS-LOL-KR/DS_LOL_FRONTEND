@@ -1,44 +1,33 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled, { type DefaultTheme } from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/Button/Button';
+import { useGenerateTeams, useMatch, useUpdateTeams } from '../features/matches/hooks';
+import type { RationaleItem, Team, TeamPlayer } from '../features/matches/types';
+import { asArrayOrFallback } from '../utils/asArrayOrFallback';
+import { setActiveGroupId } from '../utils/activeGroup';
 
-type Lane = 'TOP' | 'JGL' | 'MID' | 'BOT' | 'SUP';
-type Team = 'A' | 'B';
+// TODO: no design frame covers the balance %/win-rate math precisely — these stay
+// as placeholders until /matches/:id/teams/generate documents its response shape.
+const MOCK_BALANCE_SCORE = 98;
+const MOCK_EXPECTED_WIN_RATE = { teamA: 51, teamB: 49 };
 
-interface Player {
-  id: string;
-  lane: Lane;
-  name: string;
-  tier: 1 | 2 | 3 | 4 | 5;
-  mmr: number;
-  recentDelta: number;
-  team: Team;
-}
-
-interface Rationale {
-  label: string;
-  detail: string;
-  value: string;
-}
-
-// TODO: no team-formation endpoint yet — swap this mock for a real query/mutation
-// once the 기능명세서 "AI 팀 구성" API (/matches/:id/teams) lands.
-const INITIAL_PLAYERS: Player[] = [
-  { id: '1', lane: 'TOP', name: '재훈', tier: 3, mmr: 1780, recentDelta: 12, team: 'A' },
-  { id: '2', lane: 'JGL', name: '민석', tier: 2, mmr: 1865, recentDelta: 8, team: 'A' },
-  { id: '3', lane: 'MID', name: '성현', tier: 1, mmr: 1990, recentDelta: 14, team: 'A' },
-  { id: '4', lane: 'BOT', name: '지우', tier: 2, mmr: 1902, recentDelta: -3, team: 'A' },
-  { id: '5', lane: 'SUP', name: '태윤', tier: 3, mmr: 1673, recentDelta: 6, team: 'A' },
-  { id: '6', lane: 'TOP', name: '현우', tier: 2, mmr: 1858, recentDelta: 4, team: 'B' },
-  { id: '7', lane: 'JGL', name: '도현', tier: 3, mmr: 1702, recentDelta: -7, team: 'B' },
-  { id: '8', lane: 'MID', name: '준서', tier: 1, mmr: 2015, recentDelta: 11, team: 'B' },
-  { id: '9', lane: 'BOT', name: '하늘', tier: 2, mmr: 1889, recentDelta: 9, team: 'B' },
-  { id: '10', lane: 'SUP', name: '서진', tier: 4, mmr: 1616, recentDelta: -2, team: 'B' },
+// TODO: no backend yet — shown when POST /matches/:id/teams/generate is unavailable.
+const MOCK_PLAYERS: TeamPlayer[] = [
+  { userId: '1', lane: 'TOP', nickname: '재훈', tier: 3, mmr: 1780, recentMmrDelta: 12, team: 'A' },
+  { userId: '2', lane: 'JGL', nickname: '민석', tier: 2, mmr: 1865, recentMmrDelta: 8, team: 'A' },
+  { userId: '3', lane: 'MID', nickname: '성현', tier: 1, mmr: 1990, recentMmrDelta: 14, team: 'A' },
+  { userId: '4', lane: 'BOT', nickname: '지우', tier: 2, mmr: 1902, recentMmrDelta: -3, team: 'A' },
+  { userId: '5', lane: 'SUP', nickname: '태윤', tier: 3, mmr: 1673, recentMmrDelta: 6, team: 'A' },
+  { userId: '6', lane: 'TOP', nickname: '현우', tier: 2, mmr: 1858, recentMmrDelta: 4, team: 'B' },
+  { userId: '7', lane: 'JGL', nickname: '도현', tier: 3, mmr: 1702, recentMmrDelta: -7, team: 'B' },
+  { userId: '8', lane: 'MID', nickname: '준서', tier: 1, mmr: 2015, recentMmrDelta: 11, team: 'B' },
+  { userId: '9', lane: 'BOT', nickname: '하늘', tier: 2, mmr: 1889, recentMmrDelta: 9, team: 'B' },
+  { userId: '10', lane: 'SUP', nickname: '서진', tier: 4, mmr: 1616, recentMmrDelta: -2, team: 'B' },
 ];
 
-const RATIONALE: Rationale[] = [
+const MOCK_RATIONALE: RationaleItem[] = [
   { label: '라인 배정', detail: '10명 전원 주 포지션 배정. 서브 포지션으로 밀린 인원 없음', value: '10 / 10' },
   { label: 'MMR 편차', detail: '팀 평균 차이 6점. 최근 10경기 중 최소', value: '6' },
   { label: '최근 폼', detail: '연승 중인 성현·준서를 반대 팀으로 분리', value: '2명' },
@@ -330,21 +319,72 @@ function teamColor(theme: DefaultTheme, team: Team): string {
   return team === 'A' ? theme.color.team.blue : theme.color.team.red;
 }
 
-function shuffleTeams(players: Player[]): Player[] {
-  const ids = players.map((p) => p.id);
+function shuffleTeams(players: TeamPlayer[]): TeamPlayer[] {
+  const ids = players.map((p) => p.userId);
   for (let i = ids.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [ids[i], ids[j]] = [ids[j], ids[i]];
   }
   const half = Math.ceil(ids.length / 2);
   const teamAIds = new Set(ids.slice(0, half));
-  return players.map((p) => ({ ...p, team: teamAIds.has(p.id) ? 'A' : 'B' }));
+  return players.map((p) => ({ ...p, team: teamAIds.has(p.userId) ? 'A' : 'B' }));
 }
 
 export function TeamFormationPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [players, setPlayers] = useState(INITIAL_PLAYERS);
+  const { data: match } = useMatch(id ?? '');
+  const generateTeams = useGenerateTeams(id ?? '');
+  const updateTeams = useUpdateTeams(id ?? '');
+
+  const [players, setPlayers] = useState<TeamPlayer[]>(MOCK_PLAYERS);
+  const [balanceScore, setBalanceScore] = useState(MOCK_BALANCE_SCORE);
+  const [expectedWinRate, setExpectedWinRate] = useState(MOCK_EXPECTED_WIN_RATE);
+  const [rationale, setRationale] = useState<RationaleItem[]>(MOCK_RATIONALE);
+
+  useEffect(() => {
+    if (match?.groupId) setActiveGroupId(match.groupId);
+  }, [match?.groupId]);
+
+  useEffect(() => {
+    if (match?.teams) {
+      setPlayers(asArrayOrFallback(match.teams.players, MOCK_PLAYERS));
+      setBalanceScore(match.teams.balanceScore);
+      setExpectedWinRate(match.teams.expectedWinRate);
+      setRationale(asArrayOrFallback(match.teams.rationale, MOCK_RATIONALE));
+    } else if (match && !match.teams) {
+      generateTeams.mutate(undefined, {
+        onSuccess: (result) => {
+          setPlayers(result.players);
+          setBalanceScore(result.balanceScore);
+          setExpectedWinRate(result.expectedWinRate);
+          setRationale(result.rationale);
+        },
+      });
+    }
+    // Only react to the match query settling — generateTeams/setState identity
+    // changes every render and would otherwise retrigger this.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [match]);
+
+  const handleReshuffle = () => {
+    generateTeams.mutate(undefined, {
+      onSuccess: (result) => {
+        setPlayers(result.players);
+        setBalanceScore(result.balanceScore);
+        setExpectedWinRate(result.expectedWinRate);
+        setRationale(result.rationale);
+      },
+      onError: () => setPlayers(shuffleTeams),
+    });
+  };
+
+  const handleConfirm = () => {
+    updateTeams.mutate(
+      { players: players.map((p) => ({ userId: p.userId, team: p.team })) },
+      { onSettled: () => navigate(`/matches/${id}`) },
+    );
+  };
 
   const teamA = useMemo(() => players.filter((p) => p.team === 'A'), [players]);
   const teamB = useMemo(() => players.filter((p) => p.team === 'B'), [players]);
@@ -359,27 +399,27 @@ export function TeamFormationPage() {
         <div>
           <Title>새벽 내전방</Title>
           <SubtitleRow>
-            <span>5v5</span>
+            <span>{match?.mode ?? '5v5'}</span>
             <span>·</span>
             <span>리그 오브 레전드</span>
             <span>·</span>
-            <span>08.08 02:40</span>
+            <span>{match?.playedAt ?? '08.08 02:40'}</span>
           </SubtitleRow>
         </div>
         <HeaderActions>
-          <Button $variant="ghost" $size="sm" onClick={() => setPlayers(shuffleTeams)}>
+          <Button $variant="ghost" $size="sm" onClick={handleReshuffle} disabled={generateTeams.isPending}>
             다시 추첨
           </Button>
           {/* TODO: manual drag-to-reassign UI once designed. */}
           <Button $variant="ghost" $size="sm">수동 조정</Button>
-          <Button onClick={() => navigate(`/scrims/${id}`)}>구성 확정</Button>
+          <Button onClick={handleConfirm} disabled={updateTeams.isPending}>구성 확정</Button>
         </HeaderActions>
       </Header>
 
       <Metrics>
         <Metric>
           <MetricLabel>팀 밸런스</MetricLabel>
-          <MetricValue>98<MetricUnit>%</MetricUnit></MetricValue>
+          <MetricValue>{balanceScore}<MetricUnit>%</MetricUnit></MetricValue>
         </Metric>
         <Metric>
           <MetricLabel>평균 MMR 차이</MetricLabel>
@@ -387,11 +427,11 @@ export function TeamFormationPage() {
         </Metric>
         <Metric>
           <MetricLabel>예상 승률</MetricLabel>
-          <MetricValue>51 : 49</MetricValue>
+          <MetricValue>{expectedWinRate.teamA} : {expectedWinRate.teamB}</MetricValue>
         </Metric>
         <Metric>
           <MetricLabel>라인 충족</MetricLabel>
-          <MetricValue>10 / 10</MetricValue>
+          <MetricValue>{players.length} / {players.length}</MetricValue>
         </Metric>
       </Metrics>
 
@@ -425,13 +465,13 @@ export function TeamFormationPage() {
               <span style={{ width: 44, textAlign: 'right' }}>최근</span>
             </RosterHeaderRow>
             {roster.map((p) => (
-              <PlayerRow key={p.id}>
+              <PlayerRow key={p.userId}>
                 <PosCell>{p.lane}</PosCell>
-                <NameCell>{p.name}</NameCell>
+                <NameCell>{p.nickname}</NameCell>
                 <TierCell $tier={p.tier}>{p.tier}티어</TierCell>
                 <MmrCell>{p.mmr}</MmrCell>
-                <RecentCell $positive={p.recentDelta >= 0}>
-                  {p.recentDelta > 0 ? `+${p.recentDelta}` : p.recentDelta}
+                <RecentCell $positive={p.recentMmrDelta >= 0}>
+                  {p.recentMmrDelta > 0 ? `+${p.recentMmrDelta}` : p.recentMmrDelta}
                 </RecentCell>
               </PlayerRow>
             ))}
@@ -444,7 +484,7 @@ export function TeamFormationPage() {
           <RationaleTitle>구성 근거</RationaleTitle>
           <RationaleHint>자동 배정 · 0.4초</RationaleHint>
         </RationaleHeader>
-        {RATIONALE.map((r) => (
+        {rationale.map((r) => (
           <RationaleRow key={r.label}>
             <RationaleLabel>{r.label}</RationaleLabel>
             <RationaleDetail>{r.detail}</RationaleDetail>

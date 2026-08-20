@@ -1,9 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/Button/Button';
-import { useCreateScrim } from '../features/scrims/hooks';
+import { useCreateMatch } from '../features/matches/hooks';
+import { useGroup } from '../features/groups/hooks';
+import type { GroupMember } from '../features/groups/types';
+import { useGames } from '../features/game-accounts/hooks';
+import type { Game } from '../features/game-accounts/types';
+import { setActiveGroupId } from '../utils/activeGroup';
+import { asArrayOrFallback } from '../utils/asArrayOrFallback';
 
 type Lane = 'TOP' | 'JGL' | 'MID' | 'BOT' | 'SUP';
 type Mode = '5v5' | '3v3' | 'custom';
@@ -17,13 +23,17 @@ interface Participant {
   tier: 1 | 2 | 3 | 4 | 5;
 }
 
-const GAMES = ['리그 오브 레전드', '발로란트', '오버워치 2', '배틀그라운드'];
+// TODO: no backend yet — shown when GET /games or the group roster is unavailable.
+const MOCK_GAMES: Game[] = [
+  { id: 1, name: '리그 오브 레전드', code: 'LOL' },
+  { id: 2, name: '발로란트', code: 'VALORANT' },
+  { id: 3, name: '오버워치 2', code: 'OW2' },
+];
 
 const MODE_TARGET: Record<Mode, number | null> = { '5v5': 10, '3v3': 6, custom: null };
 
-// TODO: no /groups/:id/members endpoint yet — swap this mock for a real query
-// once the group roster API lands.
-const PARTICIPANTS: Participant[] = [
+// TODO: no backend yet — shown when GET /groups/:id returns no roster.
+const MOCK_PARTICIPANTS: Participant[] = [
   { id: '1', name: '재현', lane: 'MID', tier: 1 },
   { id: '2', name: '성현', lane: 'MID', tier: 1 },
   { id: '3', name: '민석', lane: 'JGL', tier: 2 },
@@ -179,16 +189,40 @@ const ParticipantTier = styled.span<{ $tier: 1 | 2 | 3 | 4 | 5 }>`
   color: ${({ theme, $tier }) => theme.color.tier[$tier]};
 `;
 
-export function ScrimCreatePage() {
+export function MatchCreatePage() {
   const { id: groupId } = useParams();
   const navigate = useNavigate();
-  const createScrim = useCreateScrim();
+  const createMatch = useCreateMatch(groupId ?? '');
+  const { data: group } = useGroup(groupId ?? '');
+  const { data: games } = useGames();
 
-  const [game, setGame] = useState(GAMES[0]);
+  const gameList = asArrayOrFallback(games, MOCK_GAMES);
+  const groupMembers = asArrayOrFallback<GroupMember>(group?.members, []);
+  const participants: Participant[] = groupMembers.length
+    ? groupMembers.map((m) => ({
+        id: m.userId,
+        name: m.nickname,
+        lane: m.mainLane,
+        tier: m.internalTier,
+      }))
+    : MOCK_PARTICIPANTS;
+
+  const [gameId, setGameId] = useState(gameList[0]?.id ?? 1);
   const [mode, setMode] = useState<Mode>('5v5');
   const [teamMode, setTeamMode] = useState<TeamMode>('ai');
   const [tierBasis, setTierBasis] = useState<TierBasis>('internal');
-  const [selected, setSelected] = useState<Set<string>>(new Set(PARTICIPANTS.map((p) => p.id)));
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setSelected(new Set(participants.map((p) => p.id)));
+    // Only seed selection once the real roster arrives — participants' identity
+    // changes whenever `group` refetches, which would otherwise reset picks.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [group?.members]);
+
+  useEffect(() => {
+    if (groupId) setActiveGroupId(groupId);
+  }, [groupId]);
 
   const target = MODE_TARGET[mode];
   const matchesTarget = target !== null && selected.size === target;
@@ -204,9 +238,15 @@ export function ScrimCreatePage() {
 
   const handleCreate = () => {
     if (!groupId) return;
-    createScrim.mutate(
-      { groupId, participantIds: Array.from(selected) },
-      { onSuccess: (scrim) => navigate(`/scrims/${scrim.id}/teams`) },
+    createMatch.mutate(
+      {
+        gameId,
+        mode,
+        participantUserIds: Array.from(selected),
+        teamAssignment: teamMode,
+        tierBasis,
+      },
+      { onSuccess: (match) => navigate(`/matches/${match.id}/teams`) },
     );
   };
 
@@ -215,17 +255,17 @@ export function ScrimCreatePage() {
       <Header>
         <div>
           <Title>새 내전</Title>
-          <Subtitle>새벽 내전방</Subtitle>
+          <Subtitle>{group?.name ?? '새벽 내전방'}</Subtitle>
         </div>
-        <Button onClick={handleCreate} disabled={createScrim.isPending}>AI로 팀 짜기</Button>
+        <Button onClick={handleCreate} disabled={createMatch.isPending}>AI로 팀 짜기</Button>
       </Header>
 
       <Section>
         <SectionLabel>게임 종목</SectionLabel>
         <GameRow>
-          {GAMES.map((g) => (
-            <GameChip key={g} $active={game === g} onClick={() => setGame(g)}>
-              {g}
+          {gameList.map((g) => (
+            <GameChip key={g.id} $active={gameId === g.id} onClick={() => setGameId(g.id)}>
+              {g.name}
             </GameChip>
           ))}
         </GameRow>
@@ -273,7 +313,7 @@ export function ScrimCreatePage() {
             )}
           </ParticipantSummary>
           <ParticipantGrid>
-            {PARTICIPANTS.map((p) => (
+            {participants.map((p) => (
               <ParticipantTile key={p.id} $selected={selected.has(p.id)} onClick={() => toggle(p.id)}>
                 <ParticipantName>{p.name}</ParticipantName>
                 <ParticipantLane>{p.lane}</ParticipantLane>

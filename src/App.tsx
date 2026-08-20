@@ -5,10 +5,10 @@ import { ProfileSetupPage } from './pages/ProfileSetupPage';
 import { GroupsPage } from './pages/GroupsPage';
 import { GroupManagePage } from './pages/GroupManagePage';
 import { TierTablePage } from './pages/TierTablePage';
-import { ScrimCreatePage } from './pages/ScrimCreatePage';
+import { MatchCreatePage } from './pages/MatchCreatePage';
 import { TeamFormationPage } from './pages/TeamFormationPage';
-import { ScrimResultPage } from './pages/ScrimResultPage';
-import { ScrimEvaluationPage } from './pages/ScrimEvaluationPage';
+import { MatchResultPage } from './pages/MatchResultPage';
+import { MatchEvaluationPage } from './pages/MatchEvaluationPage';
 import { MatchHistoryPage } from './pages/MatchHistoryPage';
 import { StatsPage } from './pages/StatsPage';
 
@@ -31,11 +31,11 @@ function App() {
         <Route path="/groups" element={<GroupsPage />} />
         <Route path="/groups/:id/manage" element={<GroupManagePage />} />
         <Route path="/groups/:id/tiers" element={<TierTablePage />} />
-        <Route path="/groups/:id/scrims/new" element={<ScrimCreatePage />} />
-        <Route path="/scrims/:id/teams" element={<TeamFormationPage />} />
-        <Route path="/scrims/:id/evaluate" element={<ScrimEvaluationPage />} />
-        <Route path="/scrims/:id" element={<ScrimResultPage />} />
+        <Route path="/groups/:id/matches/new" element={<MatchCreatePage />} />
         <Route path="/groups/:id/matches" element={<MatchHistoryPage />} />
+        <Route path="/matches/:id/teams" element={<TeamFormationPage />} />
+        <Route path="/matches/:id/evaluate" element={<MatchEvaluationPage />} />
+        <Route path="/matches/:id" element={<MatchResultPage />} />
         <Route path="/stats" element={<StatsPage />} />
       </Routes>
     </BrowserRouter>

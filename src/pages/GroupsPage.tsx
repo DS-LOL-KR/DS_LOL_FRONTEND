@@ -7,25 +7,21 @@ import { Input } from '../components/Input/Input';
 import { Modal } from '../components/Modal/Modal';
 import { Table } from '../components/Table/Table';
 import type { Column } from '../components/Table/Table';
-import { useCreateGroup, useGroups } from '../features/groups/hooks';
+import { useCreateGroup, useGroups, useJoinGroup } from '../features/groups/hooks';
+import type { Group } from '../features/groups/types';
+import { useGames } from '../features/game-accounts/hooks';
+import type { Game } from '../features/game-accounts/types';
+import { setActiveGroupId } from '../utils/activeGroup';
+import { asArrayOrFallback } from '../utils/asArrayOrFallback';
 
-interface GroupRow {
-  id: string;
-  name: string;
-  game: string;
-  memberCount: number;
-  memberCap: number;
-  tier: 1 | 2 | 3 | 4 | 5;
-  role: '그룹장' | '멤버';
-}
-
-// TODO: the /groups API only returns { id, name, memberCount } today — extend the
-// backend contract with game/memberCap/tier/role and swap this mock for useGroups().
-const MOCK_GROUPS: GroupRow[] = [
-  { id: '1', name: '새벽 내전방', game: '리그 오브 레전드', memberCount: 10, memberCap: 10, tier: 2, role: '그룹장' },
-  { id: '2', name: '주말 발로 모임', game: '발로란트', memberCount: 7, memberCap: 10, tier: 3, role: '멤버' },
-  { id: '3', name: '회사 점심 내전', game: '오버워치 2', memberCount: 5, memberCap: 12, tier: 2, role: '멤버' },
+// TODO: no backend yet — shown when GET /groups fails or returns nothing, so the
+// design is still reviewable end-to-end without a live server.
+const MOCK_GROUPS: Group[] = [
+  { id: '1', name: '새벽 내전방', gameId: 1, memberCount: 10, memberCap: 10, inviteCode: 'A7K2-9QMD', myRole: 'owner', myInternalTier: 2 },
+  { id: '2', name: '주말 발로 모임', gameId: 2, memberCount: 7, memberCap: 10, inviteCode: 'B3F1-22XZ', myRole: 'member', myInternalTier: 3 },
+  { id: '3', name: '회사 점심 내전', gameId: 3, memberCount: 5, memberCap: 12, inviteCode: 'C9K0-77QP', myRole: 'member', myInternalTier: 2 },
 ];
+const MOCK_GAME_NAMES: Record<number, string> = { 1: '리그 오브 레전드', 2: '발로란트', 3: '오버워치 2' };
 
 const Header = styled.div`
   display: flex;
@@ -78,6 +74,11 @@ const JoinHint = styled.span`
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
+const JoinError = styled.span`
+  font: ${({ theme }) => theme.font.caption11};
+  color: ${({ theme }) => theme.color.state.danger};
+`;
+
 const TableWrap = styled.div`
   margin-top: ${({ theme }) => theme.space.xs}px;
 `;
@@ -114,31 +115,40 @@ const ModalActions = styled.div`
 export function GroupsPage() {
   const navigate = useNavigate();
   const { data: groups } = useGroups();
+  const { data: games } = useGames();
   const createGroup = useCreateGroup();
+  const joinGroup = useJoinGroup();
 
   const [joinKey, setJoinKey] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
 
-  const rows = Array.isArray(groups) && groups.length > 0
-    ? groups.map((g) => ({ ...g, game: '', memberCap: g.memberCount, tier: 2 as const, role: '멤버' as const }))
-    : MOCK_GROUPS;
+  const rows = asArrayOrFallback(groups, MOCK_GROUPS);
+  const gameName = (gameId: number) =>
+    asArrayOrFallback<Game>(games, []).find((g) => g.id === gameId)?.name
+      ?? MOCK_GAME_NAMES[gameId]
+      ?? '알 수 없음';
 
-  const columns: Column<GroupRow>[] = [
+  const enterGroup = (groupId: string) => {
+    setActiveGroupId(groupId);
+    navigate(`/groups/${groupId}/manage`);
+  };
+
+  const columns: Column<Group>[] = [
     { key: 'name', header: '그룹', render: (row) => row.name },
-    { key: 'game', header: '게임' },
+    { key: 'game', header: '게임', render: (row) => gameName(row.gameId) },
     { key: 'memberCount', header: '인원', render: (row) => `${row.memberCount} / ${row.memberCap}` },
     {
       key: 'tier',
       header: '내 티어',
-      render: (row) => <TierCell $tier={row.tier}>{row.tier}티어</TierCell>,
+      render: (row) => <TierCell $tier={row.myInternalTier}>{row.myInternalTier}티어</TierCell>,
     },
-    { key: 'role', header: '역할' },
+    { key: 'role', header: '역할', render: (row) => (row.myRole === 'owner' ? '그룹장' : '멤버') },
     {
       key: 'action',
       header: '',
       render: (row) => (
-        <Button $variant="ghost" $size="sm" onClick={() => navigate(`/groups/${row.id}/manage`)}>
+        <Button $variant="ghost" $size="sm" onClick={() => enterGroup(row.id)}>
           입장
         </Button>
       ),
@@ -148,14 +158,22 @@ export function GroupsPage() {
   const handleCreateGroup = () => {
     if (!newGroupName.trim()) return;
     createGroup.mutate(
-      { name: newGroupName },
+      { name: newGroupName, gameId: 1 },
       {
         onSuccess: (group) => {
           setCreateOpen(false);
           setNewGroupName('');
-          navigate(`/groups/${group.id}/manage`);
+          enterGroup(group.id);
         },
       },
+    );
+  };
+
+  const handleJoinGroup = () => {
+    if (!joinKey.trim()) return;
+    joinGroup.mutate(
+      { inviteCode: joinKey },
+      { onSuccess: (group) => enterGroup(group.id) },
     );
   };
 
@@ -167,7 +185,6 @@ export function GroupsPage() {
           <Subtitle>참여 중인 그룹 {rows.length}개</Subtitle>
         </div>
         <HeaderActions>
-          <Button $variant="ghost" $size="sm">그룹 키로 참여</Button>
           <Button $size="sm" onClick={() => setCreateOpen(true)}>그룹 만들기</Button>
         </HeaderActions>
       </Header>
@@ -178,8 +195,14 @@ export function GroupsPage() {
           onChange={(e) => setJoinKey(e.target.value)}
           placeholder="A7K2-9QMD"
         />
-        <Button $variant="ghost" $size="sm">참여</Button>
-        <JoinHint>친구에게 받은 8자리 코드를 입력하면 바로 참여돼요</JoinHint>
+        <Button $variant="ghost" $size="sm" onClick={handleJoinGroup} disabled={joinGroup.isPending}>
+          참여
+        </Button>
+        {joinGroup.isError ? (
+          <JoinError>키를 확인해주세요</JoinError>
+        ) : (
+          <JoinHint>친구에게 받은 8자리 코드를 입력하면 바로 참여돼요</JoinHint>
+        )}
       </JoinRow>
       <TableWrap>
         <Table columns={columns} data={rows} />

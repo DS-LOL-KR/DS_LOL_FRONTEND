@@ -1,33 +1,33 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/Button/Button';
 import { Modal } from '../components/Modal/Modal';
 import { Table } from '../components/Table/Table';
 import type { Column } from '../components/Table/Table';
+import {
+  useDeleteGroup,
+  useGroup,
+  useKickMember,
+  useRefreshInviteCode,
+  useTransferOwner,
+} from '../features/groups/hooks';
+import type { GroupMember } from '../features/groups/types';
+import { asArrayOrFallback } from '../utils/asArrayOrFallback';
+import { setActiveGroupId } from '../utils/activeGroup';
 
-interface Member {
-  id: string;
-  name: string;
-  isOwner: boolean;
-  tier: 1 | 2 | 3 | 4 | 5;
-  lane: string;
-  mmr: number;
-  joinedAt: string;
-}
-
-// TODO: no /groups/:id/members or invite-link endpoint yet — swap this mock for a
-// real query once the group detail API lands (see the 기능명세서 "그룹원 목록 보기" spec).
-const MOCK_MEMBERS: Member[] = [
-  { id: '1', name: '재현', isOwner: true, tier: 1, lane: 'MID', mmr: 1990, joinedAt: '26.05.02' },
-  { id: '2', name: '성현', isOwner: false, tier: 1, lane: 'MID', mmr: 1990, joinedAt: '26.05.04' },
-  { id: '3', name: '민석', isOwner: false, tier: 2, lane: 'JGL', mmr: 1865, joinedAt: '26.05.04' },
-  { id: '4', name: '지우', isOwner: false, tier: 2, lane: 'BOT', mmr: 1902, joinedAt: '26.05.11' },
-  { id: '5', name: '태윤', isOwner: false, tier: 3, lane: 'SUP', mmr: 1673, joinedAt: '26.06.01' },
-  { id: '6', name: '현우', isOwner: false, tier: 2, lane: 'TOP', mmr: 1858, joinedAt: '26.06.18' },
-  { id: '7', name: '서진', isOwner: false, tier: 4, lane: 'SUP', mmr: 1616, joinedAt: '26.07.02' },
+// TODO: no backend yet — shown when GET /groups/:id returns no roster.
+const MOCK_MEMBERS: GroupMember[] = [
+  { userId: '1', nickname: '재현', isOwner: true, internalTier: 1, mainLane: 'MID', mmr: 1990, joinedAt: '26.05.02' },
+  { userId: '2', nickname: '성현', isOwner: false, internalTier: 1, mainLane: 'MID', mmr: 1990, joinedAt: '26.05.04' },
+  { userId: '3', nickname: '민석', isOwner: false, internalTier: 2, mainLane: 'JGL', mmr: 1865, joinedAt: '26.05.04' },
+  { userId: '4', nickname: '지우', isOwner: false, internalTier: 2, mainLane: 'BOT', mmr: 1902, joinedAt: '26.05.11' },
+  { userId: '5', nickname: '태윤', isOwner: false, internalTier: 3, mainLane: 'SUP', mmr: 1673, joinedAt: '26.06.01' },
+  { userId: '6', nickname: '현우', isOwner: false, internalTier: 2, mainLane: 'TOP', mmr: 1858, joinedAt: '26.06.18' },
+  { userId: '7', nickname: '서진', isOwner: false, internalTier: 4, mainLane: 'SUP', mmr: 1616, joinedAt: '26.07.02' },
 ];
+const MOCK_INVITE_CODE = 'A7K2-9QMD';
 
 const Header = styled.div`
   display: flex;
@@ -156,13 +156,32 @@ const ModalActions = styled.div`
 `;
 
 export function GroupManagePage() {
+  const { id: groupId } = useParams();
   const navigate = useNavigate();
-  const [members, setMembers] = useState(MOCK_MEMBERS);
+  const { data: group } = useGroup(groupId ?? '');
+  const deleteGroup = useDeleteGroup(groupId ?? '');
+  const kickMember = useKickMember(groupId ?? '');
+  const transferOwner = useTransferOwner(groupId ?? '');
+  const refreshInviteCode = useRefreshInviteCode(groupId ?? '');
+
+  const [members, setMembers] = useState<GroupMember[]>(MOCK_MEMBERS);
+  const [inviteCode, setInviteCode] = useState(MOCK_INVITE_CODE);
   const [copied, setCopied] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [kickTarget, setKickTarget] = useState<Member | null>(null);
+  const [kickTarget, setKickTarget] = useState<GroupMember | null>(null);
 
-  const inviteLink = `ds-lol.gg/join/A7K2-9QMD`;
+  useEffect(() => {
+    if (groupId) setActiveGroupId(groupId);
+  }, [groupId]);
+
+  useEffect(() => {
+    if (group) {
+      setMembers(asArrayOrFallback<GroupMember>(group.members, MOCK_MEMBERS));
+      setInviteCode(group.inviteCode || MOCK_INVITE_CODE);
+    }
+  }, [group]);
+
+  const inviteLink = `ds-lol.gg/join/${inviteCode}`;
   const owner = members.find((m) => m.isOwner);
 
   const handleCopyLink = () => {
@@ -171,30 +190,46 @@ export function GroupManagePage() {
     setTimeout(() => setCopied(false), 1500);
   };
 
-  const handleTransferOwner = (memberId: string) => {
-    setMembers((prev) => prev.map((m) => ({ ...m, isOwner: m.id === memberId })));
+  const handleRefreshInviteCode = () => {
+    refreshInviteCode.mutate(undefined, {
+      onSuccess: (result) => setInviteCode(result.inviteCode),
+    });
+  };
+
+  const handleTransferOwner = (userId: string) => {
+    setMembers((prev) => prev.map((m) => ({ ...m, isOwner: m.userId === userId })));
+    transferOwner.mutate(userId);
   };
 
   const handleKickConfirmed = () => {
     if (!kickTarget) return;
-    setMembers((prev) => prev.filter((m) => m.id !== kickTarget.id));
+    setMembers((prev) => prev.filter((m) => m.userId !== kickTarget.userId));
+    kickMember.mutate(kickTarget.userId);
     setKickTarget(null);
   };
 
-  const columns: Column<Member>[] = [
+  const handleDeleteGroup = () => {
+    deleteGroup.mutate(undefined, { onSuccess: () => navigate('/groups') });
+  };
+
+  const columns: Column<GroupMember>[] = [
     {
-      key: 'name',
+      key: 'nickname',
       header: '그룹원',
       render: (m) => (
         <MemberCell>
           <MemberAvatar />
-          <MemberName>{m.name}</MemberName>
+          <MemberName>{m.nickname}</MemberName>
           {m.isOwner && <OwnerTag>그룹장</OwnerTag>}
         </MemberCell>
       ),
     },
-    { key: 'tier', header: '내부 티어', render: (m) => <TierCell $tier={m.tier}>{m.tier}티어</TierCell> },
-    { key: 'lane', header: '주 라인' },
+    {
+      key: 'internalTier',
+      header: '내부 티어',
+      render: (m) => <TierCell $tier={m.internalTier}>{m.internalTier}티어</TierCell>,
+    },
+    { key: 'mainLane', header: '주 라인' },
     { key: 'mmr', header: 'MMR' },
     { key: 'joinedAt', header: '가입일' },
     {
@@ -205,7 +240,7 @@ export function GroupManagePage() {
           <NoAction>—</NoAction>
         ) : (
           <ActionCell>
-            <Button $variant="ghost" $size="sm" onClick={() => handleTransferOwner(m.id)}>
+            <Button $variant="ghost" $size="sm" onClick={() => handleTransferOwner(m.userId)}>
               그룹장 위임
             </Button>
             <Button $variant="dangerGhost" $size="sm" onClick={() => setKickTarget(m)}>
@@ -220,9 +255,9 @@ export function GroupManagePage() {
     <PageLayout>
       <Header>
         <div>
-          <Title>새벽 내전방</Title>
+          <Title>{group?.name ?? '새벽 내전방'}</Title>
           <Subtitle>
-            그룹원 {members.length}명 · 내 역할 {owner?.name === '재현' ? '그룹장' : '멤버'}
+            그룹원 {members.length}명 · 내 역할 {owner?.isOwner ? '그룹장' : '멤버'}
           </Subtitle>
         </div>
         <Button $variant="dangerGhost" $size="sm" onClick={() => setDeleteOpen(true)}>
@@ -235,8 +270,9 @@ export function GroupManagePage() {
         <Button $variant="ghost" $size="sm" onClick={handleCopyLink}>
           {copied ? '복사됨' : '복사'}
         </Button>
-        {/* TODO: wire to a real reissue-key endpoint once it exists. */}
-        <Button $variant="ghost" $size="sm">키 재발급</Button>
+        <Button $variant="ghost" $size="sm" onClick={handleRefreshInviteCode} disabled={refreshInviteCode.isPending}>
+          키 재발급
+        </Button>
         <InviteHint>키가 유출됐다면 재발급하세요. 기존 링크는 즉시 만료됩니다</InviteHint>
       </InviteRow>
       <TableWrap>
@@ -248,12 +284,12 @@ export function GroupManagePage() {
         <ModalBody>그룹과 관련된 모든 내전 기록이 함께 삭제되며 되돌릴 수 없어요.</ModalBody>
         <ModalActions>
           <Button $variant="ghost" $size="sm" onClick={() => setDeleteOpen(false)}>취소</Button>
-          <Button $variant="danger" $size="sm" onClick={() => navigate('/groups')}>삭제</Button>
+          <Button $variant="danger" $size="sm" onClick={handleDeleteGroup} disabled={deleteGroup.isPending}>삭제</Button>
         </ModalActions>
       </Modal>
 
       <Modal open={Boolean(kickTarget)} onClose={() => setKickTarget(null)}>
-        <ModalTitle>{kickTarget?.name}님을 추방할까요?</ModalTitle>
+        <ModalTitle>{kickTarget?.nickname}님을 추방할까요?</ModalTitle>
         <ModalBody>추방된 그룹원은 초대 링크로 다시 참여할 수 있어요.</ModalBody>
         <ModalActions>
           <Button $variant="ghost" $size="sm" onClick={() => setKickTarget(null)}>취소</Button>

@@ -1,9 +1,13 @@
-import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/Button/Button';
 import { Table } from '../components/Table/Table';
 import type { Column } from '../components/Table/Table';
+import { useGroup } from '../features/groups/hooks';
+import { useMatches } from '../features/matches/hooks';
+import { setActiveGroupId } from '../utils/activeGroup';
 
 interface MatchRow {
   id: string;
@@ -15,8 +19,11 @@ interface MatchRow {
   mmrDelta: number;
 }
 
-// TODO: /groups/:id/matches only returns { id, scrimId, winningTeam, playedAt } today —
-// extend it with per-user game/team/KDA/MMR-delta, then swap this mock for useMatches().
+// TODO: GET /groups/:id/matches returns { id, groupId, gameId, mode, status, playedAt }
+// today — no per-user team/KDA/MMR-delta yet, so this list stays mocked until the
+// match-history read model exposes that (see /matches/:id/mmr-changes for the shape).
+// useMatches(groupId) is still called below so the group's real match count/status is
+// ready to swap in once the API grows those fields.
 const MOCK_MATCHES: MatchRow[] = [
   { id: '1', playedAt: '08.08 02:40', game: '리그 오브 레전드', team: 'blue', result: '승', kda: '9 / 2 / 11', mmrDelta: 14 },
   { id: '2', playedAt: '08.07 01:15', game: '리그 오브 레전드', team: 'red', result: '패', kda: '4 / 7 / 6', mmrDelta: -9 },
@@ -135,7 +142,14 @@ const MmrCell = styled.span<{ $positive: boolean }>`
 `;
 
 export function MatchHistoryPage() {
+  const { id: groupId } = useParams();
   const navigate = useNavigate();
+  const { data: group } = useGroup(groupId ?? '');
+  useMatches(groupId ?? '');
+
+  useEffect(() => {
+    if (groupId) setActiveGroupId(groupId);
+  }, [groupId]);
 
   const columns: Column<MatchRow>[] = [
     { key: 'playedAt', header: '일시' },
@@ -154,7 +168,7 @@ export function MatchHistoryPage() {
       key: 'action',
       header: '',
       render: (m) => (
-        <Button $variant="ghost" $size="sm" onClick={() => navigate(`/scrims/${m.id}`)}>
+        <Button $variant="ghost" $size="sm" onClick={() => navigate(`/matches/${m.id}`)}>
           상세
         </Button>
       ),
@@ -166,7 +180,7 @@ export function MatchHistoryPage() {
       <Header>
         <div>
           <Title>내전 기록</Title>
-          <Subtitle>새벽 내전방</Subtitle>
+          <Subtitle>{group?.name ?? '새벽 내전방'}</Subtitle>
         </div>
         {/* TODO: wire these to real date-range/game/result filters once the query params exist. */}
         <HeaderActions>
