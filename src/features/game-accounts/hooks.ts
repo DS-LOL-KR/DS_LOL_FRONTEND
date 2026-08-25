@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getChampionMasteries,
   getChampionStats,
-  getGameAccountStats,
+  getGameAccountFullStats,
   getGames,
   getMatchHistory,
   getMyGameAccounts,
@@ -11,7 +11,7 @@ import {
   syncMatchHistory,
   unlinkGameAccount,
 } from './api';
-import type { LinkGameAccountRequest } from './types';
+import type { LinkGameAccountRequest, SyncMatchHistoryRequest } from './types';
 
 export function useGames() {
   return useQuery({ queryKey: ['games'], queryFn: getGames });
@@ -32,7 +32,7 @@ export function useLinkGameAccount() {
 export function useUnlinkGameAccount() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (accountId: string) => unlinkGameAccount(accountId),
+    mutationFn: (accountId: number) => unlinkGameAccount(accountId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['game-accounts'] }),
   });
 }
@@ -40,47 +40,51 @@ export function useUnlinkGameAccount() {
 export function useRefreshGameAccount() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (accountId: string) => refreshGameAccount(accountId),
+    mutationFn: (accountId: number) => refreshGameAccount(accountId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['game-accounts'] }),
   });
 }
 
-export function useGameAccountStats(accountId: string) {
+export function useGameAccountFullStats(accountId: number) {
   return useQuery({
     queryKey: ['game-accounts', accountId, 'stats'],
-    queryFn: () => getGameAccountStats(accountId),
-    enabled: Boolean(accountId),
+    queryFn: () => getGameAccountFullStats(accountId),
+    enabled: Number.isFinite(accountId),
   });
 }
 
-export function useMatchHistory(accountId: string) {
+export function useMatchHistory(accountId: number) {
   return useQuery({
     queryKey: ['game-accounts', accountId, 'match-history'],
     queryFn: () => getMatchHistory(accountId),
-    enabled: Boolean(accountId),
+    enabled: Number.isFinite(accountId),
   });
 }
 
-export function useSyncMatchHistory(accountId: string) {
+export function useSyncMatchHistory(accountId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => syncMatchHistory(accountId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['game-accounts', accountId, 'match-history'] }),
+    mutationFn: (payload?: SyncMatchHistoryRequest) => syncMatchHistory(accountId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['game-accounts', accountId, 'match-history'] });
+      queryClient.invalidateQueries({ queryKey: ['game-accounts', accountId, 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['game-accounts', accountId, 'champion-stats'] });
+    },
   });
 }
 
-export function useChampionStats(accountId: string) {
+export function useChampionStats(accountId: number) {
   return useQuery({
     queryKey: ['game-accounts', accountId, 'champion-stats'],
     queryFn: () => getChampionStats(accountId),
-    enabled: Boolean(accountId),
+    enabled: Number.isFinite(accountId),
   });
 }
 
-export function useChampionMasteries(accountId: string) {
+export function useChampionMasteries(accountId: number) {
   return useQuery({
     queryKey: ['game-accounts', accountId, 'champion-masteries'],
     queryFn: () => getChampionMasteries(accountId),
-    enabled: Boolean(accountId),
+    enabled: Number.isFinite(accountId),
   });
 }

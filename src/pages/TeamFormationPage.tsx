@@ -1,12 +1,35 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import styled, { type DefaultTheme } from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/Button/Button';
 import { useGenerateTeams, useMatch, useUpdateTeams } from '../features/matches/hooks';
-import type { RationaleItem, Team, TeamPlayer } from '../features/matches/types';
-import { asArrayOrFallback } from '../utils/asArrayOrFallback';
+import type { TeamParticipant } from '../features/matches/types';
+import type { Position } from '../features/tiers/types';
 import { setActiveGroupId } from '../utils/activeGroup';
+
+// `custom_match_participants` (see ERD) only carries userId/assignedTeam/assignedPosition —
+// nickname/tier/mmr/balance-score/rationale aren't backend fields, they're computed
+// display-only values the AI-formation response is expected to add later. These
+// local types (and the mocks below) stay until /matches/:id/teams/generate documents
+// that richer shape.
+type Side = 'A' | 'B';
+
+interface TeamPlayer {
+  userId: number;
+  lane: Position;
+  nickname: string;
+  tier: 1 | 2 | 3 | 4 | 5;
+  mmr: number;
+  recentMmrDelta: number;
+  team: Side;
+}
+
+interface RationaleItem {
+  label: string;
+  detail: string;
+  value: string;
+}
 
 // TODO: no design frame covers the balance %/win-rate math precisely — these stay
 // as placeholders until /matches/:id/teams/generate documents its response shape.
@@ -15,16 +38,16 @@ const MOCK_EXPECTED_WIN_RATE = { teamA: 51, teamB: 49 };
 
 // TODO: no backend yet — shown when POST /matches/:id/teams/generate is unavailable.
 const MOCK_PLAYERS: TeamPlayer[] = [
-  { userId: '1', lane: 'TOP', nickname: '재훈', tier: 3, mmr: 1780, recentMmrDelta: 12, team: 'A' },
-  { userId: '2', lane: 'JGL', nickname: '민석', tier: 2, mmr: 1865, recentMmrDelta: 8, team: 'A' },
-  { userId: '3', lane: 'MID', nickname: '성현', tier: 1, mmr: 1990, recentMmrDelta: 14, team: 'A' },
-  { userId: '4', lane: 'BOT', nickname: '지우', tier: 2, mmr: 1902, recentMmrDelta: -3, team: 'A' },
-  { userId: '5', lane: 'SUP', nickname: '태윤', tier: 3, mmr: 1673, recentMmrDelta: 6, team: 'A' },
-  { userId: '6', lane: 'TOP', nickname: '현우', tier: 2, mmr: 1858, recentMmrDelta: 4, team: 'B' },
-  { userId: '7', lane: 'JGL', nickname: '도현', tier: 3, mmr: 1702, recentMmrDelta: -7, team: 'B' },
-  { userId: '8', lane: 'MID', nickname: '준서', tier: 1, mmr: 2015, recentMmrDelta: 11, team: 'B' },
-  { userId: '9', lane: 'BOT', nickname: '하늘', tier: 2, mmr: 1889, recentMmrDelta: 9, team: 'B' },
-  { userId: '10', lane: 'SUP', nickname: '서진', tier: 4, mmr: 1616, recentMmrDelta: -2, team: 'B' },
+  { userId: 1, lane: 'TOP', nickname: '재훈', tier: 3, mmr: 1780, recentMmrDelta: 12, team: 'A' },
+  { userId: 2, lane: 'JUG', nickname: '민석', tier: 2, mmr: 1865, recentMmrDelta: 8, team: 'A' },
+  { userId: 3, lane: 'MID', nickname: '성현', tier: 1, mmr: 1990, recentMmrDelta: 14, team: 'A' },
+  { userId: 4, lane: 'ADC', nickname: '지우', tier: 2, mmr: 1902, recentMmrDelta: -3, team: 'A' },
+  { userId: 5, lane: 'SUP', nickname: '태윤', tier: 3, mmr: 1673, recentMmrDelta: 6, team: 'A' },
+  { userId: 6, lane: 'TOP', nickname: '현우', tier: 2, mmr: 1858, recentMmrDelta: 4, team: 'B' },
+  { userId: 7, lane: 'JUG', nickname: '도현', tier: 3, mmr: 1702, recentMmrDelta: -7, team: 'B' },
+  { userId: 8, lane: 'MID', nickname: '준서', tier: 1, mmr: 2015, recentMmrDelta: 11, team: 'B' },
+  { userId: 9, lane: 'ADC', nickname: '하늘', tier: 2, mmr: 1889, recentMmrDelta: 9, team: 'B' },
+  { userId: 10, lane: 'SUP', nickname: '서진', tier: 4, mmr: 1616, recentMmrDelta: -2, team: 'B' },
 ];
 
 const MOCK_RATIONALE: RationaleItem[] = [
@@ -112,7 +135,7 @@ const BalanceLabels = styled.div`
   justify-content: space-between;
 `;
 
-const BalanceLabel = styled.div<{ $team: Team }>`
+const BalanceLabel = styled.div<{ $team: Side }>`
   display: flex;
   align-items: center;
   gap: 6px;
@@ -132,7 +155,7 @@ const Gauge = styled.div`
   width: 100%;
 `;
 
-const GaugeSegment = styled.div<{ $team: Team }>`
+const GaugeSegment = styled.div<{ $team: Side }>`
   flex: 1;
   height: 6px;
   border-radius: 1px;
@@ -151,7 +174,7 @@ const TeamColumn = styled.div<{ $side: 'left' | 'right' }>`
   padding-left: ${({ $side }) => ($side === 'right' ? '40px' : '0')};
 `;
 
-const TeamColorBar = styled.div<{ $team: Team }>`
+const TeamColorBar = styled.div<{ $team: Side }>`
   height: 2px;
   width: 100%;
   background: ${({ theme, $team }) => teamColor(theme, $team)};
@@ -175,7 +198,7 @@ const TeamName = styled.span`
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
-const TeamSideTag = styled.span<{ $team: Team }>`
+const TeamSideTag = styled.span<{ $team: Side }>`
   font: ${({ theme }) => theme.font.label12m};
   letter-spacing: 0.6px;
   color: ${({ theme, $team }) => teamColor(theme, $team)};
@@ -315,7 +338,7 @@ const RationaleValue = styled.span`
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
-function teamColor(theme: DefaultTheme, team: Team): string {
+function teamColor(theme: DefaultTheme, team: Side): string {
   return team === 'A' ? theme.color.team.blue : theme.color.team.red;
 }
 
@@ -332,56 +355,77 @@ function shuffleTeams(players: TeamPlayer[]): TeamPlayer[] {
 
 export function TeamFormationPage() {
   const { id } = useParams();
+  const matchId = Number(id);
   const navigate = useNavigate();
-  const { data: match } = useMatch(id ?? '');
-  const generateTeams = useGenerateTeams(id ?? '');
-  const updateTeams = useUpdateTeams(id ?? '');
+  const location = useLocation();
+  const { data: match } = useMatch(matchId);
+  const generateTeams = useGenerateTeams(matchId);
+  const updateTeams = useUpdateTeams(matchId);
 
   const [players, setPlayers] = useState<TeamPlayer[]>(MOCK_PLAYERS);
-  const [balanceScore, setBalanceScore] = useState(MOCK_BALANCE_SCORE);
-  const [expectedWinRate, setExpectedWinRate] = useState(MOCK_EXPECTED_WIN_RATE);
-  const [rationale, setRationale] = useState<RationaleItem[]>(MOCK_RATIONALE);
+  // Balance %/win-rate/rationale aren't backend fields (see comment above) — they
+  // stay fixed placeholders since there's no real source to refresh them from.
+  const balanceScore = MOCK_BALANCE_SCORE;
+  const expectedWinRate = MOCK_EXPECTED_WIN_RATE;
+  const rationale = MOCK_RATIONALE;
+
+  // Merge assignedTeam/assignedPosition from a real teams/generate or teams
+  // response onto the roster, keeping whatever nickname/tier/mmr we already have.
+  const applyAssignments = (participants: TeamParticipant[]) => {
+    setPlayers((prev) =>
+      prev.map((p) => {
+        const assignment = participants.find((a) => a.userId === p.userId);
+        if (!assignment) return p;
+        return {
+          ...p,
+          team: assignment.assignedTeam === 'TEAM_A' ? 'A' : 'B',
+          lane: assignment.assignedPosition ?? p.lane,
+        };
+      }),
+    );
+  };
 
   useEffect(() => {
-    if (match?.groupId) setActiveGroupId(match.groupId);
+    if (match?.groupId) setActiveGroupId(String(match.groupId));
   }, [match?.groupId]);
 
   useEffect(() => {
-    if (match?.teams) {
-      setPlayers(asArrayOrFallback(match.teams.players, MOCK_PLAYERS));
-      setBalanceScore(match.teams.balanceScore);
-      setExpectedWinRate(match.teams.expectedWinRate);
-      setRationale(asArrayOrFallback(match.teams.rationale, MOCK_RATIONALE));
-    } else if (match && !match.teams) {
-      generateTeams.mutate(undefined, {
-        onSuccess: (result) => {
-          setPlayers(result.players);
-          setBalanceScore(result.balanceScore);
-          setExpectedWinRate(result.expectedWinRate);
-          setRationale(result.rationale);
-        },
-      });
+    if (!match) return;
+    // GET /matches/:id now embeds `participants` directly — if teams were already
+    // generated (status MATCHED/FINISHED), use that instead of re-rolling on every
+    // visit. Only call teams/generate for a fresh WAITING match with no assignments.
+    if (match.participants && match.participants.length > 0) {
+      applyAssignments(match.participants);
+      return;
     }
+    const participantUserIds =
+      (location.state as { participantUserIds?: number[] } | null)?.participantUserIds ??
+      players.map((p) => p.userId);
+    generateTeams.mutate(
+      { participantUserIds },
+      { onSuccess: (result) => applyAssignments(result.participants), onError: () => setPlayers(shuffleTeams) },
+    );
     // Only react to the match query settling — generateTeams/setState identity
     // changes every render and would otherwise retrigger this.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [match]);
 
   const handleReshuffle = () => {
-    generateTeams.mutate(undefined, {
-      onSuccess: (result) => {
-        setPlayers(result.players);
-        setBalanceScore(result.balanceScore);
-        setExpectedWinRate(result.expectedWinRate);
-        setRationale(result.rationale);
-      },
-      onError: () => setPlayers(shuffleTeams),
-    });
+    generateTeams.mutate(
+      { participantUserIds: players.map((p) => p.userId) },
+      { onSuccess: (result) => applyAssignments(result.participants), onError: () => setPlayers(shuffleTeams) },
+    );
   };
 
   const handleConfirm = () => {
     updateTeams.mutate(
-      { players: players.map((p) => ({ userId: p.userId, team: p.team })) },
+      {
+        assignments: players.map((p) => ({
+          userId: p.userId,
+          assignedTeam: p.team === 'A' ? 'TEAM_A' : 'TEAM_B',
+          assignedPosition: p.lane,
+        })),
+      },
       { onSettled: () => navigate(`/matches/${id}`) },
     );
   };
@@ -399,11 +443,11 @@ export function TeamFormationPage() {
         <div>
           <Title>새벽 내전방</Title>
           <SubtitleRow>
-            <span>{match?.mode ?? '5v5'}</span>
+            <span>5v5</span>
             <span>·</span>
             <span>리그 오브 레전드</span>
             <span>·</span>
-            <span>{match?.playedAt ?? '08.08 02:40'}</span>
+            <span>08.08 02:40</span>
           </SubtitleRow>
         </div>
         <HeaderActions>

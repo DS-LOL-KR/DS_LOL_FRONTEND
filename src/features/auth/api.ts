@@ -8,8 +8,8 @@ export function googleLoginUrl(): string {
 }
 
 export async function getMe(): Promise<User> {
-  const { data } = await apiClient.get<User>('/users/me');
-  return data;
+  const { data } = await apiClient.get<{ user: User }>('/users/me');
+  return data.user;
 }
 
 export async function logout(): Promise<void> {

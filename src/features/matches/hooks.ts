@@ -10,41 +10,41 @@ import {
   submitEvaluation,
   updateTeams,
 } from './api';
-import type { CreateMatchRequest, FinishMatchRequest, SubmitEvaluationRequest, UpdateTeamsRequest } from './types';
+import type { FinishMatchRequest, GenerateTeamsRequest, SubmitEvaluationRequest, UpdateTeamsRequest } from './types';
 
-export function useMatches(groupId: string) {
+export function useMatches(groupId: number) {
   return useQuery({
     queryKey: ['matches', groupId],
     queryFn: () => getMatches(groupId),
-    enabled: Boolean(groupId),
+    enabled: Number.isFinite(groupId),
   });
 }
 
-export function useCreateMatch(groupId: string) {
+export function useCreateMatch(groupId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CreateMatchRequest) => createMatch(groupId, payload),
+    mutationFn: () => createMatch(groupId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['matches', groupId] }),
   });
 }
 
-export function useMatch(matchId: string) {
+export function useMatch(matchId: number) {
   return useQuery({
     queryKey: ['matches', 'detail', matchId],
     queryFn: () => getMatch(matchId),
-    enabled: Boolean(matchId),
+    enabled: Number.isFinite(matchId),
   });
 }
 
-export function useGenerateTeams(matchId: string) {
-  return useMutation({ mutationFn: () => generateTeams(matchId) });
+export function useGenerateTeams(matchId: number) {
+  return useMutation({ mutationFn: (payload: GenerateTeamsRequest) => generateTeams(matchId, payload) });
 }
 
-export function useUpdateTeams(matchId: string) {
+export function useUpdateTeams(matchId: number) {
   return useMutation({ mutationFn: (payload: UpdateTeamsRequest) => updateTeams(matchId, payload) });
 }
 
-export function useFinishMatch(matchId: string) {
+export function useFinishMatch(matchId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: FinishMatchRequest) => finishMatch(matchId, payload),
@@ -52,15 +52,15 @@ export function useFinishMatch(matchId: string) {
   });
 }
 
-export function useSubmitEvaluation(matchId: string) {
+export function useSubmitEvaluation(matchId: number) {
   return useMutation({ mutationFn: (payload: SubmitEvaluationRequest) => submitEvaluation(matchId, payload) });
 }
 
-export function useMmrChanges(matchId: string) {
+export function useMmrChanges(matchId: number) {
   return useQuery({
     queryKey: ['matches', matchId, 'mmr-changes'],
     queryFn: () => getMmrChanges(matchId),
-    enabled: Boolean(matchId),
+    enabled: Number.isFinite(matchId),
   });
 }
 

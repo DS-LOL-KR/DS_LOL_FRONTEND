@@ -12,24 +12,6 @@ import {
   useMyGameAccounts,
   useRefreshGameAccount,
 } from '../features/game-accounts/hooks';
-import type { Game, GameAccount } from '../features/game-accounts/types';
-import { asArrayOrFallback } from '../utils/asArrayOrFallback';
-
-// TODO: no backend yet — shown when GET /games or /users/me/game-accounts is empty.
-const MOCK_GAMES: Game[] = [
-  { id: 1, name: '리그 오브 레전드', code: 'LOL' },
-  { id: 2, name: '발로란트', code: 'VALORANT' },
-];
-const MOCK_GAME_ACCOUNTS: GameAccount[] = [
-  {
-    id: 1,
-    gameId: 1,
-    game: MOCK_GAMES[0],
-    summonerName: 'Hide on bush #KR1',
-    syncedAt: '12분 전 동기화',
-    stats: { id: 1, gameAccountId: 1, officialTier: '다이아몬드 IV', internalMmr: 1990 },
-  },
-];
 
 const Screen = styled.div`
   min-height: 100vh;
@@ -220,6 +202,12 @@ const ModalTitle = styled.p`
   margin-bottom: ${({ theme }) => theme.space.md}px;
 `;
 
+const ModalError = styled.p`
+  margin-top: ${({ theme }) => theme.space.xs}px;
+  font: ${({ theme }) => theme.font.caption11};
+  color: ${({ theme }) => theme.color.state.danger};
+`;
+
 const ModalActions = styled.div`
   display: flex;
   justify-content: flex-end;
@@ -241,6 +229,7 @@ export function ProfileSetupPage() {
   const [bio, setBio] = useState('');
   const [linkingGameId, setLinkingGameId] = useState<number | null>(null);
   const [riotIdInput, setRiotIdInput] = useState('');
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -263,10 +252,28 @@ export function ProfileSetupPage() {
 
   const handleLinkGameAccount = () => {
     if (linkingGameId === null || !riotIdInput.trim()) return;
+    const [gameName, tagLine] = riotIdInput.split('#');
+    if (!gameName || !tagLine) {
+      setLinkError('"이름#태그" 형식으로 입력해주세요 (예: Hide on bush#KR1)');
+      return;
+    }
+    setLinkError(null);
     linkGameAccount.mutate(
-      { gameId: linkingGameId, riotId: riotIdInput },
-      { onSuccess: () => { setLinkingGameId(null); setRiotIdInput(''); } },
+      { gameId: linkingGameId, gameName, tagLine },
+      {
+        onSuccess: () => {
+          setLinkingGameId(null);
+          setRiotIdInput('');
+        },
+        onError: (err) => setLinkError(err.message || '계정 연동에 실패했어요'),
+      },
     );
+  };
+
+  const closeLinkModal = () => {
+    setLinkingGameId(null);
+    setRiotIdInput('');
+    setLinkError(null);
   };
 
   const handleLogout = () => {
@@ -291,7 +298,7 @@ export function ProfileSetupPage() {
           <Spacer $size={24} />
           <Divider />
           <Row>
-            <Avatar $src={profile?.avatarUrl ?? undefined} />
+            <Avatar $src={profile?.profileImageUrl ?? undefined} />
             <AvatarInfo>
               <AvatarName>프로필 이미지</AvatarName>
               <AvatarHint>JPG, PNG · 5MB 이하</AvatarHint>
@@ -326,23 +333,23 @@ export function ProfileSetupPage() {
           <Field>
             <FieldLabel>게임 계정 연동</FieldLabel>
             <GameAccounts>
-              {asArrayOrFallback(games, MOCK_GAMES).map((game) => {
-                const accountList = asArrayOrFallback(gameAccounts, MOCK_GAME_ACCOUNTS);
-                const account = accountList.find((a) => a.gameId === game.id);
+              {(!games || games.length === 0) && <AccountHint>연동 가능한 게임을 불러오는 중이에요</AccountHint>}
+              {(games ?? []).map((game) => {
+                const account = (gameAccounts ?? []).find((a) => a.gameId === game.id);
                 return account ? (
                   <AccountCard key={game.id}>
                     <AccountInfo>
                       <AccountNameRow>
-                        <AccountName $linked>{account.summonerName}</AccountName>
+                        <AccountName $linked>{account.gameNickname}</AccountName>
                         <LinkedTag>연동됨</LinkedTag>
                       </AccountNameRow>
-                      <AccountHint>티어는 라이엇 API에서 자동으로 가져와요 · {account.syncedAt}</AccountHint>
+                      <AccountHint>티어는 라이엇 API에서 자동으로 가져와요 · {account.createdAt.slice(0, 10)} 연동</AccountHint>
                     </AccountInfo>
                     <TierBlock>
                       <TierLabel>게임 티어</TierLabel>
-                      <TierValue>{account.stats.officialTier}</TierValue>
+                      <TierValue>{account.stats?.officialTier ?? '미확인'}</TierValue>
                     </TierBlock>
-                    <RefreshAccountButton accountId={String(account.id)} />
+                    <RefreshAccountButton accountId={account.id} />
                   </AccountCard>
                 ) : (
                   <AccountCard key={game.id}>
@@ -370,7 +377,7 @@ export function ProfileSetupPage() {
         </Form>
       </Body>
 
-      <Modal open={linkingGameId !== null} onClose={() => setLinkingGameId(null)}>
+      <Modal open={linkingGameId !== null} onClose={closeLinkModal}>
         <ModalTitle>게임 계정 연동</ModalTitle>
         <Input
           value={riotIdInput}
@@ -378,10 +385,11 @@ export function ProfileSetupPage() {
           placeholder="Hide on bush#KR1"
           autoFocus
         />
+        {linkError && <ModalError>{linkError}</ModalError>}
         <ModalActions>
-          <Button $variant="ghost" $size="sm" onClick={() => setLinkingGameId(null)}>취소</Button>
+          <Button $variant="ghost" $size="sm" onClick={closeLinkModal}>취소</Button>
           <Button $size="sm" onClick={handleLinkGameAccount} disabled={linkGameAccount.isPending}>
-            연동
+            {linkGameAccount.isPending ? '연동 중...' : '연동'}
           </Button>
         </ModalActions>
       </Modal>
@@ -389,7 +397,7 @@ export function ProfileSetupPage() {
   );
 }
 
-function RefreshAccountButton({ accountId }: { accountId: string }) {
+function RefreshAccountButton({ accountId }: { accountId: number }) {
   const refresh = useRefreshGameAccount();
   return (
     <Button $variant="ghost" $size="sm" onClick={() => refresh.mutate(accountId)} disabled={refresh.isPending}>

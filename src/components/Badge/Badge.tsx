@@ -12,7 +12,7 @@ const StyledBadge = styled.span<{ $tier?: Tier }>`
   font: ${({ theme }) => theme.font.badge10};
   background: ${({ theme, $tier }) =>
     $tier ? theme.color.tier[$tier] : theme.color.surface.subtle};
-  color: ${({ theme }) => theme.color.text.primary};
+  color: ${({ theme, $tier }) => ($tier ? '#121315' : theme.color.text.primary)};
 `;
 
 export interface BadgeProps {

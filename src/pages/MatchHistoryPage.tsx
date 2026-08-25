@@ -7,39 +7,18 @@ import { Table } from '../components/Table/Table';
 import type { Column } from '../components/Table/Table';
 import { useGroup } from '../features/groups/hooks';
 import { useMatches } from '../features/matches/hooks';
+import { useGames } from '../features/game-accounts/hooks';
+import { useMe } from '../features/auth/hooks';
 import { setActiveGroupId } from '../utils/activeGroup';
 
 interface MatchRow {
-  id: string;
+  id: number;
   playedAt: string;
   game: string;
-  team: 'blue' | 'red';
-  result: '승' | '패';
-  kda: string;
+  team: 'blue' | 'red' | null;
+  result: '승' | '패' | '진행중';
   mmrDelta: number;
 }
-
-// TODO: GET /groups/:id/matches returns { id, groupId, gameId, mode, status, playedAt }
-// today — no per-user team/KDA/MMR-delta yet, so this list stays mocked until the
-// match-history read model exposes that (see /matches/:id/mmr-changes for the shape).
-// useMatches(groupId) is still called below so the group's real match count/status is
-// ready to swap in once the API grows those fields.
-const MOCK_MATCHES: MatchRow[] = [
-  { id: '1', playedAt: '08.08 02:40', game: '리그 오브 레전드', team: 'blue', result: '승', kda: '9 / 2 / 11', mmrDelta: 14 },
-  { id: '2', playedAt: '08.07 01:15', game: '리그 오브 레전드', team: 'red', result: '패', kda: '4 / 7 / 6', mmrDelta: -9 },
-  { id: '3', playedAt: '08.05 23:50', game: '발로란트', team: 'blue', result: '승', kda: '18 / 11 / 4', mmrDelta: 11 },
-  { id: '4', playedAt: '08.03 02:05', game: '리그 오브 레전드', team: 'red', result: '승', kda: '7 / 3 / 14', mmrDelta: 12 },
-  { id: '5', playedAt: '08.01 00:30', game: '오버워치 2', team: 'blue', result: '패', kda: '12 / 9 / 8', mmrDelta: -8 },
-  { id: '6', playedAt: '07.29 01:20', game: '리그 오브 레전드', team: 'blue', result: '패', kda: '2 / 8 / 5', mmrDelta: -11 },
-  { id: '7', playedAt: '07.27 23:10', game: '리그 오브 레전드', team: 'red', result: '승', kda: '11 / 4 / 9', mmrDelta: 13 },
-];
-
-const wins = MOCK_MATCHES.filter((m) => m.result === '승').length;
-const losses = MOCK_MATCHES.length - wins;
-const winRate = ((wins / MOCK_MATCHES.length) * 100).toFixed(1);
-const avgMmrDelta = (
-  MOCK_MATCHES.reduce((sum, m) => sum + m.mmrDelta, 0) / MOCK_MATCHES.length
-).toFixed(1);
 
 const Header = styled.div`
   display: flex;
@@ -108,6 +87,13 @@ const TableWrap = styled.div`
   margin-top: ${({ theme }) => theme.space.xs}px;
 `;
 
+const EmptyLabel = styled.p`
+  padding: ${({ theme }) => theme.space.lg}px 0;
+  font: ${({ theme }) => theme.font.body14};
+  color: ${({ theme }) => theme.color.text.secondary};
+  opacity: 0.7;
+`;
+
 const TeamCell = styled.div<{ $team: 'blue' | 'red' }>`
   display: flex;
   align-items: center;
@@ -123,15 +109,20 @@ const TeamCell = styled.div<{ $team: 'blue' | 'red' }>`
   }
 `;
 
-const ResultCell = styled.span<{ $win: boolean }>`
+const ResultCell = styled.span<{ $result: MatchRow['result'] }>`
   font: ${({ theme }) => theme.font.body14b};
-  color: ${({ theme, $win }) => ($win ? theme.color.state.success : theme.color.text.secondary)};
+  color: ${({ theme, $result }) => {
+    if ($result === '승') return theme.color.state.success;
+    if ($result === '패') return theme.color.text.secondary;
+    return theme.color.accent.blue;
+  }};
 `;
 
-const KdaCell = styled.span`
+const MutedCell = styled.span`
   font-family: 'IBM Plex Mono', monospace;
   font-size: 14px;
   color: ${({ theme }) => theme.color.text.secondary};
+  opacity: 0.6;
 `;
 
 const MmrCell = styled.span<{ $positive: boolean }>`
@@ -144,27 +135,63 @@ const MmrCell = styled.span<{ $positive: boolean }>`
 export function MatchHistoryPage() {
   const { id: groupId } = useParams();
   const navigate = useNavigate();
-  const { data: group } = useGroup(groupId ?? '');
-  useMatches(groupId ?? '');
+  const { data: group, isError: groupError } = useGroup(Number(groupId));
+  const { data: matches } = useMatches(Number(groupId));
+  const { data: games } = useGames();
+  const { data: me } = useMe();
 
   useEffect(() => {
     if (groupId) setActiveGroupId(groupId);
   }, [groupId]);
 
+  const gameList = games ?? [];
+
+  // GET /groups/:id/matches now embeds `participants` per match — derive the
+  // logged-in user's team/result/MMR-delta from that instead of mocking it.
+  const rows: MatchRow[] = (matches ?? []).map((m) => {
+    const mine = m.participants?.find((p) => p.userId === me?.id);
+    const team: MatchRow['team'] = mine ? (mine.assignedTeam === 'TEAM_A' ? 'blue' : 'red') : null;
+    const result: MatchRow['result'] =
+      m.status !== 'FINISHED' ? '진행중' : m.winningTeam === mine?.assignedTeam ? '승' : '패';
+    return {
+      id: m.id,
+      playedAt: m.createdAt.slice(0, 16).replace('T', ' '),
+      game: gameList.find((g) => g.id === m.gameId)?.name ?? `게임 #${m.gameId}`,
+      team,
+      result,
+      mmrDelta: mine?.mmrChange ?? 0,
+    };
+  });
+
+  const finished = rows.filter((r) => r.result !== '진행중');
+  const wins = finished.filter((r) => r.result === '승').length;
+  const losses = finished.length - wins;
+  const winRate = finished.length ? ((wins / finished.length) * 100).toFixed(1) : '0.0';
+  const avgMmrDelta = finished.length
+    ? (finished.reduce((sum, r) => sum + r.mmrDelta, 0) / finished.length).toFixed(1)
+    : '0.0';
+
   const columns: Column<MatchRow>[] = [
-    { key: 'playedAt', header: '일시', width: 120 },
+    { key: 'playedAt', header: '일시', width: 130 },
     { key: 'game', header: '게임' },
-    { key: 'team', header: '팀', width: 80, render: (m) => <TeamCell $team={m.team}>{m.team === 'blue' ? '블루' : '레드'}</TeamCell> },
-    { key: 'result', header: '결과', width: 60, render: (m) => <ResultCell $win={m.result === '승'}>{m.result}</ResultCell> },
-    { key: 'kda', header: 'KDA', width: 110, align: 'right', render: (m) => <KdaCell>{m.kda}</KdaCell> },
+    {
+      key: 'team',
+      header: '팀',
+      width: 80,
+      render: (m) => (m.team ? <TeamCell $team={m.team}>{m.team === 'blue' ? '블루' : '레드'}</TeamCell> : <MutedCell>-</MutedCell>),
+    },
+    { key: 'result', header: '결과', width: 60, render: (m) => <ResultCell $result={m.result}>{m.result}</ResultCell> },
     {
       key: 'mmrDelta',
       header: 'MMR',
       width: 70,
       align: 'right',
-      render: (m) => (
-        <MmrCell $positive={m.mmrDelta >= 0}>{m.mmrDelta > 0 ? `+${m.mmrDelta}` : m.mmrDelta}</MmrCell>
-      ),
+      render: (m) =>
+        m.result === '진행중' ? (
+          <MutedCell>-</MutedCell>
+        ) : (
+          <MmrCell $positive={m.mmrDelta >= 0}>{m.mmrDelta > 0 ? `+${m.mmrDelta}` : m.mmrDelta}</MmrCell>
+        ),
     },
     {
       key: 'action',
@@ -184,7 +211,7 @@ export function MatchHistoryPage() {
       <Header>
         <div>
           <Title>내전 기록</Title>
-          <Subtitle>{group?.name ?? '새벽 내전방'}</Subtitle>
+          <Subtitle>{group?.name ?? (groupError ? '그룹 정보를 불러올 수 없어요' : '불러오는 중...')}</Subtitle>
         </div>
         {/* TODO: wire these to real date-range/game/result filters once the query params exist. */}
         <HeaderActions>
@@ -197,7 +224,7 @@ export function MatchHistoryPage() {
         <Metric>
           <MetricLabel>총 전적</MetricLabel>
           <MetricValue>
-            {MOCK_MATCHES.length}
+            {rows.length}
             <MetricUnit> 전</MetricUnit>
           </MetricValue>
         </Metric>
@@ -214,11 +241,17 @@ export function MatchHistoryPage() {
         </Metric>
         <Metric>
           <MetricLabel>평균 MMR 변동</MetricLabel>
-          <MetricValue $tone="success">+{avgMmrDelta}</MetricValue>
+          <MetricValue $tone="success">
+            {Number(avgMmrDelta) > 0 ? `+${avgMmrDelta}` : avgMmrDelta}
+          </MetricValue>
         </Metric>
       </Metrics>
       <TableWrap>
-        <Table columns={columns} data={MOCK_MATCHES} />
+        {rows.length === 0 ? (
+          <EmptyLabel>아직 진행된 내전이 없어요</EmptyLabel>
+        ) : (
+          <Table columns={columns} data={rows} />
+        )}
       </TableWrap>
     </PageLayout>
   );

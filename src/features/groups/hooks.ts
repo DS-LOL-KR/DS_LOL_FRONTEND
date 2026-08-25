@@ -10,17 +10,17 @@ import {
   refreshInviteCode,
   transferOwner,
 } from './api';
-import type { CreateGroupRequest, JoinGroupRequest } from './types';
+import type { CreateGroupRequest, JoinGroupRequest, TransferOwnerRequest } from './types';
 
 export function useGroups() {
   return useQuery({ queryKey: ['groups'], queryFn: getGroups });
 }
 
-export function useGroup(groupId: string) {
+export function useGroup(groupId: number) {
   return useQuery({
     queryKey: ['groups', groupId],
     queryFn: () => getGroup(groupId),
-    enabled: Boolean(groupId),
+    enabled: Number.isFinite(groupId),
   });
 }
 
@@ -40,7 +40,7 @@ export function useJoinGroup() {
   });
 }
 
-export function useDeleteGroup(groupId: string) {
+export function useDeleteGroup(groupId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => deleteGroup(groupId),
@@ -48,30 +48,30 @@ export function useDeleteGroup(groupId: string) {
   });
 }
 
-export function useRefreshInviteCode(groupId: string) {
+export function useRefreshInviteCode(groupId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => refreshInviteCode(groupId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups', groupId] }),
+    onSuccess: (group) => queryClient.setQueryData(['groups', groupId], group),
   });
 }
 
-export function useKickMember(groupId: string) {
+export function useKickMember(groupId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (userId: string) => kickMember(groupId, userId),
+    mutationFn: (userId: number) => kickMember(groupId, userId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups', groupId] }),
   });
 }
 
-export function useLeaveGroup(groupId: string) {
+export function useLeaveGroup(groupId: number) {
   return useMutation({ mutationFn: () => leaveGroup(groupId) });
 }
 
-export function useTransferOwner(groupId: string) {
+export function useTransferOwner(groupId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (userId: string) => transferOwner(groupId, userId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups', groupId] }),
+    mutationFn: (payload: TransferOwnerRequest) => transferOwner(groupId, payload),
+    onSuccess: (group) => queryClient.setQueryData(['groups', groupId], group),
   });
 }

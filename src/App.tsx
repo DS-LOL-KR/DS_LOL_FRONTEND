@@ -11,6 +11,7 @@ import { MatchResultPage } from './pages/MatchResultPage';
 import { MatchEvaluationPage } from './pages/MatchEvaluationPage';
 import { MatchHistoryPage } from './pages/MatchHistoryPage';
 import { StatsPage } from './pages/StatsPage';
+import { UserProfilePage } from './pages/UserProfilePage';
 
 // GET /users/me doubles as the session check: 200 means the Google OAuth
 // cookie is valid, anything else (401, network error, no backend) means logged out.
@@ -37,6 +38,7 @@ function App() {
         <Route path="/matches/:id/evaluate" element={<MatchEvaluationPage />} />
         <Route path="/matches/:id" element={<MatchResultPage />} />
         <Route path="/stats" element={<StatsPage />} />
+        <Route path="/users/:id" element={<UserProfilePage />} />
       </Routes>
     </BrowserRouter>
   );

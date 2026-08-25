@@ -7,24 +7,16 @@ import { useMe } from '../features/auth/hooks';
 
 type RatingOption = '아쉬웠어요' | '무난했어요' | '좋았어요';
 const RATING_OPTIONS: RatingOption[] = ['아쉬웠어요', '무난했어요', '좋았어요'];
-const RATING_SCORE: Record<RatingOption, number> = { 아쉬웠어요: 1, 무난했어요: 2, 좋았어요: 3 };
+const RATING_SCORE: Record<RatingOption, 1 | 2 | 3 | 4 | 5> = { 아쉬웠어요: 1, 무난했어요: 3, 좋았어요: 5 };
 
+// No nickname/tier source for participants (no roster/join endpoint — see ERD),
+// so teammates are labeled by userId.
 interface Teammate {
-  id: string;
+  id: number;
   name: string;
   lane: string;
-  tier: 1 | 2 | 3 | 4 | 5;
   subtitle: string;
 }
-
-// TODO: no backend yet — shown until POST /matches/:id/teams/generate has run for
-// this match and GET /matches/:id returns real teams.
-const MOCK_TEAMMATES: Teammate[] = [
-  { id: '1', name: '민석', lane: 'JGL', tier: 2, subtitle: '4 / 2 / 13' },
-  { id: '2', name: '성현', lane: 'MID', tier: 1, subtitle: '9 / 3 / 7' },
-  { id: '3', name: '지우', lane: 'BOT', tier: 2, subtitle: '11 / 4 / 5' },
-  { id: '4', name: '태윤', lane: 'SUP', tier: 3, subtitle: '1 / 6 / 18' },
-];
 
 const Screen = styled.div`
   display: flex;
@@ -60,9 +52,16 @@ const ResultRow = styled.div`
   gap: 8px;
 `;
 
-const ResultLabel = styled.span<{ $won: boolean }>`
+const ResultLabel = styled.span<{ $won: boolean | null }>`
   font: ${({ theme }) => theme.font.body14b};
   color: ${({ theme, $won }) => ($won ? theme.color.state.success : theme.color.text.secondary)};
+`;
+
+const EmptyState = styled.p`
+  padding: ${({ theme }) => theme.space.lg}px 0;
+  font: ${({ theme }) => theme.font.body14};
+  color: ${({ theme }) => theme.color.text.secondary};
+  opacity: 0.7;
 `;
 
 const MatchInfo = styled.p`
@@ -143,11 +142,6 @@ const TeammateLane = styled.span`
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
-const TeammateTier = styled.span<{ $tier: 1 | 2 | 3 | 4 | 5 }>`
-  font: ${({ theme }) => theme.font.label12};
-  color: ${({ theme, $tier }) => theme.color.tier[$tier]};
-`;
-
 const TeammateKda = styled.span`
   display: block;
   margin-top: 3px;
@@ -193,38 +187,38 @@ const FooterActions = styled.div`
 export function MatchEvaluationPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { data: match } = useMatch(id ?? '');
+  const matchId = Number(id);
+  const { data: match } = useMatch(matchId);
   const { data: me } = useMe();
-  const submitEvaluation = useSubmitEvaluation(id ?? '');
-  const [ratings, setRatings] = useState<Record<string, RatingOption>>({});
+  const submitEvaluation = useSubmitEvaluation(matchId);
+  const [ratings, setRatings] = useState<Record<number, RatingOption>>({});
 
-  const myTeam = match?.teams?.players.find((p) => p.userId === me?.id)?.team;
-  const realTeammates: Teammate[] = match?.teams && myTeam
-    ? match.teams.players
-        .filter((p) => p.team === myTeam && p.userId !== me?.id)
+  // GET /matches/:id now embeds real `participants` — evaluations submit
+  // against real teammate ids.
+  const myTeam = match?.participants?.find((p) => p.userId === me?.id)?.assignedTeam;
+  const teammates: Teammate[] = match?.participants && myTeam
+    ? match.participants
+        .filter((p) => p.assignedTeam === myTeam && p.userId !== me?.id)
         .map((p) => ({
           id: p.userId,
-          name: p.nickname,
-          lane: p.lane,
-          tier: p.tier,
-          subtitle: `MMR ${p.mmr} · 최근 ${p.recentMmrDelta > 0 ? '+' : ''}${p.recentMmrDelta}`,
+          name: `유저 ${p.userId}`,
+          lane: p.assignedPosition ?? '-',
+          subtitle: `MMR 변동 ${p.mmrChange > 0 ? '+' : ''}${p.mmrChange}`,
         }))
     : [];
-  const teammates = realTeammates.length ? realTeammates : MOCK_TEAMMATES;
-
-  const won = myTeam ? match?.winningTeam === myTeam : true;
+  const won = myTeam ? match?.winningTeam === myTeam : null;
 
   const completedCount = Object.keys(ratings).length;
 
-  const handleSelect = (teammateId: string, option: RatingOption) => {
+  const handleSelect = (teammateId: number, option: RatingOption) => {
     setRatings((prev) => ({ ...prev, [teammateId]: option }));
   };
 
   const handleSubmit = () => {
     if (!id) return;
     Promise.all(
-      Object.entries(ratings).map(([targetUserId, option]) =>
-        submitEvaluation.mutateAsync({ targetUserId, score: RATING_SCORE[option] }),
+      Object.entries(ratings).map(([targetId, option]) =>
+        submitEvaluation.mutateAsync({ targetId: Number(targetId), score: RATING_SCORE[option] }),
       ),
     ).then(() => navigate(`/matches/${id}`));
   };
@@ -235,11 +229,11 @@ export function MatchEvaluationPage() {
         <PanelHeader>
           <PanelTitle>팀원 평가</PanelTitle>
           <ResultRow>
-            <ResultLabel $won={won}>{won ? '승리' : '패배'}</ResultLabel>
+            {won !== null && <ResultLabel $won={won}>{won ? '승리' : '패배'}</ResultLabel>}
           </ResultRow>
         </PanelHeader>
         <MatchInfo>
-          {match?.playedAt ?? '08.08 02:40'} · {match?.mode ?? '5v5'} · 전적은 자동으로 불러왔어요
+          {match ? match.createdAt.slice(0, 16).replace('T', ' ') : '불러오는 중...'} · 전적은 자동으로 불러왔어요
         </MatchInfo>
         <Divider />
         <ProgressRow>
@@ -247,6 +241,7 @@ export function MatchEvaluationPage() {
           <ProgressCount>{completedCount} / {teammates.length}명 완료</ProgressCount>
         </ProgressRow>
 
+        {teammates.length === 0 && <EmptyState>평가할 팀원이 없어요</EmptyState>}
         {teammates.map((mate) => (
           <TeammateRow key={mate.id}>
             <TeammateInfo>
@@ -255,7 +250,6 @@ export function MatchEvaluationPage() {
                 <TeammateNameRow>
                   <TeammateName>{mate.name}</TeammateName>
                   <TeammateLane>{mate.lane}</TeammateLane>
-                  <TeammateTier $tier={mate.tier}>{mate.tier}티어</TeammateTier>
                 </TeammateNameRow>
                 <TeammateKda>{mate.subtitle}</TeammateKda>
               </div>

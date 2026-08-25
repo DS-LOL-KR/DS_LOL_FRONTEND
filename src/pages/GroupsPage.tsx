@@ -10,18 +10,8 @@ import type { Column } from '../components/Table/Table';
 import { useCreateGroup, useGroups, useJoinGroup } from '../features/groups/hooks';
 import type { Group } from '../features/groups/types';
 import { useGames } from '../features/game-accounts/hooks';
-import type { Game } from '../features/game-accounts/types';
+import { useMe } from '../features/auth/hooks';
 import { setActiveGroupId } from '../utils/activeGroup';
-import { asArrayOrFallback } from '../utils/asArrayOrFallback';
-
-// TODO: no backend yet — shown when GET /groups fails or returns nothing, so the
-// design is still reviewable end-to-end without a live server.
-const MOCK_GROUPS: Group[] = [
-  { id: '1', name: '새벽 내전방', gameId: 1, memberCount: 10, memberCap: 10, inviteCode: 'A7K2-9QMD', myRole: 'owner', myInternalTier: 2 },
-  { id: '2', name: '주말 발로 모임', gameId: 2, memberCount: 7, memberCap: 10, inviteCode: 'B3F1-22XZ', myRole: 'member', myInternalTier: 3 },
-  { id: '3', name: '회사 점심 내전', gameId: 3, memberCount: 5, memberCap: 12, inviteCode: 'C9K0-77QP', myRole: 'member', myInternalTier: 2 },
-];
-const MOCK_GAME_NAMES: Record<number, string> = { 1: '리그 오브 레전드', 2: '발로란트', 3: '오버워치 2' };
 
 const Header = styled.div`
   display: flex;
@@ -83,22 +73,6 @@ const TableWrap = styled.div`
   margin-top: ${({ theme }) => theme.space.xs}px;
 `;
 
-const TierCell = styled.div<{ $tier: 1 | 2 | 3 | 4 | 5 }>`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-  color: ${({ theme, $tier }) => theme.color.tier[$tier]};
-  font: ${({ theme }) => theme.font.body14b};
-
-  &::before {
-    content: '';
-    width: 3px;
-    height: 12px;
-    background: ${({ theme, $tier }) => theme.color.tier[$tier]};
-  }
-`;
-
 const ModalTitle = styled.p`
   font: ${({ theme }) => theme.font.sub17};
   color: ${({ theme }) => theme.color.text.primary};
@@ -112,10 +86,24 @@ const ModalActions = styled.div`
   margin-top: ${({ theme }) => theme.space.md}px;
 `;
 
+const ModalError = styled.p`
+  margin-top: ${({ theme }) => theme.space.xs}px;
+  font: ${({ theme }) => theme.font.caption11};
+  color: ${({ theme }) => theme.color.state.danger};
+`;
+
+const EmptyLabel = styled.p`
+  padding: ${({ theme }) => theme.space.lg}px 0;
+  font: ${({ theme }) => theme.font.body14};
+  color: ${({ theme }) => theme.color.text.secondary};
+  opacity: 0.7;
+`;
+
 export function GroupsPage() {
   const navigate = useNavigate();
-  const { data: groups } = useGroups();
+  const { data: groups, isLoading: groupsLoading, isError: groupsError } = useGroups();
   const { data: games } = useGames();
+  const { data: me } = useMe();
   const createGroup = useCreateGroup();
   const joinGroup = useJoinGroup();
 
@@ -123,29 +111,24 @@ export function GroupsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
 
-  const rows = asArrayOrFallback(groups, MOCK_GROUPS);
-  const gameName = (gameId: number) =>
-    asArrayOrFallback<Game>(games, []).find((g) => g.id === gameId)?.name
-      ?? MOCK_GAME_NAMES[gameId]
-      ?? '알 수 없음';
+  const rows = groups ?? [];
+  const gameName = (gameId: number) => games?.find((g) => g.id === gameId)?.name ?? `게임 #${gameId}`;
 
-  const enterGroup = (groupId: string) => {
-    setActiveGroupId(groupId);
+  const enterGroup = (groupId: number) => {
+    setActiveGroupId(String(groupId));
     navigate(`/groups/${groupId}/manage`);
   };
 
   const columns: Column<Group>[] = [
     { key: 'name', header: '그룹', render: (row) => row.name },
     { key: 'game', header: '게임', width: 160, render: (row) => gameName(row.gameId) },
-    { key: 'memberCount', header: '인원', width: 90, align: 'right', render: (row) => `${row.memberCount} / ${row.memberCap}` },
     {
-      key: 'tier',
-      header: '내 티어',
+      key: 'role',
+      header: '역할',
       width: 90,
       align: 'right',
-      render: (row) => <TierCell $tier={row.myInternalTier}>{row.myInternalTier}티어</TierCell>,
+      render: (row) => (row.ownerId === me?.id ? '그룹장' : '멤버'),
     },
-    { key: 'role', header: '역할', width: 70, align: 'right', render: (row) => (row.myRole === 'owner' ? '그룹장' : '멤버') },
     {
       key: 'action',
       header: '',
@@ -177,7 +160,7 @@ export function GroupsPage() {
     if (!joinKey.trim()) return;
     joinGroup.mutate(
       { inviteCode: joinKey },
-      { onSuccess: (group) => enterGroup(group.id) },
+      { onSuccess: (membership) => enterGroup(membership.groupId) },
     );
   };
 
@@ -209,7 +192,15 @@ export function GroupsPage() {
         )}
       </JoinRow>
       <TableWrap>
-        <Table columns={columns} data={rows} />
+        {groupsLoading ? (
+          <EmptyLabel>불러오는 중...</EmptyLabel>
+        ) : groupsError ? (
+          <EmptyLabel>그룹 목록을 불러오지 못했어요</EmptyLabel>
+        ) : rows.length === 0 ? (
+          <EmptyLabel>참여 중인 그룹이 없어요. 그룹을 만들거나 초대 코드로 참여해보세요</EmptyLabel>
+        ) : (
+          <Table columns={columns} data={rows} />
+        )}
       </TableWrap>
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)}>
@@ -220,6 +211,7 @@ export function GroupsPage() {
           placeholder="그룹 이름"
           autoFocus
         />
+        {createGroup.isError && <ModalError>{createGroup.error.message || '그룹 생성에 실패했어요'}</ModalError>}
         <ModalActions>
           <Button $variant="ghost" $size="sm" onClick={() => setCreateOpen(false)}>취소</Button>
           <Button $size="sm" onClick={handleCreateGroup} disabled={createGroup.isPending}>만들기</Button>

@@ -5,46 +5,14 @@ import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/Button/Button';
 import { useCreateMatch } from '../features/matches/hooks';
 import { useGroup } from '../features/groups/hooks';
-import type { GroupMember } from '../features/groups/types';
 import { useGames } from '../features/game-accounts/hooks';
-import type { Game } from '../features/game-accounts/types';
 import { setActiveGroupId } from '../utils/activeGroup';
-import { asArrayOrFallback } from '../utils/asArrayOrFallback';
 
-type Lane = 'TOP' | 'JGL' | 'MID' | 'BOT' | 'SUP';
 type Mode = '5v5' | '3v3' | 'custom';
 type TeamMode = 'ai' | 'manual';
 type TierBasis = 'internal' | 'official';
 
-interface Participant {
-  id: string;
-  name: string;
-  lane: Lane;
-  tier: 1 | 2 | 3 | 4 | 5;
-}
-
-// TODO: no backend yet — shown when GET /games or the group roster is unavailable.
-const MOCK_GAMES: Game[] = [
-  { id: 1, name: '리그 오브 레전드', code: 'LOL' },
-  { id: 2, name: '발로란트', code: 'VALORANT' },
-  { id: 3, name: '오버워치 2', code: 'OW2' },
-];
-
 const MODE_TARGET: Record<Mode, number | null> = { '5v5': 10, '3v3': 6, custom: null };
-
-// TODO: no backend yet — shown when GET /groups/:id returns no roster.
-const MOCK_PARTICIPANTS: Participant[] = [
-  { id: '1', name: '재현', lane: 'MID', tier: 1 },
-  { id: '2', name: '성현', lane: 'MID', tier: 1 },
-  { id: '3', name: '민석', lane: 'JGL', tier: 2 },
-  { id: '4', name: '지우', lane: 'BOT', tier: 2 },
-  { id: '5', name: '태윤', lane: 'SUP', tier: 3 },
-  { id: '6', name: '현우', lane: 'TOP', tier: 2 },
-  { id: '7', name: '도현', lane: 'JGL', tier: 3 },
-  { id: '8', name: '준서', lane: 'MID', tier: 1 },
-  { id: '9', name: '하늘', lane: 'BOT', tier: 2 },
-  { id: '10', name: '서진', lane: 'SUP', tier: 4 },
-];
 
 const Header = styled.div`
   display: flex;
@@ -136,118 +104,54 @@ const ParticipantSummary = styled.div`
   gap: ${({ theme }) => theme.space.xs}px;
 `;
 
-const ParticipantCount = styled.span`
-  font: ${({ theme }) => theme.font.body14b};
-  color: ${({ theme }) => theme.color.text.primary};
-`;
-
 const ParticipantHint = styled.span<{ $match: boolean }>`
   font: ${({ theme }) => theme.font.label12};
   color: ${({ theme, $match }) => ($match ? theme.color.state.success : theme.color.text.secondary)};
 `;
 
-const ParticipantGrid = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  width: 100%;
+const NoticeLabel = styled.p`
   margin-top: ${({ theme }) => theme.space.sm}px;
-`;
-
-const ParticipantTile = styled.button<{ $selected: boolean }>`
-  flex: 1;
-  min-width: 90px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  padding: 12px 8px;
-  border: none;
-  border-left: 1px solid ${({ theme }) => theme.color.border.base};
-  background: none;
-  cursor: pointer;
-  opacity: ${({ $selected }) => ($selected ? 1 : 0.4)};
-
-  &:first-child {
-    border-left: none;
-  }
-`;
-
-const ParticipantName = styled.span`
-  font: ${({ theme }) => theme.font.body14b};
-  color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const ParticipantLane = styled.span`
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
-  letter-spacing: 0.3px;
+  font: ${({ theme }) => theme.font.body14};
   color: ${({ theme }) => theme.color.text.secondary};
-`;
-
-const ParticipantTier = styled.span<{ $tier: 1 | 2 | 3 | 4 | 5 }>`
-  font: ${({ theme }) => theme.font.label12};
-  color: ${({ theme, $tier }) => theme.color.tier[$tier]};
+  opacity: 0.7;
 `;
 
 export function MatchCreatePage() {
   const { id: groupId } = useParams();
   const navigate = useNavigate();
-  const createMatch = useCreateMatch(groupId ?? '');
-  const { data: group } = useGroup(groupId ?? '');
+  const createMatch = useCreateMatch(Number(groupId));
+  const { data: group, isError: groupError } = useGroup(Number(groupId));
   const { data: games } = useGames();
 
-  const gameList = asArrayOrFallback(games, MOCK_GAMES);
-  const groupMembers = asArrayOrFallback<GroupMember>(group?.members, []);
-  const participants: Participant[] = groupMembers.length
-    ? groupMembers.map((m) => ({
-        id: m.userId,
-        name: m.nickname,
-        lane: m.mainLane,
-        tier: m.internalTier,
-      }))
-    : MOCK_PARTICIPANTS;
+  const gameList = games ?? [];
 
-  const [gameId, setGameId] = useState(gameList[0]?.id ?? 1);
+  const [gameId, setGameId] = useState<number | undefined>(gameList[0]?.id);
   const [mode, setMode] = useState<Mode>('5v5');
   const [teamMode, setTeamMode] = useState<TeamMode>('ai');
   const [tierBasis, setTierBasis] = useState<TierBasis>('internal');
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    setSelected(new Set(participants.map((p) => p.id)));
-    // Only seed selection once the real roster arrives — participants' identity
-    // changes whenever `group` refetches, which would otherwise reset picks.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [group?.members]);
 
   useEffect(() => {
     if (groupId) setActiveGroupId(groupId);
   }, [groupId]);
 
+  useEffect(() => {
+    if (gameId === undefined && gameList[0]) setGameId(gameList[0].id);
+    // Only seed once the real game list arrives.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [games]);
+
   const target = MODE_TARGET[mode];
-  const matchesTarget = target !== null && selected.size === target;
 
-  const toggle = (participantId: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(participantId)) next.delete(participantId);
-      else next.add(participantId);
-      return next;
-    });
-  };
-
+  // POST /groups/:id/matches takes no body — the group's game is already fixed
+  // and team assignment happens afterwards via /matches/:id/teams/generate.
+  // gameId/mode/teamMode/tierBasis stay local until the backend grows fields for
+  // them. There's no "그룹원 목록" endpoint yet, so participants can't be picked
+  // here — /matches/:id/teams falls back to its own roster.
   const handleCreate = () => {
     if (!groupId) return;
-    createMatch.mutate(
-      {
-        gameId,
-        mode,
-        participantUserIds: Array.from(selected),
-        teamAssignment: teamMode,
-        tierBasis,
-      },
-      { onSuccess: (match) => navigate(`/matches/${match.id}/teams`) },
-    );
+    createMatch.mutate(undefined, {
+      onSuccess: (match) => navigate(`/matches/${match.id}/teams`),
+    });
   };
 
   return (
@@ -255,7 +159,7 @@ export function MatchCreatePage() {
       <Header>
         <div>
           <Title>새 내전</Title>
-          <Subtitle>{group?.name ?? '새벽 내전방'}</Subtitle>
+          <Subtitle>{group?.name ?? (groupError ? '그룹 정보를 불러올 수 없어요' : '불러오는 중...')}</Subtitle>
         </div>
         <Button onClick={handleCreate} disabled={createMatch.isPending}>AI로 팀 짜기</Button>
       </Header>
@@ -263,11 +167,15 @@ export function MatchCreatePage() {
       <Section>
         <SectionLabel>게임 종목</SectionLabel>
         <GameRow>
-          {gameList.map((g) => (
-            <GameChip key={g.id} $active={gameId === g.id} onClick={() => setGameId(g.id)}>
-              {g.name}
-            </GameChip>
-          ))}
+          {gameList.length === 0 ? (
+            <NoticeLabel>불러오는 중...</NoticeLabel>
+          ) : (
+            gameList.map((g) => (
+              <GameChip key={g.id} $active={gameId === g.id} onClick={() => setGameId(g.id)}>
+                {g.name}
+              </GameChip>
+            ))
+          )}
         </GameRow>
       </Section>
 
@@ -305,22 +213,11 @@ export function MatchCreatePage() {
         <SectionLabel>참여자</SectionLabel>
         <div style={{ flex: 1 }}>
           <ParticipantSummary>
-            <ParticipantCount>{selected.size}명 선택됨</ParticipantCount>
-            {target !== null && (
-              <ParticipantHint $match={matchesTarget}>
-                {matchesTarget ? `${mode}에 정확히 맞습니다` : `${mode}는 ${target}명이 필요해요`}
-              </ParticipantHint>
-            )}
+            {target !== null && <ParticipantHint $match={false}>{mode}는 {target}명이 필요해요</ParticipantHint>}
           </ParticipantSummary>
-          <ParticipantGrid>
-            {participants.map((p) => (
-              <ParticipantTile key={p.id} $selected={selected.has(p.id)} onClick={() => toggle(p.id)}>
-                <ParticipantName>{p.name}</ParticipantName>
-                <ParticipantLane>{p.lane}</ParticipantLane>
-                <ParticipantTier $tier={p.tier}>{p.tier}티어</ParticipantTier>
-              </ParticipantTile>
-            ))}
-          </ParticipantGrid>
+          <NoticeLabel>
+            그룹원 목록 기능이 아직 없어서 참여자를 직접 고를 수 없어요. 팀 구성 화면에서 전체 인원으로 배정돼요.
+          </NoticeLabel>
         </div>
       </Section>
     </PageLayout>

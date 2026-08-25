@@ -1,25 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/Button/Button';
 import { useMyMmrHistory } from '../features/matches/hooks';
-import type { MmrHistoryEntry } from '../features/matches/types';
-import { useMyGameAccounts, useRefreshGameAccount } from '../features/game-accounts/hooks';
-import type { GameAccount } from '../features/game-accounts/types';
-import { asArrayOrFallback } from '../utils/asArrayOrFallback';
-
-// TODO: no backend yet — shown when GET /users/me/mmr-history returns nothing.
-// The 그룹 내부 티어 metric also stays mocked: it's a per-group value, but this
-// route (/stats) is global — likely wants a /groups/:id/stats variant later.
-const MOCK_HISTORY: MmrHistoryEntry[] = [
-  { matchId: '1', playedAt: '08.08 내전', reason: '승리 +10 · 상대 티어 +2 · 팀원 평가 +2', delta: 14, mmrAfter: 1832 },
-  { matchId: '2', playedAt: '08.07 내전', reason: '패배 -12 · 개인 지표 +3', delta: -9, mmrAfter: 1818 },
-  { matchId: '3', playedAt: '08.05 발로란트', reason: '승리 +10 · 팀원 평가 +1', delta: 11, mmrAfter: 1827 },
-  { matchId: '4', playedAt: '08.03 내전', reason: '승리 +10 · 상대 티어 +2', delta: 12, mmrAfter: 1816 },
-  { matchId: '5', playedAt: '08.01 내전', reason: '패배 -12 · 팀원 평가 +4', delta: -8, mmrAfter: 1804 },
-  { matchId: '6', playedAt: '07.29 내전', reason: '패배 -12 · 개인 지표 +1', delta: -11, mmrAfter: 1812 },
-];
+import {
+  useChampionMasteries,
+  useChampionStats,
+  useMatchHistory,
+  useMyGameAccounts,
+  useRefreshGameAccount,
+  useSyncMatchHistory,
+} from '../features/game-accounts/hooks';
 
 const Header = styled.div`
   display: flex;
@@ -78,12 +70,6 @@ const MetricValue = styled.p<{ $tone?: 'success' | 'tier2' | 'tier1' }>`
   }};
 `;
 
-const MetricUnit = styled.span`
-  font-size: 15px;
-  font-weight: 400;
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
-
 const Columns = styled.div`
   display: flex;
   align-items: flex-start;
@@ -114,12 +100,20 @@ const ColumnHint = styled.span`
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
+const CHART_HEIGHT = 220;
+const MIN_BAR_HEIGHT = 36;
+
+const growIn = keyframes`
+  from { transform: scaleY(0); opacity: 0.4; }
+  to { transform: scaleY(1); opacity: 1; }
+`;
+
 const BarChart = styled.div`
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 4px;
-  height: 123px;
+  height: ${CHART_HEIGHT}px;
 `;
 
 const BarGroup = styled.div`
@@ -132,15 +126,18 @@ const BarGroup = styled.div`
   justify-content: flex-end;
 `;
 
-const Bar = styled.button<{ $height: number }>`
+const Bar = styled.button<{ $height: number; $delay: number; $active: boolean }>`
   width: 100%;
   height: ${({ $height }) => $height}px;
   border: none;
   border-radius: 2px;
   padding: 0;
   cursor: pointer;
-  background: ${({ theme }) => theme.color.border.base};
-  transition: background 0.12s ease;
+  transform-origin: bottom;
+  background: ${({ theme, $active }) => ($active ? theme.color.text.primary : theme.color.border.base)};
+  animation: ${growIn} 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: ${({ $delay }) => $delay}ms;
+  transition: height 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease;
 
   &:hover,
   &:focus-visible {
@@ -215,34 +212,157 @@ const ChangeDelta = styled.span<{ $positive: boolean }>`
   color: ${({ theme, $positive }) => ($positive ? theme.color.state.success : theme.color.state.danger)};
 `;
 
+const RiotSection = styled.div`
+  padding-top: ${({ theme }) => theme.space.lg}px;
+  border-top: 1px solid ${({ theme }) => theme.color.border.base};
+`;
+
+const SectionTitle = styled.p`
+  font: ${({ theme }) => theme.font.title22};
+  letter-spacing: -0.3px;
+  color: ${({ theme }) => theme.color.text.primary};
+  padding-bottom: ${({ theme }) => theme.space.sm}px;
+`;
+
+const EmptyHint = styled.p`
+  font: ${({ theme }) => theme.font.body14};
+  color: ${({ theme }) => theme.color.text.secondary};
+  opacity: 0.7;
+  padding: ${({ theme }) => theme.space.sm}px 0;
+`;
+
+const MatchRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.space.sm}px;
+  padding: 10px 0;
+  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const MatchResultTag = styled.span<{ $win: boolean }>`
+  width: 26px;
+  font: ${({ theme }) => theme.font.label12m};
+  color: ${({ theme, $win }) => ($win ? theme.color.state.success : theme.color.text.secondary)};
+`;
+
+const MatchChampion = styled.span`
+  flex: 1;
+  min-width: 0;
+  font: ${({ theme }) => theme.font.body14b};
+  color: ${({ theme }) => theme.color.text.primary};
+`;
+
+const MatchMeta = styled.span`
+  width: 70px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  color: ${({ theme }) => theme.color.text.secondary};
+`;
+
+const MatchKda = styled.span`
+  width: 100px;
+  text-align: right;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  color: ${({ theme }) => theme.color.text.secondary};
+`;
+
+const ChampRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.space.sm}px;
+  padding: 10px 0;
+  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const ChampName = styled.span`
+  flex: 1;
+  min-width: 0;
+  font: ${({ theme }) => theme.font.body14b};
+  color: ${({ theme }) => theme.color.text.primary};
+`;
+
+const ChampMastery = styled.span`
+  font: ${({ theme }) => theme.font.caption11};
+  color: ${({ theme }) => theme.color.text.secondary};
+`;
+
+const ChampRecord = styled.span`
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  color: ${({ theme }) => theme.color.text.secondary};
+`;
+
 export function StatsPage() {
   const navigate = useNavigate();
   const [refreshing, setRefreshing] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [activeBar, setActiveBar] = useState<number | null>(null);
   const { data: mmrHistory } = useMyMmrHistory();
   const { data: gameAccounts } = useMyGameAccounts();
   const refreshGameAccount = useRefreshGameAccount();
 
-  const history = asArrayOrFallback<MmrHistoryEntry>(mmrHistory, MOCK_HISTORY);
+  const history = mmrHistory ?? [];
   const trendSeries = [...history].reverse();
-  const mmrValues = trendSeries.map((h) => h.mmrAfter);
-  const minMmr = Math.min(...mmrValues);
-  const maxMmr = Math.max(...mmrValues);
-  const mmrRange = maxMmr - minMmr || 1;
-  const barHeights = mmrValues.map((v) => 30 + ((v - minMmr) / mmrRange) * 93);
+  const myGameAccounts = gameAccounts ?? [];
+  const primaryAccount = myGameAccounts[0];
+  const currentMmr = primaryAccount?.stats?.internalMmr ?? null;
 
-  const currentMmr = trendSeries[trendSeries.length - 1]?.mmrAfter ?? 1832;
-  const recentDelta = history.reduce((sum, h) => sum + h.delta, 0);
-  const myGameAccounts = asArrayOrFallback<GameAccount>(gameAccounts, []);
-  const officialTier = myGameAccounts[0]?.stats.officialTier ?? '다이아 IV';
+  const accountId = Number(primaryAccount?.id);
+  const { data: matchHistory } = useMatchHistory(accountId);
+  const { data: championStats } = useChampionStats(accountId);
+  const { data: championMasteries } = useChampionMasteries(accountId);
+  const syncMatchHistory = useSyncMatchHistory(accountId);
+
+  const recentMatches = matchHistory ?? [];
+  const champStats = championStats ?? [];
+  const masteries = championMasteries ?? [];
+  const masteryByChampion = new Map(masteries.map((m) => [m.championId, m]));
+
+  // `custom_match_participants.mmr_change` (see ERD) is a per-match delta, not a
+  // stored running total — walk backwards from the current MMR to reconstruct the
+  // "MMR after each match" series the trend chart plots. Needs a known current
+  // MMR to anchor to, so the chart stays empty without a linked game account.
+  const mmrAfterSeries: number[] = currentMmr === null ? [] : new Array(trendSeries.length);
+  if (currentMmr !== null && trendSeries.length > 0) {
+    mmrAfterSeries[trendSeries.length - 1] = currentMmr;
+    for (let i = trendSeries.length - 2; i >= 0; i--) {
+      mmrAfterSeries[i] = mmrAfterSeries[i + 1] - trendSeries[i + 1].mmrChange;
+    }
+  }
+  const minMmr = mmrAfterSeries.length ? Math.min(...mmrAfterSeries) : 0;
+  const maxMmr = mmrAfterSeries.length ? Math.max(...mmrAfterSeries) : 0;
+  const mmrRange = maxMmr - minMmr || 1;
+  const barHeights = mmrAfterSeries.map((v) => MIN_BAR_HEIGHT + ((v - minMmr) / mmrRange) * (CHART_HEIGHT - MIN_BAR_HEIGHT));
+
+  const recentDelta = history.reduce((sum, h) => sum + h.mmrChange, 0);
+  const officialTier = primaryAccount?.stats?.officialTier ?? null;
 
   const handleRefresh = () => {
+    if (!primaryAccount) return;
     setRefreshing(true);
-    const account = myGameAccounts[0];
-    if (account) {
-      refreshGameAccount.mutate(String(account.id), { onSettled: () => setRefreshing(false) });
-    } else {
-      setTimeout(() => setRefreshing(false), 800);
-    }
+    refreshGameAccount.mutate(primaryAccount.id, { onSettled: () => setRefreshing(false) });
+  };
+
+  // Growing the bar to full height before navigating gives the click somewhere
+  // to land — the trend "shoots up" instead of instantly cutting to a new page.
+  const handleBarClick = (i: number, matchId: number) => {
+    setActiveBar(i);
+    window.setTimeout(() => navigate(`/matches/${matchId}`), 260);
+  };
+
+  const handleSync = () => {
+    if (!primaryAccount) return;
+    setSyncing(true);
+    syncMatchHistory.mutate(undefined, { onSettled: () => setSyncing(false) });
   };
 
   return (
@@ -252,30 +372,28 @@ export function StatsPage() {
           <Title>내 전적</Title>
           <Subtitle>전적은 하루 1회 자동 갱신 · 12분 전 갱신</Subtitle>
         </div>
-        <Button onClick={handleRefresh} disabled={refreshing}>
+        <Button onClick={handleRefresh} disabled={refreshing || !primaryAccount}>
           {refreshing ? '갱신 중...' : '지금 갱신'}
         </Button>
       </Header>
       <Metrics>
         <Metric>
           <MetricLabel>현재 MMR</MetricLabel>
-          <MetricValue>{currentMmr}</MetricValue>
+          <MetricValue>{currentMmr ?? '-'}</MetricValue>
         </Metric>
         <Metric>
           <MetricLabel>30일 변동</MetricLabel>
           <MetricValue $tone={recentDelta >= 0 ? 'success' : undefined}>
-            {recentDelta > 0 ? `+${recentDelta}` : recentDelta}
+            {history.length === 0 ? '-' : recentDelta > 0 ? `+${recentDelta}` : recentDelta}
           </MetricValue>
         </Metric>
         <Metric>
           <MetricLabel>그룹 내부 티어</MetricLabel>
-          <MetricValue $tone="tier2">
-            2<MetricUnit> 티어</MetricUnit>
-          </MetricValue>
+          <MetricValue>준비 중</MetricValue>
         </Metric>
         <Metric>
           <MetricLabel>게임 공식 티어</MetricLabel>
-          <MetricValue $tone="tier1">{officialTier}</MetricValue>
+          <MetricValue $tone="tier1">{officialTier ?? (primaryAccount ? '언랭크' : '연동 필요')}</MetricValue>
         </Metric>
       </Metrics>
       <Columns>
@@ -284,35 +402,95 @@ export function StatsPage() {
             <ColumnTitle>MMR 추이</ColumnTitle>
             <ColumnHint>최근 {trendSeries.length}경기</ColumnHint>
           </ColumnHeader>
-          <BarChart>
-            {barHeights.map((height, i) => (
-              <BarGroup key={i}>
-                <Bar
-                  $height={height}
-                  title={`${trendSeries[i].playedAt} · ${trendSeries[i].mmrAfter} MMR`}
-                  onClick={() => navigate(`/matches/${trendSeries[i].matchId}`)}
-                />
-                <BarIndex>{i + 1}</BarIndex>
-              </BarGroup>
-            ))}
-          </BarChart>
+          {barHeights.length === 0 ? (
+            <EmptyHint>{primaryAccount ? '아직 집계된 내전 기록이 없어요' : '게임 계정을 연동하면 표시돼요'}</EmptyHint>
+          ) : (
+            <BarChart>
+              {barHeights.map((height, i) => (
+                <BarGroup key={i}>
+                  <Bar
+                    $height={activeBar === i ? CHART_HEIGHT : height}
+                    $active={activeBar === i}
+                    $delay={i * 40}
+                    title={`${trendSeries[i].playedAt} · ${mmrAfterSeries[i]} MMR`}
+                    onClick={() => handleBarClick(i, trendSeries[i].matchId)}
+                  />
+                  <BarIndex>{i + 1}</BarIndex>
+                </BarGroup>
+              ))}
+            </BarChart>
+          )}
         </TrendColumn>
         <ChangesColumn>
           <ChangesHeader>
             <ChangesTitle>변동 내역</ChangesTitle>
             <ChangesHint>항목별 내역</ChangesHint>
           </ChangesHeader>
-          {history.map((c) => (
-            <ChangeRow key={c.matchId}>
-              <ChangeInfo>
-                <ChangeLabel>{c.playedAt}</ChangeLabel>
-                <ChangeReason>{c.reason}</ChangeReason>
-              </ChangeInfo>
-              <ChangeDelta $positive={c.delta >= 0}>{c.delta > 0 ? `+${c.delta}` : c.delta}</ChangeDelta>
-            </ChangeRow>
-          ))}
+          {history.length === 0 ? (
+            <EmptyHint>아직 집계된 변동 내역이 없어요</EmptyHint>
+          ) : (
+            history.map((c) => (
+              <ChangeRow key={c.matchId}>
+                <ChangeInfo>
+                  <ChangeLabel>{c.playedAt}</ChangeLabel>
+                  <ChangeReason>그룹 #{c.groupId} 내전</ChangeReason>
+                </ChangeInfo>
+                <ChangeDelta $positive={c.mmrChange >= 0}>
+                  {c.mmrChange > 0 ? `+${c.mmrChange}` : c.mmrChange}
+                </ChangeDelta>
+              </ChangeRow>
+            ))
+          )}
         </ChangesColumn>
       </Columns>
+
+      <RiotSection>
+        <SectionTitle>라이엇 전적</SectionTitle>
+        <Columns>
+          <TrendColumn>
+            <ColumnHeader>
+              <ColumnTitle>최근 매치</ColumnTitle>
+              <Button $variant="ghost" $size="sm" onClick={handleSync} disabled={syncing || !primaryAccount}>
+                {syncing ? '동기화 중...' : '전적 동기화'}
+              </Button>
+            </ColumnHeader>
+            {recentMatches.length === 0 ? (
+              <EmptyHint>동기화된 매치가 없어요</EmptyHint>
+            ) : (
+              recentMatches.map((m) => (
+                <MatchRow key={m.matchId}>
+                  <MatchResultTag $win={m.win}>{m.win ? '승' : '패'}</MatchResultTag>
+                  <MatchChampion>챔피언 #{m.championId}</MatchChampion>
+                  <MatchMeta>{m.position}</MatchMeta>
+                  <MatchKda>{m.kills} / {m.deaths} / {m.assists}</MatchKda>
+                </MatchRow>
+              ))
+            )}
+          </TrendColumn>
+          <ChangesColumn>
+            <ChangesHeader>
+              <ChangesTitle>챔피언 전적</ChangesTitle>
+              <ChangesHint>숙련도 순</ChangesHint>
+            </ChangesHeader>
+            {champStats.length === 0 ? (
+              <EmptyHint>동기화된 챔피언 전적이 없어요</EmptyHint>
+            ) : (
+              champStats.map((c) => {
+                const mastery = masteryByChampion.get(c.championId);
+                return (
+                  <ChampRow key={c.championId}>
+                    <ChampName>챔피언 #{c.championId}</ChampName>
+                    {mastery && <ChampMastery>숙련도 {mastery.masteryLevel}</ChampMastery>}
+                    <ChampRecord>
+                      {c.wins}승 {c.losses}패 · {Math.round(c.winRate * 100)}%
+                    </ChampRecord>
+                  </ChampRow>
+                );
+              })
+            )}
+          </ChangesColumn>
+        </Columns>
+      </RiotSection>
     </PageLayout>
   );
 }

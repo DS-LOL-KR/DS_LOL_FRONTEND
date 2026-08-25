@@ -1,26 +1,18 @@
-export interface GroupMember {
-  userId: string;
-  nickname: string;
-  isOwner: boolean;
-  internalTier: 1 | 2 | 3 | 4 | 5;
-  mainLane: 'TOP' | 'JGL' | 'MID' | 'BOT' | 'SUP';
-  mmr: number;
-  joinedAt: string;
-}
-
 export interface Group {
-  id: string;
+  id: number;
   name: string;
+  ownerId: number;
   gameId: number;
-  memberCount: number;
-  memberCap: number;
   inviteCode: string;
-  myRole: 'owner' | 'member';
-  myInternalTier: 1 | 2 | 3 | 4 | 5;
+  createdAt: string;
 }
 
-export interface GroupDetail extends Group {
-  members: GroupMember[];
+export interface Membership {
+  id: number;
+  groupId: number;
+  userId: number;
+  role: 'OWNER' | 'MEMBER';
+  joinedAt: string;
 }
 
 export interface CreateGroupRequest {
@@ -30,4 +22,21 @@ export interface CreateGroupRequest {
 
 export interface JoinGroupRequest {
   inviteCode: string;
+}
+
+export interface TransferOwnerRequest {
+  newOwnerId: number;
+}
+
+// TODO: no "그룹원 목록" endpoint exists yet — GET /groups/:id's spec doc explicitly
+// leaves open whether members are included inline or via a separate endpoint. This
+// type describes what the UI needs; it isn't backed by any real response today.
+export interface GroupMember {
+  userId: number;
+  nickname: string;
+  isOwner: boolean;
+  internalTier: 1 | 2 | 3 | 4 | 5;
+  mainLane: 'TOP' | 'JUG' | 'MID' | 'ADC' | 'SUP';
+  mmr: number;
+  joinedAt: string;
 }

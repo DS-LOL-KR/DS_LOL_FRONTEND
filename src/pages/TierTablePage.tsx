@@ -1,30 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/Button/Button';
+import { Avatar } from '../components/Avatar/Avatar';
+import { LaneIcon } from '../components/LaneIcon/LaneIcon';
+import { WinRateBar } from '../components/WinRateBar/WinRateBar';
 import { useRecalculateTiers, useTierTable } from '../features/tiers/hooks';
-import type { Lane, TierEntry } from '../features/tiers/types';
-import { asArrayOrFallback } from '../utils/asArrayOrFallback';
+import type { Position, TierEntry } from '../features/tiers/types';
 import { setActiveGroupId } from '../utils/activeGroup';
 
 type Tier = 1 | 2 | 3 | 4 | 5;
-const LANES: Lane[] = ['TOP', 'JGL', 'MID', 'BOT', 'SUP'];
+const POSITIONS: Position[] = ['TOP', 'JUG', 'MID', 'ADC', 'SUP'];
 const TIERS: Tier[] = [1, 2, 3, 4, 5];
-
-// TODO: no backend yet — shown when GET /groups/:id/tiers returns nothing.
-const MOCK_MEMBERS: TierEntry[] = [
-  { userId: '1', nickname: '성현', lane: 'MID', tier: 1, wins: 12, losses: 4, mmr: 1990 },
-  { userId: '2', nickname: '준서', lane: 'MID', tier: 1, wins: 15, losses: 6, mmr: 2015 },
-  { userId: '3', nickname: '민석', lane: 'JGL', tier: 2, wins: 9, losses: 7, mmr: 1865 },
-  { userId: '4', nickname: '지우', lane: 'BOT', tier: 2, wins: 11, losses: 5, mmr: 1902 },
-  { userId: '5', nickname: '현우', lane: 'TOP', tier: 2, wins: 8, losses: 8, mmr: 1858 },
-  { userId: '6', nickname: '하늘', lane: 'BOT', tier: 2, wins: 10, losses: 6, mmr: 1889 },
-  { userId: '7', nickname: '재훈', lane: 'TOP', tier: 3, wins: 6, losses: 9, mmr: 1780 },
-  { userId: '8', nickname: '도현', lane: 'JGL', tier: 3, wins: 5, losses: 10, mmr: 1702 },
-  { userId: '9', nickname: '태윤', lane: 'SUP', tier: 3, wins: 4, losses: 8, mmr: 1673 },
-  { userId: '10', nickname: '서진', lane: 'SUP', tier: 4, wins: 3, losses: 11, mmr: 1616 },
-];
 
 const Header = styled.div`
   display: flex;
@@ -59,23 +47,15 @@ const LaneTabs = styled.div`
 
 const LaneTab = styled.button<{ $active: boolean }>`
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 6px;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0;
+  padding: 0 0 6px;
+  border-bottom: 2px solid ${({ theme, $active }) => ($active ? theme.color.text.primary : 'transparent')};
   font: ${({ theme, $active }) => ($active ? theme.font.small13b : theme.font.small13)};
   color: ${({ theme, $active }) => ($active ? theme.color.text.primary : theme.color.text.secondary)};
-
-  &::after {
-    content: '';
-    display: block;
-    width: 28px;
-    height: 2px;
-    background: ${({ theme, $active }) => ($active ? theme.color.text.primary : 'transparent')};
-  }
 `;
 
 const TierSection = styled.div`
@@ -107,7 +87,7 @@ const TierName = styled.span<{ $tier: Tier }>`
 
 const TierCount = styled.span`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px;
+  font-size: 15px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -120,29 +100,60 @@ const MemberRow = styled.div`
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.space.md}px;
-  padding: 7px 0;
+  padding: 8px 0;
 `;
 
-const LaneTag = styled.span`
-  width: 46px;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
-  letter-spacing: 0.3px;
+const LaneBadge = styled.div`
+  width: 26px;
+  height: 26px;
+  border-radius: ${({ theme }) => theme.radius.sm}px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: ${({ theme }) => theme.color.text.secondary};
+  background: ${({ theme }) => theme.color.surface.subtle};
+`;
+
+const NameButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
 `;
 
 const MemberName = styled.span`
-  flex: 1;
-  min-width: 0;
   font: ${({ theme }) => theme.font.body14b};
   color: ${({ theme }) => theme.color.text.primary};
+
+  ${NameButton}:hover & {
+    text-decoration: underline;
+  }
 `;
 
-const Record = styled.span`
+const RecordCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 130px;
+  flex-shrink: 0;
+`;
+
+const RecordBar = styled(WinRateBar)`
   width: 90px;
+`;
+
+const WinRatePct = styled.span`
+  width: 40px;
   text-align: right;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 14px;
+  font-weight: 600;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -150,7 +161,7 @@ const Mmr = styled.span`
   width: 60px;
   text-align: right;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
   color: ${({ theme }) => theme.color.text.primary};
 `;
@@ -160,20 +171,29 @@ const EmptyLabel = styled.span`
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
+const NoticeLabel = styled.p`
+  padding: ${({ theme }) => theme.space.lg}px 0;
+  font: ${({ theme }) => theme.font.body14};
+  color: ${({ theme }) => theme.color.text.secondary};
+  opacity: 0.7;
+`;
+
 export function TierTablePage() {
   const { id: groupId } = useParams();
-  const [lane, setLane] = useState<Lane | 'ALL'>('ALL');
-  const { data: tierTable } = useTierTable(groupId ?? '', lane === 'ALL' ? undefined : lane);
-  const recalculateTiers = useRecalculateTiers(groupId ?? '');
+  const navigate = useNavigate();
+  const groupIdNum = Number(groupId);
+  const [position, setPosition] = useState<Position | 'ALL'>('ALL');
+  const { data: tierTable, isError: tierTableError } = useTierTable(groupIdNum, position === 'ALL' ? undefined : position);
+  const recalculateTiers = useRecalculateTiers(groupIdNum);
 
   useEffect(() => {
     if (groupId) setActiveGroupId(groupId);
   }, [groupId]);
 
-  const allMembers = asArrayOrFallback<TierEntry>(tierTable, MOCK_MEMBERS);
+  const allMembers = tierTable ?? [];
   const filtered = useMemo(
-    () => (lane === 'ALL' ? allMembers : allMembers.filter((m) => m.lane === lane)),
-    [allMembers, lane],
+    () => (position === 'ALL' ? allMembers : allMembers.filter((m) => m.position === position)),
+    [allMembers, position],
   );
 
   const byTier = useMemo(() => {
@@ -191,22 +211,25 @@ export function TierTablePage() {
           <Subtitle>전적 · 그룹 티어 · 사용자 평가를 합산해 계산 · 2시간 전 갱신</Subtitle>
         </div>
         <HeaderActions>
-          <Button $variant="ghost" $size="sm">라인별로 보기</Button>
           <Button $size="sm" onClick={() => recalculateTiers.mutate()} disabled={recalculateTiers.isPending}>
             티어 재선정
           </Button>
         </HeaderActions>
       </Header>
       <LaneTabs>
-        <LaneTab $active={lane === 'ALL'} onClick={() => setLane('ALL')}>전체</LaneTab>
-        {LANES.map((l) => (
-          <LaneTab key={l} $active={lane === l} onClick={() => setLane(l)}>
-            {l}
+        <LaneTab $active={position === 'ALL'} onClick={() => setPosition('ALL')}>전체</LaneTab>
+        {POSITIONS.map((p) => (
+          <LaneTab key={p} $active={position === p} onClick={() => setPosition(p)}>
+            <LaneIcon lane={p} size={13} />
+            {p}
           </LaneTab>
         ))}
       </LaneTabs>
 
-      {TIERS.map((tier) => {
+      {tierTableError ? (
+        <NoticeLabel>티어표 기능은 아직 준비 중이에요</NoticeLabel>
+      ) : (
+        TIERS.map((tier) => {
         const members = byTier.get(tier) ?? [];
         return (
           <TierSection key={tier}>
@@ -218,19 +241,32 @@ export function TierTablePage() {
               {members.length === 0 ? (
                 <EmptyLabel>해당 티어 없음</EmptyLabel>
               ) : (
-                members.map((m) => (
-                  <MemberRow key={m.userId}>
-                    <LaneTag>{m.lane}</LaneTag>
-                    <MemberName>{m.nickname}</MemberName>
-                    <Record>{m.wins}승 {m.losses}패</Record>
-                    <Mmr>{m.mmr}</Mmr>
-                  </MemberRow>
-                ))
+                members.map((m) => {
+                  const total = m.wins + m.losses;
+                  const winRate = total > 0 ? Math.round((m.wins / total) * 100) : 0;
+                  return (
+                    <MemberRow key={m.userId}>
+                      <LaneBadge>
+                        <LaneIcon lane={m.position} />
+                      </LaneBadge>
+                      <NameButton onClick={() => navigate(`/users/${m.userId}`)}>
+                        <Avatar name={m.nickname} size={22} />
+                        <MemberName>{m.nickname}</MemberName>
+                      </NameButton>
+                      <RecordCell>
+                        <RecordBar wins={m.wins} losses={m.losses} />
+                        <WinRatePct>{winRate}%</WinRatePct>
+                      </RecordCell>
+                      <Mmr>{m.internalMmr}</Mmr>
+                    </MemberRow>
+                  );
+                })
               )}
             </MemberList>
           </TierSection>
         );
-      })}
+        })
+      )}
     </PageLayout>
   );
 }

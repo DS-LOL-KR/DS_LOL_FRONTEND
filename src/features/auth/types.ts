@@ -1,9 +1,10 @@
-// GET /users/me is one resource shared by the auth session check and the
-// profile-edit screen, so both features read this same shape.
+// GET /users/me — verified against the real Notion API spec (page has actual
+// request/response schemas, not just endpoint names).
 export interface User {
-  id: string;
+  id: number;
   email: string;
   nickname: string;
+  profileImageUrl: string | null;
   bio: string;
-  avatarUrl: string | null;
+  createdAt: string;
 }

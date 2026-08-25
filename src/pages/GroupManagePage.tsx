@@ -14,20 +14,7 @@ import {
   useTransferOwner,
 } from '../features/groups/hooks';
 import type { GroupMember } from '../features/groups/types';
-import { asArrayOrFallback } from '../utils/asArrayOrFallback';
 import { setActiveGroupId } from '../utils/activeGroup';
-
-// TODO: no backend yet — shown when GET /groups/:id returns no roster.
-const MOCK_MEMBERS: GroupMember[] = [
-  { userId: '1', nickname: '재현', isOwner: true, internalTier: 1, mainLane: 'MID', mmr: 1990, joinedAt: '26.05.02' },
-  { userId: '2', nickname: '성현', isOwner: false, internalTier: 1, mainLane: 'MID', mmr: 1990, joinedAt: '26.05.04' },
-  { userId: '3', nickname: '민석', isOwner: false, internalTier: 2, mainLane: 'JGL', mmr: 1865, joinedAt: '26.05.04' },
-  { userId: '4', nickname: '지우', isOwner: false, internalTier: 2, mainLane: 'BOT', mmr: 1902, joinedAt: '26.05.11' },
-  { userId: '5', nickname: '태윤', isOwner: false, internalTier: 3, mainLane: 'SUP', mmr: 1673, joinedAt: '26.06.01' },
-  { userId: '6', nickname: '현우', isOwner: false, internalTier: 2, mainLane: 'TOP', mmr: 1858, joinedAt: '26.06.18' },
-  { userId: '7', nickname: '서진', isOwner: false, internalTier: 4, mainLane: 'SUP', mmr: 1616, joinedAt: '26.07.02' },
-];
-const MOCK_INVITE_CODE = 'A7K2-9QMD';
 
 const Header = styled.div`
   display: flex;
@@ -160,17 +147,28 @@ const ModalActions = styled.div`
   margin-top: ${({ theme }) => theme.space.md}px;
 `;
 
+const EmptyLabel = styled.p`
+  padding: ${({ theme }) => theme.space.lg}px 0;
+  font: ${({ theme }) => theme.font.body14};
+  color: ${({ theme }) => theme.color.text.secondary};
+  opacity: 0.7;
+`;
+
 export function GroupManagePage() {
   const { id: groupId } = useParams();
+  const numericGroupId = Number(groupId);
   const navigate = useNavigate();
-  const { data: group } = useGroup(groupId ?? '');
-  const deleteGroup = useDeleteGroup(groupId ?? '');
-  const kickMember = useKickMember(groupId ?? '');
-  const transferOwner = useTransferOwner(groupId ?? '');
-  const refreshInviteCode = useRefreshInviteCode(groupId ?? '');
+  const { data: group, isLoading: groupLoading, isError: groupError } = useGroup(numericGroupId);
+  const deleteGroup = useDeleteGroup(numericGroupId);
+  const kickMember = useKickMember(numericGroupId);
+  const transferOwner = useTransferOwner(numericGroupId);
+  const refreshInviteCode = useRefreshInviteCode(numericGroupId);
 
-  const [members, setMembers] = useState<GroupMember[]>(MOCK_MEMBERS);
-  const [inviteCode, setInviteCode] = useState(MOCK_INVITE_CODE);
+  // No "그룹원 목록" endpoint exists yet (GET /groups/:id's spec doc leaves open
+  // whether members are inline or a separate call) — the roster stays empty
+  // until that lands, rather than showing a fake member list.
+  const [members, setMembers] = useState<GroupMember[]>([]);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [kickTarget, setKickTarget] = useState<GroupMember | null>(null);
@@ -180,16 +178,14 @@ export function GroupManagePage() {
   }, [groupId]);
 
   useEffect(() => {
-    if (group) {
-      setMembers(asArrayOrFallback<GroupMember>(group.members, MOCK_MEMBERS));
-      setInviteCode(group.inviteCode || MOCK_INVITE_CODE);
-    }
+    if (group) setInviteCode(group.inviteCode);
   }, [group]);
 
-  const inviteLink = `ds-lol.gg/join/${inviteCode}`;
+  const inviteLink = inviteCode ? `ds-lol.gg/join/${inviteCode}` : null;
   const owner = members.find((m) => m.isOwner);
 
   const handleCopyLink = () => {
+    if (!inviteLink) return;
     navigator.clipboard?.writeText(inviteLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
@@ -201,9 +197,9 @@ export function GroupManagePage() {
     });
   };
 
-  const handleTransferOwner = (userId: string) => {
+  const handleTransferOwner = (userId: number) => {
     setMembers((prev) => prev.map((m) => ({ ...m, isOwner: m.userId === userId })));
-    transferOwner.mutate(userId);
+    transferOwner.mutate({ newOwnerId: userId });
   };
 
   const handleKickConfirmed = () => {
@@ -263,7 +259,7 @@ export function GroupManagePage() {
     <PageLayout>
       <Header>
         <div>
-          <Title>{group?.name ?? '새벽 내전방'}</Title>
+          <Title>{group?.name ?? (groupError ? '그룹 정보를 불러올 수 없어요' : groupLoading ? '불러오는 중...' : '')}</Title>
           <Subtitle>
             그룹원 {members.length}명 · 내 역할 {owner?.isOwner ? '그룹장' : '멤버'}
           </Subtitle>
@@ -279,8 +275,8 @@ export function GroupManagePage() {
       </Header>
       <InviteRow>
         <InviteLabel>초대 링크</InviteLabel>
-        <InviteLinkBox>{inviteLink}</InviteLinkBox>
-        <Button $variant="ghost" $size="sm" onClick={handleCopyLink}>
+        <InviteLinkBox>{inviteLink ?? '-'}</InviteLinkBox>
+        <Button $variant="ghost" $size="sm" onClick={handleCopyLink} disabled={!inviteLink}>
           {copied ? '복사됨' : '복사'}
         </Button>
         <Button $variant="ghost" $size="sm" onClick={handleRefreshInviteCode} disabled={refreshInviteCode.isPending}>
@@ -289,7 +285,11 @@ export function GroupManagePage() {
         <InviteHint>키가 유출됐다면 재발급하세요. 기존 링크는 즉시 만료됩니다</InviteHint>
       </InviteRow>
       <TableWrap>
-        <Table columns={columns} data={members} />
+        {members.length === 0 ? (
+          <EmptyLabel>그룹원 목록 기능은 아직 준비 중이에요</EmptyLabel>
+        ) : (
+          <Table columns={columns} data={members} />
+        )}
       </TableWrap>
 
       <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)}>

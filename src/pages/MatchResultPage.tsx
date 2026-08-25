@@ -3,22 +3,23 @@ import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/Button/Button';
 import { useMatch, useMmrChanges } from '../features/matches/hooks';
-import type { MmrChange, Team, TeamPlayer } from '../features/matches/types';
+import type { Position } from '../features/tiers/types';
 import { useMe } from '../features/auth/hooks';
-import { asArrayOrFallback } from '../utils/asArrayOrFallback';
 
 // TODO: no design frame covers a standalone match-detail page yet (the Figma file
 // only has AI 팀 구성 / 사용자 평가) — this view is assembled from the /matches/:id
-// and /matches/:id/mmr-changes API shapes until a real design lands.
-const MOCK_PLAYERS: TeamPlayer[] = [
-  { userId: '1', nickname: '재현', lane: 'MID', tier: 1, mmr: 1990, recentMmrDelta: 14, team: 'A' },
-  { userId: '2', nickname: '민석', lane: 'JGL', tier: 2, mmr: 1865, recentMmrDelta: 8, team: 'A' },
-  { userId: '3', nickname: '지우', lane: 'BOT', tier: 2, mmr: 1902, recentMmrDelta: -3, team: 'A' },
-  { userId: '4', nickname: '현우', lane: 'TOP', tier: 2, mmr: 1858, recentMmrDelta: 4, team: 'B' },
-  { userId: '5', nickname: '도현', lane: 'JGL', tier: 3, mmr: 1702, recentMmrDelta: -7, team: 'B' },
-  { userId: '6', nickname: '준서', lane: 'MID', tier: 1, mmr: 2015, recentMmrDelta: 11, team: 'B' },
-];
-const MOCK_WINNING_TEAM: Team = 'A';
+// and /matches/:id/mmr-changes API shapes until a real design lands. There's no
+// nickname source for participants (no roster/join endpoint — see ERD), so
+// players are labeled by userId. Side ('A'/'B') is page-local display shorthand
+// for the real TEAM_A/TEAM_B fields.
+type Side = 'A' | 'B';
+
+interface RosterPlayer {
+  userId: number;
+  lane: Position | null;
+  mmrDelta: number;
+  team: Side;
+}
 
 const Header = styled.div`
   display: flex;
@@ -38,6 +39,13 @@ const Subtitle = styled.p`
   margin-top: 6px;
   font: ${({ theme }) => theme.font.label12};
   color: ${({ theme }) => theme.color.text.secondary};
+`;
+
+const EmptyState = styled.p`
+  padding: ${({ theme }) => theme.space.lg}px 0;
+  font: ${({ theme }) => theme.font.body14};
+  color: ${({ theme }) => theme.color.text.secondary};
+  opacity: 0.7;
 `;
 
 const Roster = styled.div`
@@ -144,60 +152,74 @@ const Footer = styled.div`
 export function MatchResultPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { data: match } = useMatch(id ?? '');
-  const { data: mmrChanges } = useMmrChanges(id ?? '');
+  const matchId = Number(id);
+  const { data: match } = useMatch(matchId);
+  const { data: mmrChanges } = useMmrChanges(matchId);
   const { data: me } = useMe();
 
-  const players = asArrayOrFallback(match?.teams?.players, MOCK_PLAYERS);
-  const winningTeam = match?.winningTeam ?? MOCK_WINNING_TEAM;
+  // GET /matches/:id now embeds real `participants` — build the roster from
+  // that directly instead of a mocked player list.
+  const players: RosterPlayer[] = (match?.participants ?? []).map((p) => ({
+    userId: p.userId,
+    lane: p.assignedPosition ?? null,
+    mmrDelta: p.mmrChange,
+    team: p.assignedTeam === 'TEAM_A' ? 'A' : 'B',
+  }));
+  const winningTeam: Side | null =
+    match?.winningTeam === 'TEAM_A' ? 'A' : match?.winningTeam === 'TEAM_B' ? 'B' : null;
   const teamA = players.filter((p) => p.team === 'A');
   const teamB = players.filter((p) => p.team === 'B');
-  const alreadyRated = asArrayOrFallback<MmrChange>(mmrChanges, []).some((c) => c.userId === me?.id);
+  const changes = mmrChanges ?? [];
+  const alreadyRated = changes.some((c) => c.userId === me?.id);
 
   return (
     <PageLayout>
       <Header>
         <div>
           <Title>내전 결과</Title>
-          <Subtitle>{match?.playedAt ?? '08.08 02:40'} · {match?.mode ?? '5v5'}</Subtitle>
+          <Subtitle>{match ? match.createdAt.slice(0, 16).replace('T', ' ') : '불러오는 중...'}</Subtitle>
         </div>
         {!alreadyRated && (
           <Button onClick={() => navigate(`/matches/${id}/evaluate`)}>팀원 평가하기</Button>
         )}
       </Header>
 
-      <Roster>
-        {([['A', teamA] as const, ['B', teamB] as const]).map(([team, roster], i) => (
-          <TeamColumn key={team} $side={i === 0 ? 'left' : 'right'}>
-            <TeamHeader>
-              <TeamName $won={team === winningTeam}>팀 {team}</TeamName>
-              {team === winningTeam && <WinTag>승리</WinTag>}
-            </TeamHeader>
-            {roster.map((p) => (
-              <PlayerRow key={p.userId}>
-                <PlayerLane>{p.lane}</PlayerLane>
-                <PlayerName>{p.nickname}</PlayerName>
-                <PlayerDelta $positive={p.recentMmrDelta >= 0}>
-                  {p.recentMmrDelta > 0 ? `+${p.recentMmrDelta}` : p.recentMmrDelta}
-                </PlayerDelta>
-              </PlayerRow>
-            ))}
-          </TeamColumn>
-        ))}
-      </Roster>
+      {players.length === 0 ? (
+        <EmptyState>아직 팀 배정 정보가 없어요</EmptyState>
+      ) : (
+        <Roster>
+          {([['A', teamA] as const, ['B', teamB] as const]).map(([team, roster], i) => (
+            <TeamColumn key={team} $side={i === 0 ? 'left' : 'right'}>
+              <TeamHeader>
+                <TeamName $won={team === winningTeam}>팀 {team}</TeamName>
+                {team === winningTeam && <WinTag>승리</WinTag>}
+              </TeamHeader>
+              {roster.map((p) => (
+                <PlayerRow key={p.userId}>
+                  <PlayerLane>{p.lane ?? '-'}</PlayerLane>
+                  <PlayerName>유저 #{p.userId}</PlayerName>
+                  <PlayerDelta $positive={p.mmrDelta >= 0}>
+                    {p.mmrDelta > 0 ? `+${p.mmrDelta}` : p.mmrDelta}
+                  </PlayerDelta>
+                </PlayerRow>
+              ))}
+            </TeamColumn>
+          ))}
+        </Roster>
+      )}
 
       <Section>
         <SectionTitle>MMR 변동 내역</SectionTitle>
-        {asArrayOrFallback<MmrChange>(mmrChanges, []).length === 0 ? (
+        {changes.length === 0 ? (
           <ChangeRow>
             <ChangeReason>아직 집계된 변동 내역이 없어요</ChangeReason>
           </ChangeRow>
         ) : (
-          asArrayOrFallback<MmrChange>(mmrChanges, []).map((change, i) => (
-            <ChangeRow key={i}>
-              <ChangeReason>{change.reason}</ChangeReason>
-              <ChangeDelta $positive={change.delta >= 0}>
-                {change.delta > 0 ? `+${change.delta}` : change.delta}
+          changes.map((change) => (
+            <ChangeRow key={change.userId}>
+              <ChangeReason>유저 #{change.userId}</ChangeReason>
+              <ChangeDelta $positive={change.mmrChange >= 0}>
+                {change.mmrChange > 0 ? `+${change.mmrChange}` : change.mmrChange}
               </ChangeDelta>
             </ChangeRow>
           ))

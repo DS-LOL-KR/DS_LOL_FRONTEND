@@ -7,11 +7,11 @@ export function useProfile() {
   return useQuery({ queryKey: ['me'], queryFn: getMyProfile });
 }
 
-export function useUserProfile(userId: string) {
+export function useUserProfile(userId: number) {
   return useQuery({
     queryKey: ['users', userId],
     queryFn: () => getUserProfile(userId),
-    enabled: Boolean(userId),
+    enabled: Number.isFinite(userId),
   });
 }
 

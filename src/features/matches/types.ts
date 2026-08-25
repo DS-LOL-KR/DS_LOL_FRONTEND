@@ -1,78 +1,98 @@
-import type { Lane } from '../tiers/types';
+import type { Position } from '../tiers/types';
 
-export type MatchStatus = 'pending' | 'teams_generated' | 'in_progress' | 'finished';
-export type Mode = '5v5' | '3v3' | 'custom';
-export type Team = 'A' | 'B';
+export type MatchStatus = 'WAITING' | 'MATCHED' | 'FINISHED';
+export type Team = 'TEAM_A' | 'TEAM_B';
+
+// The full participant row (custom_match_participants) — returned embedded in
+// Match (GET) and as the array in MatchTeamsResult/FinishMatchResult. id/matchId
+// aren't guaranteed on every response variant (the finish-match example omits
+// them), so they stay optional rather than assumed present.
+export interface TeamParticipant {
+  id?: number;
+  matchId?: number;
+  userId: number;
+  assignedTeam: Team;
+  assignedPosition?: Position | null;
+  mmrChange: number;
+}
 
 export interface Match {
-  id: string;
-  groupId: string;
+  id: number;
+  groupId: number;
   gameId: number;
-  mode: Mode;
+  createdBy: number;
   status: MatchStatus;
-  playedAt: string;
+  winningTeam: Team | null;
+  createdAt: string;
+  // GET /matches/:id and GET /groups/:id/matches embed this; POST (create)
+  // doesn't return it since nothing's assigned yet.
+  participants?: TeamParticipant[];
 }
 
-export interface CreateMatchRequest {
-  gameId: number;
-  mode: Mode;
-  participantUserIds: string[];
-  teamAssignment: 'ai' | 'manual';
-  tierBasis: 'internal' | 'official';
+// POST .../teams/generate and PATCH .../teams both return this narrower shape,
+// not the full Match.
+export interface MatchTeamsResult {
+  id: number;
+  status: MatchStatus;
+  participants: TeamParticipant[];
 }
 
-export interface TeamPlayer {
-  userId: string;
-  nickname: string;
-  lane: Lane;
-  tier: 1 | 2 | 3 | 4 | 5;
-  mmr: number;
-  recentMmrDelta: number;
-  team: Team;
+// POST .../finish returns this — also narrower than Match (no groupId/gameId/
+// createdBy/createdAt), but winningTeam is guaranteed non-null once FINISHED.
+export interface FinishMatchResult {
+  id: number;
+  status: MatchStatus;
+  winningTeam: Team;
+  participants: TeamParticipant[];
 }
 
-export interface RationaleItem {
-  label: string;
-  detail: string;
-  value: string;
+export interface GenerateTeamsRequest {
+  participantUserIds: number[];
 }
 
-export interface MatchTeams {
-  matchId: string;
-  players: TeamPlayer[];
-  balanceScore: number;
-  expectedWinRate: { teamA: number; teamB: number };
-  rationale: RationaleItem[];
+// The request-side assignment shape — distinct from TeamParticipant since the
+// body only carries what the client controls, not id/matchId/mmrChange.
+export interface TeamAssignmentInput {
+  userId: number;
+  assignedTeam: Team;
+  assignedPosition?: Position;
 }
 
 export interface UpdateTeamsRequest {
-  players: { userId: string; team: Team }[];
+  assignments: TeamAssignmentInput[];
 }
 
 export interface FinishMatchRequest {
   winningTeam: Team;
 }
 
-export interface MatchDetail extends Match {
-  winningTeam?: Team;
-  teams?: MatchTeams;
+export interface SubmitEvaluationRequest {
+  targetId: number;
+  score: 1 | 2 | 3 | 4 | 5;
+  comment?: string;
 }
 
-export interface SubmitEvaluationRequest {
-  targetUserId: string;
+export interface Evaluation {
+  id: number;
+  // Added to user_evaluations on 2026-08-23 specifically to support this
+  // endpoint's duplicate-prevention and per-match manner-score recalculation.
+  matchId: number;
+  evaluatorId: number;
+  targetId: number;
   score: number;
+  comment: string | null;
+  createdAt: string;
 }
 
 export interface MmrChange {
-  userId: string;
-  delta: number;
-  reason: string;
+  userId: number;
+  assignedTeam: Team;
+  mmrChange: number;
 }
 
 export interface MmrHistoryEntry {
-  matchId: string;
+  matchId: number;
+  groupId: number;
+  mmrChange: number;
   playedAt: string;
-  delta: number;
-  reason: string;
-  mmrAfter: number;
 }
