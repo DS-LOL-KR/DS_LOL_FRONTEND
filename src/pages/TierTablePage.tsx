@@ -9,6 +9,7 @@ import { WinRateBar } from '../components/WinRateBar/WinRateBar';
 import { useRecalculateTiers, useTierTable } from '../features/tiers/hooks';
 import type { Position, TierEntry } from '../features/tiers/types';
 import { setActiveGroupId } from '../utils/activeGroup';
+import { resolveAssetUrl } from '../utils/assetUrl';
 
 type Tier = 1 | 2 | 3 | 4 | 5;
 const POSITIONS: Position[] = ['TOP', 'JUG', 'MID', 'ADC', 'SUP'];
@@ -191,10 +192,17 @@ export function TierTablePage() {
   }, [groupId]);
 
   const allMembers = tierTable ?? [];
-  const filtered = useMemo(
-    () => (position === 'ALL' ? allMembers : allMembers.filter((m) => m.position === position)),
-    [allMembers, position],
-  );
+  // '전체' 탭에서는 한 사람이 여러 라인으로 중복 등장하면 지저분하니, 라인별
+  // position_mmr가 가장 높은 한 줄만 남김.
+  const filtered = useMemo(() => {
+    if (position !== 'ALL') return allMembers.filter((m) => m.position === position);
+    const bestByUser = new Map<number, TierEntry>();
+    for (const m of allMembers) {
+      const current = bestByUser.get(m.userId);
+      if (!current || m.positionMmr > current.positionMmr) bestByUser.set(m.userId, m);
+    }
+    return Array.from(bestByUser.values());
+  }, [allMembers, position]);
 
   const byTier = useMemo(() => {
     const groups = new Map<Tier, TierEntry[]>();
@@ -250,14 +258,14 @@ export function TierTablePage() {
                         <LaneIcon lane={m.position} />
                       </LaneBadge>
                       <NameButton onClick={() => navigate(`/users/${m.userId}`)}>
-                        <Avatar name={m.nickname} size={22} />
+                        <Avatar name={m.nickname} imageUrl={resolveAssetUrl(m.profileImageUrl)} size={22} />
                         <MemberName>{m.nickname}</MemberName>
                       </NameButton>
                       <RecordCell>
                         <RecordBar wins={m.wins} losses={m.losses} />
                         <WinRatePct>{winRate}%</WinRatePct>
                       </RecordCell>
-                      <Mmr>{m.internalMmr}</Mmr>
+                      <Mmr>{m.positionMmr}</Mmr>
                     </MemberRow>
                   );
                 })
