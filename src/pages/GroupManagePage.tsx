@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
@@ -6,15 +6,20 @@ import { Button } from '../components/Button/Button';
 import { Modal } from '../components/Modal/Modal';
 import { Table } from '../components/Table/Table';
 import type { Column } from '../components/Table/Table';
+import { Avatar } from '../components/Avatar/Avatar';
 import {
   useDeleteGroup,
   useGroup,
   useKickMember,
+  useLeaveGroup,
   useRefreshInviteCode,
   useTransferOwner,
 } from '../features/groups/hooks';
 import type { GroupMember } from '../features/groups/types';
+import { useTierTable } from '../features/tiers/hooks';
+import { useMe } from '../features/auth/hooks';
 import { setActiveGroupId } from '../utils/activeGroup';
+import { resolveAssetUrl } from '../utils/assetUrl';
 
 const Header = styled.div`
   display: flex;
@@ -86,13 +91,6 @@ const MemberCell = styled.div`
   gap: ${({ theme }) => theme.space.xs}px;
 `;
 
-const MemberAvatar = styled.div`
-  width: 22px;
-  height: 22px;
-  border-radius: 3px;
-  background: ${({ theme }) => theme.color.surface.subtle};
-`;
-
 const MemberName = styled.span`
   font: ${({ theme }) => theme.font.body14b};
   color: ${({ theme }) => theme.color.text.primary};
@@ -159,15 +157,14 @@ export function GroupManagePage() {
   const numericGroupId = Number(groupId);
   const navigate = useNavigate();
   const { data: group, isLoading: groupLoading, isError: groupError } = useGroup(numericGroupId);
+  const { data: tierRows } = useTierTable(numericGroupId);
+  const { data: me } = useMe();
   const deleteGroup = useDeleteGroup(numericGroupId);
   const kickMember = useKickMember(numericGroupId);
   const transferOwner = useTransferOwner(numericGroupId);
   const refreshInviteCode = useRefreshInviteCode(numericGroupId);
+  const leaveGroup = useLeaveGroup(numericGroupId);
 
-  // No "그룹원 목록" endpoint exists yet (GET /groups/:id's spec doc leaves open
-  // whether members are inline or a separate call) — the roster stays empty
-  // until that lands, rather than showing a fake member list.
-  const [members, setMembers] = useState<GroupMember[]>([]);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -181,12 +178,34 @@ export function GroupManagePage() {
     if (group) setInviteCode(group.inviteCode);
   }, [group]);
 
-  const inviteLink = inviteCode ? `ds-lol.gg/join/${inviteCode}` : null;
-  const owner = members.find((m) => m.isOwner);
+  // GET /groups/:id gives role/joinedAt/nickname/profile image; GET /groups/:id/tiers
+  // gives per-line tier/MMR. Neither alone has everything the table wants, so merge
+  // by userId — picking each member's most-played line as their "주 라인" row.
+  const members: GroupMember[] = useMemo(() => {
+    if (!group) return [];
+    return group.members.map((membership) => {
+      const rows = (tierRows ?? []).filter((row) => row.userId === membership.userId);
+      const mainRow = rows.length
+        ? rows.reduce((best, row) => (row.wins + row.losses > best.wins + best.losses ? row : best))
+        : null;
+      return {
+        userId: membership.userId,
+        nickname: membership.user.nickname,
+        profileImageUrl: membership.user.profileImageUrl,
+        isOwner: membership.role === 'OWNER',
+        internalTier: mainRow?.tier ?? null,
+        mainLane: mainRow?.position ?? null,
+        mmr: mainRow?.internalMmr ?? null,
+        joinedAt: membership.joinedAt,
+      };
+    });
+  }, [group, tierRows]);
 
-  const handleCopyLink = () => {
-    if (!inviteLink) return;
-    navigator.clipboard?.writeText(inviteLink);
+  const isViewerOwner = group !== undefined && me !== undefined && group.ownerId === me.id;
+
+  const handleCopyKey = () => {
+    if (!inviteCode) return;
+    navigator.clipboard?.writeText(inviteCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -198,13 +217,11 @@ export function GroupManagePage() {
   };
 
   const handleTransferOwner = (userId: number) => {
-    setMembers((prev) => prev.map((m) => ({ ...m, isOwner: m.userId === userId })));
     transferOwner.mutate({ newOwnerId: userId });
   };
 
   const handleKickConfirmed = () => {
     if (!kickTarget) return;
-    setMembers((prev) => prev.filter((m) => m.userId !== kickTarget.userId));
     kickMember.mutate(kickTarget.userId);
     setKickTarget(null);
   };
@@ -213,13 +230,17 @@ export function GroupManagePage() {
     deleteGroup.mutate(undefined, { onSuccess: () => navigate('/groups') });
   };
 
+  const handleLeaveGroup = () => {
+    leaveGroup.mutate(undefined, { onSuccess: () => navigate('/groups') });
+  };
+
   const columns: Column<GroupMember>[] = [
     {
       key: 'nickname',
       header: '그룹원',
       render: (m) => (
         <MemberCell>
-          <MemberAvatar />
+          <Avatar name={m.nickname} imageUrl={resolveAssetUrl(m.profileImageUrl)} size={22} />
           <MemberName>{m.nickname}</MemberName>
           {m.isOwner && <OwnerTag>그룹장</OwnerTag>}
         </MemberCell>
@@ -229,20 +250,23 @@ export function GroupManagePage() {
       key: 'internalTier',
       header: '내부 티어',
       width: 100,
-      render: (m) => <TierCell $tier={m.internalTier}>{m.internalTier}티어</TierCell>,
+      render: (m) =>
+        m.internalTier ? (
+          <TierCell $tier={m.internalTier}>{m.internalTier}티어</TierCell>
+        ) : (
+          <NoAction>미확인</NoAction>
+        ),
     },
-    { key: 'mainLane', header: '주 라인', width: 90 },
-    { key: 'mmr', header: 'MMR', width: 80, align: 'right' },
-    { key: 'joinedAt', header: '가입일', width: 100, align: 'right' },
+    { key: 'mainLane', header: '주 라인', width: 90, render: (m) => m.mainLane ?? '-' },
+    { key: 'mmr', header: 'MMR', width: 80, align: 'right', render: (m) => m.mmr ?? '-' },
+    { key: 'joinedAt', header: '가입일', width: 100, align: 'right', render: (m) => m.joinedAt.slice(2, 10) },
     {
       key: 'action',
       header: '관리',
       width: 200,
       align: 'right',
       render: (m) =>
-        m.isOwner ? (
-          <NoAction>—</NoAction>
-        ) : (
+        isViewerOwner && !m.isOwner ? (
           <ActionCell>
             <Button $variant="ghost" $size="sm" onClick={() => handleTransferOwner(m.userId)}>
               그룹장 위임
@@ -251,6 +275,8 @@ export function GroupManagePage() {
               추방
             </Button>
           </ActionCell>
+        ) : (
+          <NoAction>—</NoAction>
         ),
     },
   ];
@@ -261,32 +287,40 @@ export function GroupManagePage() {
         <div>
           <Title>{group?.name ?? (groupError ? '그룹 정보를 불러올 수 없어요' : groupLoading ? '불러오는 중...' : '')}</Title>
           <Subtitle>
-            그룹원 {members.length}명 · 내 역할 {owner?.isOwner ? '그룹장' : '멤버'}
+            그룹원 {members.length}명 · 내 역할 {isViewerOwner ? '그룹장' : '멤버'}
           </Subtitle>
         </div>
         <HeaderActions>
           <Button $size="sm" onClick={() => navigate(`/groups/${groupId}/matches/new`)}>
             새 내전 만들기
           </Button>
-          <Button $variant="dangerGhost" $size="sm" onClick={() => setDeleteOpen(true)}>
-            그룹 삭제
-          </Button>
+          {isViewerOwner ? (
+            <Button $variant="dangerGhost" $size="sm" onClick={() => setDeleteOpen(true)}>
+              그룹 삭제
+            </Button>
+          ) : (
+            <Button $variant="dangerGhost" $size="sm" onClick={handleLeaveGroup} disabled={leaveGroup.isPending}>
+              그룹 나가기
+            </Button>
+          )}
         </HeaderActions>
       </Header>
       <InviteRow>
-        <InviteLabel>초대 링크</InviteLabel>
-        <InviteLinkBox>{inviteLink ?? '-'}</InviteLinkBox>
-        <Button $variant="ghost" $size="sm" onClick={handleCopyLink} disabled={!inviteLink}>
+        <InviteLabel>초대 키</InviteLabel>
+        <InviteLinkBox>{inviteCode ?? '-'}</InviteLinkBox>
+        <Button $variant="ghost" $size="sm" onClick={handleCopyKey} disabled={!inviteCode}>
           {copied ? '복사됨' : '복사'}
         </Button>
         <Button $variant="ghost" $size="sm" onClick={handleRefreshInviteCode} disabled={refreshInviteCode.isPending}>
           키 재발급
         </Button>
-        <InviteHint>키가 유출됐다면 재발급하세요. 기존 링크는 즉시 만료됩니다</InviteHint>
+        <InviteHint>키가 유출됐다면 재발급하세요. 기존 키는 즉시 만료됩니다</InviteHint>
       </InviteRow>
       <TableWrap>
-        {members.length === 0 ? (
-          <EmptyLabel>그룹원 목록 기능은 아직 준비 중이에요</EmptyLabel>
+        {groupLoading ? (
+          <EmptyLabel>불러오는 중...</EmptyLabel>
+        ) : members.length === 0 ? (
+          <EmptyLabel>그룹원이 없어요</EmptyLabel>
         ) : (
           <Table columns={columns} data={members} />
         )}

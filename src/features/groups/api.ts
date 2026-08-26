@@ -1,5 +1,5 @@
 import { apiClient } from '../../api/client';
-import type { CreateGroupRequest, Group, JoinGroupRequest, Membership, TransferOwnerRequest } from './types';
+import type { CreateGroupRequest, Group, GroupDetail, JoinGroupRequest, Membership, TransferOwnerRequest } from './types';
 
 export async function getGroups(): Promise<Group[]> {
   const { data } = await apiClient.get<{ groups: Group[] }>('/groups');
@@ -11,8 +11,8 @@ export async function createGroup(payload: CreateGroupRequest): Promise<Group> {
   return data.group;
 }
 
-export async function getGroup(groupId: number): Promise<Group> {
-  const { data } = await apiClient.get<{ group: Group }>(`/groups/${groupId}`);
+export async function getGroup(groupId: number): Promise<GroupDetail> {
+  const { data } = await apiClient.get<{ group: GroupDetail }>(`/groups/${groupId}`);
   return data.group;
 }
 

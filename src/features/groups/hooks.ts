@@ -52,7 +52,9 @@ export function useRefreshInviteCode(groupId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => refreshInviteCode(groupId),
-    onSuccess: (group) => queryClient.setQueryData(['groups', groupId], group),
+    // The refresh response is the bare Group (no `members`) — invalidate instead
+    // of setQueryData so the cached GroupDetail's roster isn't wiped out.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups', groupId] }),
   });
 }
 
@@ -65,13 +67,18 @@ export function useKickMember(groupId: number) {
 }
 
 export function useLeaveGroup(groupId: number) {
-  return useMutation({ mutationFn: () => leaveGroup(groupId) });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => leaveGroup(groupId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups'] }),
+  });
 }
 
 export function useTransferOwner(groupId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: TransferOwnerRequest) => transferOwner(groupId, payload),
-    onSuccess: (group) => queryClient.setQueryData(['groups', groupId], group),
+    // Same reasoning as useRefreshInviteCode — the response has no `members`.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups', groupId] }),
   });
 }
