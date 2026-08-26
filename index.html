@@ -2,6 +2,7 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
+    <meta name="google-site-verification" content="GjWUtP0tM8u1mcZxaPEBU-vMRjKf72ZDQiIYRcAnUBE" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
@@ -11,7 +12,26 @@
     <title>DS_LOL</title>
   </head>
   <body>
-    <div id="root"></div>
+    <!--
+      Static fallback shown before React mounts (and to any crawler that
+      doesn't execute JavaScript) — the real homepage/login screen. React
+      replaces this content once it takes over.
+    -->
+    <div id="root">
+      <main style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #07080E; color: #FFFFFF; font-family: 'Pretendard', Inter, sans-serif; padding: 24px;">
+        <div style="max-width: 360px;">
+          <h1 style="font-size: 48px; font-weight: 700; margin: 0;">DS_LOL</h1>
+          <p style="margin-top: 6px; font-size: 15px; color: #949EB5;">친구들과 하는 내전, 팀 짜기부터 전적까지</p>
+          <p style="margin-top: 16px; font-size: 16px; line-height: 1.6; color: #949EB5;">
+            League of Legends 그룹을 만들어 그룹원의 라이엇 전적을 기반으로 티어를 매기고,
+            AI가 MMR과 선호 라인을 고려해 내전 팀을 자동으로 구성해주는 서비스예요.
+          </p>
+          <p style="margin-top: 16px; font-size: 13px; color: #949EB5; opacity: 0.7;">
+            가입하면 이용약관과 <a href="/privacy" style="color: inherit;">개인정보 처리방침</a>에 동의하게 됩니다
+          </p>
+        </div>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

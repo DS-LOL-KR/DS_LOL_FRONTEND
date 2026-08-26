@@ -60,7 +60,7 @@ export function LoginPage() {
         <Subtitle>친구들과 하는 내전, 팀 짜기부터 전적까지</Subtitle>
         <Description>
           League of Legends 그룹을 만들어 그룹원의 라이엇 전적을 기반으로 티어를 매기고,
-          AI가 MMR과 선호 라인을 고려해 내전 팀을 자동으로 구성해주는 서비스예요.
+          AI가 MMR과 선호 라인을 고려해 내전 팀을 자동으로 구성해주는 서비스
         </Description>
         <ButtonRow>
           <LoginButton />
