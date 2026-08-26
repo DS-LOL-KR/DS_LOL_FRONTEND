@@ -165,6 +165,12 @@ const WinnerSection = styled.div`
   border-top: 1px solid ${({ theme }) => theme.color.border.base};
 `;
 
+const WinnerHint = styled.p`
+  margin-top: 4px;
+  font: ${({ theme }) => theme.font.label12};
+  color: ${({ theme }) => theme.color.text.secondary};
+`;
+
 const WinnerRow = styled.div`
   display: flex;
   gap: ${({ theme }) => theme.space.sm}px;
@@ -244,6 +250,7 @@ export function MatchResultPage() {
       {match?.status === 'MATCHED' && (
         <WinnerSection>
           <SectionTitle>어느 팀이 이겼나요?</SectionTitle>
+          <WinnerHint>참가자들의 라이엇 전적이 동기화되면 자동으로 반영돼요. 급하면 직접 골라도 돼요.</WinnerHint>
           <WinnerRow>
             <Button onClick={() => handleFinish('TEAM_A')} disabled={finishMatch.isPending}>팀 A 승리</Button>
             <Button onClick={() => handleFinish('TEAM_B')} disabled={finishMatch.isPending}>팀 B 승리</Button>
