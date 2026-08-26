@@ -16,8 +16,8 @@ const Panel = styled.div`
   width: 360px;
 `;
 
-const Title = styled.p`
-  font: ${({ theme }) => theme.font.title26};
+const Title = styled.h1`
+  font: 700 48px/1.2 Inter, sans-serif;
   letter-spacing: 0.6px;
   color: ${({ theme }) => theme.color.text.primary};
 `;
