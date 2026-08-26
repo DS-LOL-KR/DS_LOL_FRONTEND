@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Avatar } from '../components/Avatar/Avatar';
 import { useUserProfile } from '../features/profile/hooks';
+import { resolveAssetUrl } from '../utils/assetUrl';
 
 const Header = styled.div`
   display: flex;
@@ -46,7 +47,7 @@ export function UserProfilePage() {
   return (
     <PageLayout>
       <Header>
-        <Avatar name={user?.nickname ?? '?'} size={56} />
+        <Avatar name={user?.nickname ?? '?'} imageUrl={resolveAssetUrl(user?.profileImageUrl)} size={56} />
         <div>
           <Name>{user?.nickname ?? (isLoading ? '불러오는 중...' : '알 수 없는 사용자')}</Name>
           {user && <JoinedAt>{user.createdAt.slice(0, 10)} 가입</JoinedAt>}

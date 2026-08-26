@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import styled from 'styled-components';
 
 // Fixed rotation of muted accent tints so a list of names reads with a little
@@ -25,13 +26,36 @@ const Circle = styled.div<{ $size: number; $color: string }>`
   background: ${({ $color }) => $color}99;
 `;
 
+const Image = styled.img<{ $size: number }>`
+  flex-shrink: 0;
+  width: ${({ $size }) => $size}px;
+  height: ${({ $size }) => $size}px;
+  border-radius: 50%;
+  object-fit: cover;
+`;
+
 export interface AvatarProps {
   name: string;
+  imageUrl?: string | null;
   size?: number;
   className?: string;
 }
 
-export function Avatar({ name, size = 24, className }: AvatarProps) {
+export function Avatar({ name, imageUrl, size = 24, className }: AvatarProps) {
+  const [imageFailed, setImageFailed] = useState(false);
+
+  if (imageUrl && !imageFailed) {
+    return (
+      <Image
+        src={imageUrl}
+        alt={name}
+        $size={size}
+        className={className}
+        onError={() => setImageFailed(true)}
+      />
+    );
+  }
+
   const initial = name.trim().charAt(0) || '?';
   const color = PALETTE[paletteIndex(name || '?')];
   return (

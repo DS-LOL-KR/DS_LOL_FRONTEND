@@ -2,6 +2,8 @@ import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { useMe } from '../../features/auth/hooks';
 import { useActiveGroupId } from '../../utils/activeGroup';
+import { resolveAssetUrl } from '../../utils/assetUrl';
+import { Avatar } from '../Avatar/Avatar';
 
 const Bar = styled.nav`
   display: flex;
@@ -47,13 +49,6 @@ const UserName = styled.span`
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
-const UserAvatar = styled.div`
-  width: 24px;
-  height: 24px;
-  border-radius: 3px;
-  background: ${({ theme }) => theme.color.border.strong};
-`;
-
 export function Navbar() {
   const { pathname } = useLocation();
   const { data: me } = useMe();
@@ -89,8 +84,8 @@ export function Navbar() {
         </Menu>
       </LeftGroup>
       <UserGroup to="/onboarding" title="내 프로필">
-        <UserName>{me?.nickname ?? '재현'}</UserName>
-        <UserAvatar />
+        <UserName>{me?.nickname ?? '...'}</UserName>
+        <Avatar name={me?.nickname ?? '?'} imageUrl={resolveAssetUrl(me?.profileImageUrl)} size={24} />
       </UserGroup>
     </Bar>
   );
