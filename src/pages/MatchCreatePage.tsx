@@ -123,13 +123,21 @@ const MemberList = styled.div`
   margin-top: ${({ theme }) => theme.space.sm}px;
 `;
 
-const MemberChip = styled.span`
+const MemberChip = styled.button<{ $selected: boolean }>`
   padding: 6px 10px;
   border-radius: ${({ theme }) => theme.radius.sm}px;
-  background: ${({ theme }) => theme.color.surface.subtle};
-  border: 1px solid ${({ theme }) => theme.color.border.base};
+  cursor: pointer;
+  background: ${({ theme, $selected }) => ($selected ? theme.color.surface.subtle : 'transparent')};
+  border: 1px solid ${({ theme, $selected }) => ($selected ? theme.color.border.base : theme.color.border.base)};
   font: ${({ theme }) => theme.font.small13};
-  color: ${({ theme }) => theme.color.text.primary};
+  color: ${({ theme, $selected }) => ($selected ? theme.color.text.primary : theme.color.text.secondary)};
+  opacity: ${({ $selected }) => ($selected ? 1 : 0.5)};
+`;
+
+const ParticipantError = styled.p`
+  margin-top: ${({ theme }) => theme.space.xs}px;
+  font: ${({ theme }) => theme.font.caption11};
+  color: ${({ theme }) => theme.color.state.danger};
 `;
 
 export function MatchCreatePage() {
@@ -145,6 +153,8 @@ export function MatchCreatePage() {
   const [mode, setMode] = useState<Mode>('5v5');
   const [teamMode, setTeamMode] = useState<TeamMode>('ai');
   const [tierBasis, setTierBasis] = useState<TierBasis>('internal');
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
+  const [participantError, setParticipantError] = useState<string | null>(null);
 
   useEffect(() => {
     if (groupId) setActiveGroupId(groupId);
@@ -156,17 +166,40 @@ export function MatchCreatePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [games]);
 
+  // Default to everyone in (most matches use the whole group), but let members
+  // be unchecked for a round they're sitting out.
+  useEffect(() => {
+    if (group) setSelectedUserIds(new Set(group.members.map((m) => m.userId)));
+  }, [group]);
+
   const target = MODE_TARGET[mode];
 
-  // POST /groups/:id/matches takes no body — the group's game is already fixed
-  // and team assignment happens afterwards via /matches/:id/teams/generate.
-  // gameId/mode/teamMode/tierBasis stay local until the backend grows fields for
-  // them. There's no "그룹원 목록" endpoint yet, so participants can't be picked
-  // here — /matches/:id/teams falls back to its own roster.
+  const toggleParticipant = (userId: number) => {
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
+
+  // POST /groups/:id/matches takes no body — the group's game is already fixed.
+  // The actual participant list is only needed by /matches/:id/teams/generate,
+  // so the selection made here is carried over via router state for
+  // TeamFormationPage to use on its first generate call.
+  // gameId/mode/teamMode/tierBasis stay local until the backend grows fields for them.
   const handleCreate = () => {
     if (!groupId) return;
+    if (selectedUserIds.size < 2) {
+      setParticipantError('참여자를 2명 이상 선택해주세요');
+      return;
+    }
+    setParticipantError(null);
     createMatch.mutate(undefined, {
-      onSuccess: (match) => navigate(`/matches/${match.id}/teams`),
+      onSuccess: (match) =>
+        navigate(`/matches/${match.id}/teams`, {
+          state: { participantUserIds: Array.from(selectedUserIds) },
+        }),
     });
   };
 
@@ -229,18 +262,26 @@ export function MatchCreatePage() {
         <SectionLabel>참여자</SectionLabel>
         <div style={{ flex: 1 }}>
           <ParticipantSummary>
-            {target !== null && <ParticipantHint $match={false}>{mode}는 {target}명이 필요해요</ParticipantHint>}
+            <ParticipantHint $match={target !== null && selectedUserIds.size === target}>
+              {selectedUserIds.size}명 선택됨{target !== null ? ` · ${mode}는 ${target}명이 필요해요` : ''}
+            </ParticipantHint>
           </ParticipantSummary>
           {group ? (
             <>
               <MemberList>
                 {group.members.map((m) => (
-                  <MemberChip key={m.userId}>{m.user.nickname}</MemberChip>
+                  <MemberChip
+                    key={m.userId}
+                    type="button"
+                    $selected={selectedUserIds.has(m.userId)}
+                    onClick={() => toggleParticipant(m.userId)}
+                  >
+                    {m.user.nickname}
+                  </MemberChip>
                 ))}
               </MemberList>
-              <NoticeLabel>
-                참여자를 직접 고르는 기능은 아직 없어서, 그룹원 {group.members.length}명 전체로 팀이 구성돼요.
-              </NoticeLabel>
+              <NoticeLabel>클릭해서 이번 판에 빠지는 그룹원을 뺄 수 있어요.</NoticeLabel>
+              {participantError && <ParticipantError>{participantError}</ParticipantError>}
             </>
           ) : (
             <NoticeLabel>그룹원 불러오는 중...</NoticeLabel>

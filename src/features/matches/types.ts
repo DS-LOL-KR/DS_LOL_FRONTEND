@@ -13,6 +13,7 @@ export interface TeamParticipant {
   matchId: number;
   userId: number;
   nickname: string;
+  profileImageUrl: string | null;
   assignedTeam: Team;
   assignedPosition: Position | null;
   mmrChange: number;

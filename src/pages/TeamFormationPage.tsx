@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import styled, { type DefaultTheme } from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/Button/Button';
@@ -8,6 +8,7 @@ import { useGenerateTeams, useMatch, useUpdateTeams } from '../features/matches/
 import type { TeamParticipant } from '../features/matches/types';
 import { useGroup } from '../features/groups/hooks';
 import { setActiveGroupId } from '../utils/activeGroup';
+import { resolveAssetUrl } from '../utils/assetUrl';
 
 type Side = 'A' | 'B';
 
@@ -262,6 +263,7 @@ export function TeamFormationPage() {
   const { id } = useParams();
   const matchId = Number(id);
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: match, isLoading: matchLoading, isError: matchError } = useMatch(matchId);
   const { data: group } = useGroup(match?.groupId ?? NaN);
   const generateTeams = useGenerateTeams(matchId);
@@ -272,14 +274,18 @@ export function TeamFormationPage() {
   }, [match?.groupId]);
 
   // A freshly created match has no participants yet (POST /groups/:id/matches
-  // doesn't take a roster) — generate the first split from the group's real
-  // member list as soon as both are loaded. Already-generated matches (status
-  // MATCHED/FINISHED) skip this and just render what's there.
+  // doesn't take a roster) — generate the first split as soon as the match (and,
+  // if we need it, the group) is loaded. MatchCreatePage passes whichever subset
+  // of the group was selected via router state; falls back to the full group
+  // roster when arriving here directly (e.g. a page refresh loses that state).
+  // Already-generated matches (status MATCHED/FINISHED) skip this and just
+  // render what's there.
   useEffect(() => {
-    if (!match || !group) return;
+    if (!match) return;
     if (match.participants && match.participants.length > 0) return;
-    const participantUserIds = group.members.map((m) => m.userId);
-    if (participantUserIds.length < 2) return;
+    const stateUserIds = (location.state as { participantUserIds?: number[] } | null)?.participantUserIds;
+    const participantUserIds = stateUserIds ?? group?.members.map((m) => m.userId);
+    if (!participantUserIds || participantUserIds.length < 2) return;
     generateTeams.mutate({ participantUserIds });
     // Only re-run when the match/group identity actually changes, not on every
     // mutation-object re-creation.
@@ -287,8 +293,8 @@ export function TeamFormationPage() {
   }, [match?.id, group?.id]);
 
   const handleReshuffle = () => {
-    if (!group) return;
-    generateTeams.mutate({ participantUserIds: group.members.map((m) => m.userId) });
+    if (participants.length === 0) return;
+    generateTeams.mutate({ participantUserIds: participants.map((p) => p.userId) });
   };
 
   const handleConfirm = () => {
@@ -318,7 +324,7 @@ export function TeamFormationPage() {
     <PlayerRow key={p.userId}>
       <PosCell>{p.assignedPosition ?? '-'}</PosCell>
       <NameCell>
-        <Avatar name={p.nickname} size={20} />
+        <Avatar name={p.nickname} imageUrl={resolveAssetUrl(p.profileImageUrl)} size={20} />
         {p.nickname}
       </NameCell>
       <TierCell>{p.tier ?? (p.hasLinkedAccount ? '언랭크' : '미연동')}</TierCell>
@@ -349,7 +355,7 @@ export function TeamFormationPage() {
           >
             다시 추첨
           </Button>
-          <Button onClick={handleConfirm} disabled={updateTeams.isPending || participants.length === 0}>
+          <Button $size="sm" onClick={handleConfirm} disabled={updateTeams.isPending || participants.length === 0}>
             구성 확정
           </Button>
         </HeaderActions>
