@@ -7,6 +7,7 @@ import { useMyMmrHistory } from '../features/matches/hooks';
 import {
   useChampionMasteries,
   useChampionStats,
+  useGameAccountFullStats,
   useMatchHistory,
   useMyGameAccounts,
   useRefreshGameAccount,
@@ -320,12 +321,14 @@ export function StatsPage() {
   const { data: matchHistory } = useMatchHistory(accountId);
   const { data: championStats } = useChampionStats(accountId);
   const { data: championMasteries } = useChampionMasteries(accountId);
+  const { data: fullStats } = useGameAccountFullStats(accountId);
   const syncMatchHistory = useSyncMatchHistory(accountId);
 
   const recentMatches = matchHistory ?? [];
   const champStats = championStats ?? [];
   const masteries = championMasteries ?? [];
   const masteryByChampion = new Map(masteries.map((m) => [m.championId, m]));
+  const positionStats = fullStats?.positionStats ?? [];
 
   // `custom_match_participants.mmr_change` (see ERD) is a per-match delta, not a
   // stored running total — walk backwards from the current MMR to reconstruct the
@@ -490,6 +493,22 @@ export function StatsPage() {
             )}
           </ChangesColumn>
         </Columns>
+      </RiotSection>
+
+      <RiotSection>
+        <SectionTitle>라인별 기록</SectionTitle>
+        {positionStats.length === 0 ? (
+          <EmptyHint>{primaryAccount ? '아직 집계된 라인 기록이 없어요' : '게임 계정을 연동하면 표시돼요'}</EmptyHint>
+        ) : (
+          positionStats.map((p) => (
+            <ChampRow key={p.position}>
+              <ChampName>{p.position}</ChampName>
+              <ChampRecord>
+                {p.gamesPlayed}전 · {Math.round(p.winRate * 100)}% · MMR {p.positionMmr}
+              </ChampRecord>
+            </ChampRow>
+          ))
+        )}
       </RiotSection>
     </PageLayout>
   );
