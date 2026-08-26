@@ -1,61 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import styled, { type DefaultTheme } from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/Button/Button';
+import { Avatar } from '../components/Avatar/Avatar';
 import { useGenerateTeams, useMatch, useUpdateTeams } from '../features/matches/hooks';
 import type { TeamParticipant } from '../features/matches/types';
-import type { Position } from '../features/tiers/types';
+import { useGroup } from '../features/groups/hooks';
 import { setActiveGroupId } from '../utils/activeGroup';
 
-// `custom_match_participants` (see ERD) only carries userId/assignedTeam/assignedPosition —
-// nickname/tier/mmr/balance-score/rationale aren't backend fields, they're computed
-// display-only values the AI-formation response is expected to add later. These
-// local types (and the mocks below) stay until /matches/:id/teams/generate documents
-// that richer shape.
 type Side = 'A' | 'B';
-
-interface TeamPlayer {
-  userId: number;
-  lane: Position;
-  nickname: string;
-  tier: 1 | 2 | 3 | 4 | 5;
-  mmr: number;
-  recentMmrDelta: number;
-  team: Side;
-}
-
-interface RationaleItem {
-  label: string;
-  detail: string;
-  value: string;
-}
-
-// TODO: no design frame covers the balance %/win-rate math precisely — these stay
-// as placeholders until /matches/:id/teams/generate documents its response shape.
-const MOCK_BALANCE_SCORE = 98;
-const MOCK_EXPECTED_WIN_RATE = { teamA: 51, teamB: 49 };
-
-// TODO: no backend yet — shown when POST /matches/:id/teams/generate is unavailable.
-const MOCK_PLAYERS: TeamPlayer[] = [
-  { userId: 1, lane: 'TOP', nickname: '재훈', tier: 3, mmr: 1780, recentMmrDelta: 12, team: 'A' },
-  { userId: 2, lane: 'JUG', nickname: '민석', tier: 2, mmr: 1865, recentMmrDelta: 8, team: 'A' },
-  { userId: 3, lane: 'MID', nickname: '성현', tier: 1, mmr: 1990, recentMmrDelta: 14, team: 'A' },
-  { userId: 4, lane: 'ADC', nickname: '지우', tier: 2, mmr: 1902, recentMmrDelta: -3, team: 'A' },
-  { userId: 5, lane: 'SUP', nickname: '태윤', tier: 3, mmr: 1673, recentMmrDelta: 6, team: 'A' },
-  { userId: 6, lane: 'TOP', nickname: '현우', tier: 2, mmr: 1858, recentMmrDelta: 4, team: 'B' },
-  { userId: 7, lane: 'JUG', nickname: '도현', tier: 3, mmr: 1702, recentMmrDelta: -7, team: 'B' },
-  { userId: 8, lane: 'MID', nickname: '준서', tier: 1, mmr: 2015, recentMmrDelta: 11, team: 'B' },
-  { userId: 9, lane: 'ADC', nickname: '하늘', tier: 2, mmr: 1889, recentMmrDelta: 9, team: 'B' },
-  { userId: 10, lane: 'SUP', nickname: '서진', tier: 4, mmr: 1616, recentMmrDelta: -2, team: 'B' },
-];
-
-const MOCK_RATIONALE: RationaleItem[] = [
-  { label: '라인 배정', detail: '10명 전원 주 포지션 배정. 서브 포지션으로 밀린 인원 없음', value: '10 / 10' },
-  { label: 'MMR 편차', detail: '팀 평균 차이 6점. 최근 10경기 중 최소', value: '6' },
-  { label: '최근 폼', detail: '연승 중인 성현·준서를 반대 팀으로 분리', value: '2명' },
-  { label: '티어 분포', detail: '양 팀 모두 1티어 1명 / 2티어 2명 / 3티어 이하 2명', value: '균등' },
-];
 
 const Header = styled.div`
   display: flex;
@@ -241,26 +195,19 @@ const PosCell = styled.span`
 `;
 
 const NameCell = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex: 1;
   min-width: 0;
   font: ${({ theme }) => theme.font.body14b};
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
-const TierCell = styled.div<{ $tier: 1 | 2 | 3 | 4 | 5 }>`
-  width: 54px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: ${({ theme, $tier }) => theme.color.tier[$tier]};
+const TierCell = styled.span`
+  width: 90px;
   font: ${({ theme }) => theme.font.label12};
-
-  &::before {
-    content: '';
-    width: 3px;
-    height: 12px;
-    background: ${({ theme, $tier }) => theme.color.tier[$tier]};
-  }
+  color: ${({ theme }) => theme.color.text.secondary};
 `;
 
 const MmrCell = styled.span`
@@ -270,15 +217,6 @@ const MmrCell = styled.span`
   font-size: 15px;
   font-weight: 600;
   color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const RecentCell = styled.span<{ $positive: boolean }>`
-  width: 44px;
-  text-align: right;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px;
-  color: ${({ theme, $positive }) => ($positive ? theme.color.text.secondary : theme.color.text.secondary)};
-  opacity: ${({ $positive }) => ($positive ? 1 : 0.8)};
 `;
 
 const RationaleSection = styled.div`
@@ -298,244 +236,203 @@ const RationaleTitle = styled.p`
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
-const RationaleHint = styled.span`
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
-
 const RationaleRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 20px;
   padding: 13px 0;
   border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-  font-size: 15px;
+  font: ${({ theme }) => theme.font.body14};
+  color: ${({ theme }) => theme.color.text.secondary};
 
   &:last-child {
     border-bottom: none;
   }
 `;
 
-const RationaleLabel = styled.span`
-  width: 110px;
-  flex-shrink: 0;
-  font-weight: 500;
-  color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const RationaleDetail = styled.span`
-  flex: 1;
-  min-width: 0;
+const NoticeLabel = styled.p`
+  padding: ${({ theme }) => theme.space.lg}px 0;
+  font: ${({ theme }) => theme.font.body14};
   color: ${({ theme }) => theme.color.text.secondary};
-`;
-
-const RationaleValue = styled.span`
-  width: 70px;
-  flex-shrink: 0;
-  text-align: right;
-  font-weight: 600;
-  color: ${({ theme }) => theme.color.text.primary};
+  opacity: 0.7;
 `;
 
 function teamColor(theme: DefaultTheme, team: Side): string {
   return team === 'A' ? theme.color.team.blue : theme.color.team.red;
 }
 
-function shuffleTeams(players: TeamPlayer[]): TeamPlayer[] {
-  const ids = players.map((p) => p.userId);
-  for (let i = ids.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [ids[i], ids[j]] = [ids[j], ids[i]];
-  }
-  const half = Math.ceil(ids.length / 2);
-  const teamAIds = new Set(ids.slice(0, half));
-  return players.map((p) => ({ ...p, team: teamAIds.has(p.userId) ? 'A' : 'B' }));
-}
-
 export function TeamFormationPage() {
   const { id } = useParams();
   const matchId = Number(id);
   const navigate = useNavigate();
-  const location = useLocation();
-  const { data: match } = useMatch(matchId);
+  const { data: match, isLoading: matchLoading, isError: matchError } = useMatch(matchId);
+  const { data: group } = useGroup(match?.groupId ?? NaN);
   const generateTeams = useGenerateTeams(matchId);
   const updateTeams = useUpdateTeams(matchId);
-
-  const [players, setPlayers] = useState<TeamPlayer[]>(MOCK_PLAYERS);
-  // Balance %/win-rate/rationale aren't backend fields (see comment above) — they
-  // stay fixed placeholders since there's no real source to refresh them from.
-  const balanceScore = MOCK_BALANCE_SCORE;
-  const expectedWinRate = MOCK_EXPECTED_WIN_RATE;
-  const rationale = MOCK_RATIONALE;
-
-  // Merge assignedTeam/assignedPosition from a real teams/generate or teams
-  // response onto the roster, keeping whatever nickname/tier/mmr we already have.
-  const applyAssignments = (participants: TeamParticipant[]) => {
-    setPlayers((prev) =>
-      prev.map((p) => {
-        const assignment = participants.find((a) => a.userId === p.userId);
-        if (!assignment) return p;
-        return {
-          ...p,
-          team: assignment.assignedTeam === 'TEAM_A' ? 'A' : 'B',
-          lane: assignment.assignedPosition ?? p.lane,
-        };
-      }),
-    );
-  };
 
   useEffect(() => {
     if (match?.groupId) setActiveGroupId(String(match.groupId));
   }, [match?.groupId]);
 
+  // A freshly created match has no participants yet (POST /groups/:id/matches
+  // doesn't take a roster) — generate the first split from the group's real
+  // member list as soon as both are loaded. Already-generated matches (status
+  // MATCHED/FINISHED) skip this and just render what's there.
   useEffect(() => {
-    if (!match) return;
-    // GET /matches/:id now embeds `participants` directly — if teams were already
-    // generated (status MATCHED/FINISHED), use that instead of re-rolling on every
-    // visit. Only call teams/generate for a fresh WAITING match with no assignments.
-    if (match.participants && match.participants.length > 0) {
-      applyAssignments(match.participants);
-      return;
-    }
-    const participantUserIds =
-      (location.state as { participantUserIds?: number[] } | null)?.participantUserIds ??
-      players.map((p) => p.userId);
-    generateTeams.mutate(
-      { participantUserIds },
-      { onSuccess: (result) => applyAssignments(result.participants), onError: () => setPlayers(shuffleTeams) },
-    );
-    // Only react to the match query settling — generateTeams/setState identity
-    // changes every render and would otherwise retrigger this.
+    if (!match || !group) return;
+    if (match.participants && match.participants.length > 0) return;
+    const participantUserIds = group.members.map((m) => m.userId);
+    if (participantUserIds.length < 2) return;
+    generateTeams.mutate({ participantUserIds });
+    // Only re-run when the match/group identity actually changes, not on every
+    // mutation-object re-creation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [match]);
+  }, [match?.id, group?.id]);
 
   const handleReshuffle = () => {
-    generateTeams.mutate(
-      { participantUserIds: players.map((p) => p.userId) },
-      { onSuccess: (result) => applyAssignments(result.participants), onError: () => setPlayers(shuffleTeams) },
-    );
+    if (!group) return;
+    generateTeams.mutate({ participantUserIds: group.members.map((m) => m.userId) });
   };
 
   const handleConfirm = () => {
+    if (!match?.participants) return;
     updateTeams.mutate(
       {
-        assignments: players.map((p) => ({
+        assignments: match.participants.map((p) => ({
           userId: p.userId,
-          assignedTeam: p.team === 'A' ? 'TEAM_A' : 'TEAM_B',
-          assignedPosition: p.lane,
+          assignedTeam: p.assignedTeam,
+          assignedPosition: p.assignedPosition ?? undefined,
         })),
       },
-      { onSettled: () => navigate(`/matches/${id}`) },
+      { onSuccess: () => navigate(`/matches/${id}`) },
     );
   };
 
-  const teamA = useMemo(() => players.filter((p) => p.team === 'A'), [players]);
-  const teamB = useMemo(() => players.filter((p) => p.team === 'B'), [players]);
-  const sumA = teamA.reduce((s, p) => s + p.mmr, 0);
-  const sumB = teamB.reduce((s, p) => s + p.mmr, 0);
-  const avgA = Math.round(sumA / (teamA.length || 1));
-  const avgB = Math.round(sumB / (teamB.length || 1));
+  const participants = useMemo(() => match?.participants ?? [], [match]);
+  const teamA = useMemo(() => participants.filter((p) => p.assignedTeam === 'TEAM_A'), [participants]);
+  const teamB = useMemo(() => participants.filter((p) => p.assignedTeam === 'TEAM_B'), [participants]);
+  const analysis = match?.teamAnalysis ?? null;
+
+  const onPreferredLane = participants.filter(
+    (p) => p.preferredPosition && p.assignedPosition === p.preferredPosition,
+  ).length;
+
+  const renderTeamPlayer = (p: TeamParticipant) => (
+    <PlayerRow key={p.userId}>
+      <PosCell>{p.assignedPosition ?? '-'}</PosCell>
+      <NameCell>
+        <Avatar name={p.nickname} size={20} />
+        {p.nickname}
+      </NameCell>
+      <TierCell>{p.tier ?? (p.hasLinkedAccount ? '언랭크' : '미연동')}</TierCell>
+      <MmrCell>{p.mmr}</MmrCell>
+    </PlayerRow>
+  );
+
+  const isGenerating = generateTeams.isPending;
+  const notEnoughMembers = group !== undefined && group.members.length < 2;
 
   return (
     <PageLayout>
       <Header>
         <div>
-          <Title>새벽 내전방</Title>
+          <Title>내전 팀 구성</Title>
           <SubtitleRow>
-            <span>5v5</span>
+            <span>{group?.name ?? '그룹 불러오는 중...'}</span>
             <span>·</span>
-            <span>리그 오브 레전드</span>
-            <span>·</span>
-            <span>08.08 02:40</span>
+            <span>{participants.length}명 참여</span>
           </SubtitleRow>
         </div>
         <HeaderActions>
-          <Button $variant="ghost" $size="sm" onClick={handleReshuffle} disabled={generateTeams.isPending}>
+          <Button
+            $variant="ghost"
+            $size="sm"
+            onClick={handleReshuffle}
+            disabled={isGenerating || participants.length === 0}
+          >
             다시 추첨
           </Button>
-          {/* TODO: manual drag-to-reassign UI once designed. */}
-          <Button $variant="ghost" $size="sm">수동 조정</Button>
-          <Button onClick={handleConfirm} disabled={updateTeams.isPending}>구성 확정</Button>
+          <Button onClick={handleConfirm} disabled={updateTeams.isPending || participants.length === 0}>
+            구성 확정
+          </Button>
         </HeaderActions>
       </Header>
 
-      <Metrics>
-        <Metric>
-          <MetricLabel>팀 밸런스</MetricLabel>
-          <MetricValue>{balanceScore}<MetricUnit>%</MetricUnit></MetricValue>
-        </Metric>
-        <Metric>
-          <MetricLabel>평균 MMR 차이</MetricLabel>
-          <MetricValue>{Math.abs(avgA - avgB)}</MetricValue>
-        </Metric>
-        <Metric>
-          <MetricLabel>예상 승률</MetricLabel>
-          <MetricValue>{expectedWinRate.teamA} : {expectedWinRate.teamB}</MetricValue>
-        </Metric>
-        <Metric>
-          <MetricLabel>라인 충족</MetricLabel>
-          <MetricValue>{players.length} / {players.length}</MetricValue>
-        </Metric>
-      </Metrics>
+      {matchError && <NoticeLabel>내전 정보를 불러올 수 없어요.</NoticeLabel>}
+      {notEnoughMembers && (
+        <NoticeLabel>그룹원이 2명 이상이어야 팀을 구성할 수 있어요.</NoticeLabel>
+      )}
+      {!matchError && !notEnoughMembers && (matchLoading || isGenerating) && participants.length === 0 && (
+        <NoticeLabel>{isGenerating ? 'AI가 팀을 구성하고 있어요...' : '불러오는 중...'}</NoticeLabel>
+      )}
 
-      <BalanceSection>
-        <BalanceLabels>
-          <BalanceLabel $team="A">팀 A 평균 <strong>{avgA}</strong></BalanceLabel>
-          <BalanceLabel $team="B"><strong>{avgB}</strong> 팀 B 평균</BalanceLabel>
-        </BalanceLabels>
-        <Gauge>
-          <GaugeSegment $team="A" />
-          <GaugeSegment $team="B" />
-        </Gauge>
-      </BalanceSection>
+      {analysis && (
+        <>
+          <Metrics>
+            <Metric>
+              <MetricLabel>팀 밸런스</MetricLabel>
+              <MetricValue>{analysis.balancePercent}<MetricUnit>%</MetricUnit></MetricValue>
+            </Metric>
+            <Metric>
+              <MetricLabel>평균 MMR 차이</MetricLabel>
+              <MetricValue>{Math.abs(analysis.teamA.averageMmr - analysis.teamB.averageMmr)}</MetricValue>
+            </Metric>
+            <Metric>
+              <MetricLabel>예상 승률</MetricLabel>
+              <MetricValue>
+                {Math.round(analysis.teamA.expectedWinRate * 100)} : {Math.round(analysis.teamB.expectedWinRate * 100)}
+              </MetricValue>
+            </Metric>
+            <Metric>
+              <MetricLabel>주 라인 배정</MetricLabel>
+              <MetricValue>{onPreferredLane} / {participants.length}</MetricValue>
+            </Metric>
+          </Metrics>
 
-      <Roster>
-        {([['A', teamA, 'left'], ['B', teamB, 'right']] as const).map(([team, roster, side]) => (
-          <TeamColumn key={team} $side={side}>
-            <TeamColorBar $team={team} />
-            <TeamHeader>
-              <TeamNameRow>
-                <TeamName>팀 {team}</TeamName>
-                <TeamSideTag $team={team}>{team === 'A' ? '블루' : '레드'}</TeamSideTag>
-              </TeamNameRow>
-              <TeamMmrSum>MMR 합계 {team === 'A' ? sumA : sumB}</TeamMmrSum>
-            </TeamHeader>
-            <RosterHeaderRow>
-              <span style={{ width: 44 }}>POS</span>
-              <span style={{ flex: 1 }}>소환사</span>
-              <span style={{ width: 54 }}>티어</span>
-              <span style={{ width: 52, textAlign: 'right' }}>MMR</span>
-              <span style={{ width: 44, textAlign: 'right' }}>최근</span>
-            </RosterHeaderRow>
-            {roster.map((p) => (
-              <PlayerRow key={p.userId}>
-                <PosCell>{p.lane}</PosCell>
-                <NameCell>{p.nickname}</NameCell>
-                <TierCell $tier={p.tier}>{p.tier}티어</TierCell>
-                <MmrCell>{p.mmr}</MmrCell>
-                <RecentCell $positive={p.recentMmrDelta >= 0}>
-                  {p.recentMmrDelta > 0 ? `+${p.recentMmrDelta}` : p.recentMmrDelta}
-                </RecentCell>
-              </PlayerRow>
-            ))}
-          </TeamColumn>
-        ))}
-      </Roster>
+          <BalanceSection>
+            <BalanceLabels>
+              <BalanceLabel $team="A">팀 A 평균 <strong>{analysis.teamA.averageMmr}</strong></BalanceLabel>
+              <BalanceLabel $team="B"><strong>{analysis.teamB.averageMmr}</strong> 팀 B 평균</BalanceLabel>
+            </BalanceLabels>
+            <Gauge>
+              <GaugeSegment $team="A" />
+              <GaugeSegment $team="B" />
+            </Gauge>
+          </BalanceSection>
+        </>
+      )}
 
-      <RationaleSection>
-        <RationaleHeader>
-          <RationaleTitle>구성 근거</RationaleTitle>
-          <RationaleHint>자동 배정 · 0.4초</RationaleHint>
-        </RationaleHeader>
-        {rationale.map((r) => (
-          <RationaleRow key={r.label}>
-            <RationaleLabel>{r.label}</RationaleLabel>
-            <RationaleDetail>{r.detail}</RationaleDetail>
-            <RationaleValue>{r.value}</RationaleValue>
-          </RationaleRow>
-        ))}
-      </RationaleSection>
+      {participants.length > 0 && (
+        <Roster>
+          {([['A', teamA, 'left'], ['B', teamB, 'right']] as const).map(([team, roster, side]) => (
+            <TeamColumn key={team} $side={side}>
+              <TeamColorBar $team={team} />
+              <TeamHeader>
+                <TeamNameRow>
+                  <TeamName>팀 {team}</TeamName>
+                  <TeamSideTag $team={team}>{team === 'A' ? '블루' : '레드'}</TeamSideTag>
+                </TeamNameRow>
+                <TeamMmrSum>MMR 합계 {roster.reduce((sum, p) => sum + p.mmr, 0)}</TeamMmrSum>
+              </TeamHeader>
+              <RosterHeaderRow>
+                <span style={{ width: 44 }}>POS</span>
+                <span style={{ flex: 1 }}>소환사</span>
+                <span style={{ width: 90 }}>티어</span>
+                <span style={{ width: 52, textAlign: 'right' }}>MMR</span>
+              </RosterHeaderRow>
+              {roster.map(renderTeamPlayer)}
+            </TeamColumn>
+          ))}
+        </Roster>
+      )}
+
+      {analysis && analysis.reasoning.length > 0 && (
+        <RationaleSection>
+          <RationaleHeader>
+            <RationaleTitle>구성 근거</RationaleTitle>
+          </RationaleHeader>
+          {analysis.reasoning.map((line, i) => (
+            <RationaleRow key={i}>{line}</RationaleRow>
+          ))}
+        </RationaleSection>
+      )}
     </PageLayout>
   );
 }

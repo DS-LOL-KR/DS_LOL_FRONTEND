@@ -116,6 +116,22 @@ const NoticeLabel = styled.p`
   opacity: 0.7;
 `;
 
+const MemberList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: ${({ theme }) => theme.space.sm}px;
+`;
+
+const MemberChip = styled.span`
+  padding: 6px 10px;
+  border-radius: ${({ theme }) => theme.radius.sm}px;
+  background: ${({ theme }) => theme.color.surface.subtle};
+  border: 1px solid ${({ theme }) => theme.color.border.base};
+  font: ${({ theme }) => theme.font.small13};
+  color: ${({ theme }) => theme.color.text.primary};
+`;
+
 export function MatchCreatePage() {
   const { id: groupId } = useParams();
   const navigate = useNavigate();
@@ -215,9 +231,20 @@ export function MatchCreatePage() {
           <ParticipantSummary>
             {target !== null && <ParticipantHint $match={false}>{mode}는 {target}명이 필요해요</ParticipantHint>}
           </ParticipantSummary>
-          <NoticeLabel>
-            그룹원 목록 기능이 아직 없어서 참여자를 직접 고를 수 없어요. 팀 구성 화면에서 전체 인원으로 배정돼요.
-          </NoticeLabel>
+          {group ? (
+            <>
+              <MemberList>
+                {group.members.map((m) => (
+                  <MemberChip key={m.userId}>{m.user.nickname}</MemberChip>
+                ))}
+              </MemberList>
+              <NoticeLabel>
+                참여자를 직접 고르는 기능은 아직 없어서, 그룹원 {group.members.length}명 전체로 팀이 구성돼요.
+              </NoticeLabel>
+            </>
+          ) : (
+            <NoticeLabel>그룹원 불러오는 중...</NoticeLabel>
+          )}
         </div>
       </Section>
     </PageLayout>

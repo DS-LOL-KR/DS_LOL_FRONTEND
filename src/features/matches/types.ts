@@ -3,19 +3,45 @@ import type { Position } from '../tiers/types';
 export type MatchStatus = 'WAITING' | 'MATCHED' | 'FINISHED';
 export type Team = 'TEAM_A' | 'TEAM_B';
 
-// The full participant row (custom_match_participants) — returned embedded in
-// Match (GET) and as the array in MatchTeamsResult/FinishMatchResult. id/matchId
-// aren't guaranteed on every response variant (the finish-match example omits
-// them), so they stay optional rather than assumed present.
+// Enriched server-side (matches.service.ts buildParticipantDetail) — nickname/
+// tier/mmr/hasLinkedAccount/preferredPosition are computed on read, not stored
+// columns. `tier` is the account's official Riot tier string (e.g. "PLATINUM III"
+// or null if unranked/unlinked) — not the group's 1–5 tier bucket from
+// GET /groups/:id/tiers, which is a different number entirely.
 export interface TeamParticipant {
-  id?: number;
-  matchId?: number;
+  id: number;
+  matchId: number;
   userId: number;
+  nickname: string;
   assignedTeam: Team;
-  assignedPosition?: Position | null;
+  assignedPosition: Position | null;
   mmrChange: number;
+  tier: string | null;
+  mmr: number;
+  hasLinkedAccount: boolean;
+  preferredPosition: Position | null;
 }
 
+export interface TeamSummary {
+  totalMmr: number;
+  averageMmr: number;
+  expectedWinRate: number; // 0–1 fraction, not a percent
+}
+
+// Recomputed from the current assignments on every read (not a stored snapshot),
+// so a PATCH .../teams adjustment is reflected immediately on the next fetch.
+// null while the match is still WAITING (no teams assigned yet).
+export interface TeamAnalysis {
+  teamA: TeamSummary;
+  teamB: TeamSummary;
+  balancePercent: number;
+  reasoning: string[];
+}
+
+// GET /matches/:id, POST .../teams/generate, PATCH .../teams, and POST .../finish
+// all return this same enriched shape (matches.service.ts buildMatchDetail).
+// POST /groups/:id/matches (create) returns the bare row only — nothing's
+// assigned yet — so participants/teamAnalysis stay optional.
 export interface Match {
   id: number;
   groupId: number;
@@ -24,26 +50,8 @@ export interface Match {
   status: MatchStatus;
   winningTeam: Team | null;
   createdAt: string;
-  // GET /matches/:id and GET /groups/:id/matches embed this; POST (create)
-  // doesn't return it since nothing's assigned yet.
   participants?: TeamParticipant[];
-}
-
-// POST .../teams/generate and PATCH .../teams both return this narrower shape,
-// not the full Match.
-export interface MatchTeamsResult {
-  id: number;
-  status: MatchStatus;
-  participants: TeamParticipant[];
-}
-
-// POST .../finish returns this — also narrower than Match (no groupId/gameId/
-// createdBy/createdAt), but winningTeam is guaranteed non-null once FINISHED.
-export interface FinishMatchResult {
-  id: number;
-  status: MatchStatus;
-  winningTeam: Team;
-  participants: TeamParticipant[];
+  teamAnalysis?: TeamAnalysis | null;
 }
 
 export interface GenerateTeamsRequest {
@@ -51,7 +59,7 @@ export interface GenerateTeamsRequest {
 }
 
 // The request-side assignment shape — distinct from TeamParticipant since the
-// body only carries what the client controls, not id/matchId/mmrChange.
+// body only carries what the client controls, not id/matchId/mmrChange/etc.
 export interface TeamAssignmentInput {
   userId: number;
   assignedTeam: Team;
@@ -74,8 +82,6 @@ export interface SubmitEvaluationRequest {
 
 export interface Evaluation {
   id: number;
-  // Added to user_evaluations on 2026-08-23 specifically to support this
-  // endpoint's duplicate-prevention and per-match manner-score recalculation.
   matchId: number;
   evaluatorId: number;
   targetId: number;

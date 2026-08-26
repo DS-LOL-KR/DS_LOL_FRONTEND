@@ -37,11 +37,21 @@ export function useMatch(matchId: number) {
 }
 
 export function useGenerateTeams(matchId: number) {
-  return useMutation({ mutationFn: (payload: GenerateTeamsRequest) => generateTeams(matchId, payload) });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: GenerateTeamsRequest) => generateTeams(matchId, payload),
+    // The response is the same enriched shape as GET /matches/:id — write it
+    // straight into that cache instead of refetching.
+    onSuccess: (match) => queryClient.setQueryData(['matches', 'detail', matchId], match),
+  });
 }
 
 export function useUpdateTeams(matchId: number) {
-  return useMutation({ mutationFn: (payload: UpdateTeamsRequest) => updateTeams(matchId, payload) });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: UpdateTeamsRequest) => updateTeams(matchId, payload),
+    onSuccess: (match) => queryClient.setQueryData(['matches', 'detail', matchId], match),
+  });
 }
 
 export function useFinishMatch(matchId: number) {

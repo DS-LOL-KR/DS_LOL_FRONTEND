@@ -2,10 +2,8 @@ import { apiClient } from '../../api/client';
 import type {
   Evaluation,
   FinishMatchRequest,
-  FinishMatchResult,
   GenerateTeamsRequest,
   Match,
-  MatchTeamsResult,
   MmrChange,
   MmrHistoryEntry,
   SubmitEvaluationRequest,
@@ -29,18 +27,18 @@ export async function getMatch(matchId: number): Promise<Match> {
   return data.match;
 }
 
-export async function generateTeams(matchId: number, payload: GenerateTeamsRequest): Promise<MatchTeamsResult> {
-  const { data } = await apiClient.post<{ match: MatchTeamsResult }>(`/matches/${matchId}/teams/generate`, payload);
+export async function generateTeams(matchId: number, payload: GenerateTeamsRequest): Promise<Match> {
+  const { data } = await apiClient.post<{ match: Match }>(`/matches/${matchId}/teams/generate`, payload);
   return data.match;
 }
 
-export async function updateTeams(matchId: number, payload: UpdateTeamsRequest): Promise<MatchTeamsResult> {
-  const { data } = await apiClient.patch<{ match: MatchTeamsResult }>(`/matches/${matchId}/teams`, payload);
+export async function updateTeams(matchId: number, payload: UpdateTeamsRequest): Promise<Match> {
+  const { data } = await apiClient.patch<{ match: Match }>(`/matches/${matchId}/teams`, payload);
   return data.match;
 }
 
-export async function finishMatch(matchId: number, payload: FinishMatchRequest): Promise<FinishMatchResult> {
-  const { data } = await apiClient.post<{ match: FinishMatchResult }>(`/matches/${matchId}/finish`, payload);
+export async function finishMatch(matchId: number, payload: FinishMatchRequest): Promise<Match> {
+  const { data } = await apiClient.post<{ match: Match }>(`/matches/${matchId}/finish`, payload);
   return data.match;
 }
 
