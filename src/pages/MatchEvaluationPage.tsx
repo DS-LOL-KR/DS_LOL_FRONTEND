@@ -2,18 +2,19 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { Button } from '../components/Button/Button';
+import { Avatar } from '../components/Avatar/Avatar';
 import { useMatch, useSubmitEvaluation } from '../features/matches/hooks';
 import { useMe } from '../features/auth/hooks';
+import { resolveAssetUrl } from '../utils/assetUrl';
 
 type RatingOption = '아쉬웠어요' | '무난했어요' | '좋았어요';
 const RATING_OPTIONS: RatingOption[] = ['아쉬웠어요', '무난했어요', '좋았어요'];
 const RATING_SCORE: Record<RatingOption, 1 | 2 | 3 | 4 | 5> = { 아쉬웠어요: 1, 무난했어요: 3, 좋았어요: 5 };
 
-// No nickname/tier source for participants (no roster/join endpoint — see ERD),
-// so teammates are labeled by userId.
 interface Teammate {
   id: number;
   name: string;
+  profileImageUrl: string | null;
   lane: string;
   subtitle: string;
 }
@@ -116,13 +117,6 @@ const TeammateInfo = styled.div`
   gap: 12px;
 `;
 
-const TeammateAvatar = styled.div`
-  width: 30px;
-  height: 30px;
-  border-radius: 4px;
-  background: ${({ theme }) => theme.color.surface.subtle};
-  flex-shrink: 0;
-`;
 
 const TeammateNameRow = styled.div`
   display: flex;
@@ -193,15 +187,16 @@ export function MatchEvaluationPage() {
   const submitEvaluation = useSubmitEvaluation(matchId);
   const [ratings, setRatings] = useState<Record<number, RatingOption>>({});
 
-  // GET /matches/:id now embeds real `participants` — evaluations submit
-  // against real teammate ids.
+  // GET /matches/:id now embeds real `participants` (nickname/profileImageUrl
+  // included) — evaluations submit against real teammate ids.
   const myTeam = match?.participants?.find((p) => p.userId === me?.id)?.assignedTeam;
   const teammates: Teammate[] = match?.participants && myTeam
     ? match.participants
         .filter((p) => p.assignedTeam === myTeam && p.userId !== me?.id)
         .map((p) => ({
           id: p.userId,
-          name: `유저 ${p.userId}`,
+          name: p.nickname,
+          profileImageUrl: p.profileImageUrl,
           lane: p.assignedPosition ?? '-',
           subtitle: `MMR 변동 ${p.mmrChange > 0 ? '+' : ''}${p.mmrChange}`,
         }))
@@ -245,7 +240,7 @@ export function MatchEvaluationPage() {
         {teammates.map((mate) => (
           <TeammateRow key={mate.id}>
             <TeammateInfo>
-              <TeammateAvatar />
+              <Avatar name={mate.name} imageUrl={resolveAssetUrl(mate.profileImageUrl)} size={30} />
               <div>
                 <TeammateNameRow>
                   <TeammateName>{mate.name}</TeammateName>
