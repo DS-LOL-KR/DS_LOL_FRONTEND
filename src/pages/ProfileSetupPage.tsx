@@ -11,6 +11,7 @@ import {
   useLinkGameAccount,
   useMyGameAccounts,
   useRefreshGameAccount,
+  useUnlinkGameAccount,
 } from '../features/game-accounts/hooks';
 import { resolveAssetUrl } from '../utils/assetUrl';
 
@@ -209,6 +210,11 @@ const ModalError = styled.p`
   color: ${({ theme }) => theme.color.state.danger};
 `;
 
+const ModalBody = styled.p`
+  font: ${({ theme }) => theme.font.body14};
+  color: ${({ theme }) => theme.color.text.secondary};
+`;
+
 const ModalActions = styled.div`
   display: flex;
   justify-content: flex-end;
@@ -224,6 +230,7 @@ export function ProfileSetupPage() {
   const { data: games } = useGames();
   const { data: gameAccounts } = useMyGameAccounts();
   const linkGameAccount = useLinkGameAccount();
+  const unlinkGameAccount = useUnlinkGameAccount();
   const logout = useLogout();
 
   const [nickname, setNickname] = useState('');
@@ -231,6 +238,7 @@ export function ProfileSetupPage() {
   const [linkingGameId, setLinkingGameId] = useState<number | null>(null);
   const [riotIdInput, setRiotIdInput] = useState('');
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [unlinkTarget, setUnlinkTarget] = useState<{ id: number; gameNickname: string } | null>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -283,6 +291,11 @@ export function ProfileSetupPage() {
     setLinkingGameId(null);
     setRiotIdInput('');
     setLinkError(null);
+  };
+
+  const handleUnlinkConfirmed = () => {
+    if (!unlinkTarget) return;
+    unlinkGameAccount.mutate(unlinkTarget.id, { onSuccess: () => setUnlinkTarget(null) });
   };
 
   const handleLogout = () => {
@@ -359,6 +372,14 @@ export function ProfileSetupPage() {
                       <TierValue>{account.stats?.officialTier ?? '미확인'}</TierValue>
                     </TierBlock>
                     <RefreshAccountButton accountId={account.id} />
+                    <Button
+                      type="button"
+                      $variant="dangerGhost"
+                      $size="sm"
+                      onClick={() => setUnlinkTarget({ id: account.id, gameNickname: account.gameNickname })}
+                    >
+                      연동 해제
+                    </Button>
                   </AccountCard>
                 ) : (
                   <AccountCard key={game.id}>
@@ -399,6 +420,17 @@ export function ProfileSetupPage() {
           <Button $variant="ghost" $size="sm" onClick={closeLinkModal}>취소</Button>
           <Button $size="sm" onClick={handleLinkGameAccount} disabled={linkGameAccount.isPending}>
             {linkGameAccount.isPending ? '연동 중...' : '연동'}
+          </Button>
+        </ModalActions>
+      </Modal>
+
+      <Modal open={unlinkTarget !== null} onClose={() => setUnlinkTarget(null)}>
+        <ModalTitle>{unlinkTarget?.gameNickname} 연동을 해제할까요?</ModalTitle>
+        <ModalBody>동기화된 전적·숙련도·라인 기록이 모두 삭제되며 되돌릴 수 없어요.</ModalBody>
+        <ModalActions>
+          <Button $variant="ghost" $size="sm" onClick={() => setUnlinkTarget(null)}>취소</Button>
+          <Button $variant="danger" $size="sm" onClick={handleUnlinkConfirmed} disabled={unlinkGameAccount.isPending}>
+            {unlinkGameAccount.isPending ? '해제 중...' : '연동 해제'}
           </Button>
         </ModalActions>
       </Modal>
