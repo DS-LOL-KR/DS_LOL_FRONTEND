@@ -12,6 +12,7 @@ import {
   useMyGameAccounts,
   useRefreshGameAccount,
 } from '../features/game-accounts/hooks';
+import { resolveAssetUrl } from '../utils/assetUrl';
 
 const Screen = styled.div`
   min-height: 100vh;
@@ -234,11 +235,19 @@ export function ProfileSetupPage() {
   useEffect(() => {
     if (!profile) return;
     setNickname(profile.nickname);
-    setBio(profile.bio);
+    // profile.bio can be null (never set) — a Textarea can't take a null value,
+    // and sending null back to PATCH /users/me fails its zod string validation.
+    setBio(profile.bio ?? '');
   }, [profile]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    // Nothing changed — treat "저장하고 시작하기" as just "시작하기" instead of
+    // firing a no-op request (and blocking navigation on it).
+    if (profile && nickname === profile.nickname && bio === (profile.bio ?? '')) {
+      navigate('/groups');
+      return;
+    }
     updateProfile.mutate(
       { nickname, bio },
       { onSuccess: () => navigate('/groups') },
@@ -298,7 +307,7 @@ export function ProfileSetupPage() {
           <Spacer $size={24} />
           <Divider />
           <Row>
-            <Avatar $src={profile?.profileImageUrl ?? undefined} />
+            <Avatar $src={resolveAssetUrl(profile?.profileImageUrl)} />
             <AvatarInfo>
               <AvatarName>프로필 이미지</AvatarName>
               <AvatarHint>JPG, PNG · 5MB 이하</AvatarHint>
@@ -357,7 +366,7 @@ export function ProfileSetupPage() {
                       <AccountName>{game.name}</AccountName>
                       <AccountHint>연동하면 티어와 전적을 자동으로 불러와요</AccountHint>
                     </AccountInfo>
-                    <Button $variant="ghost" $size="sm" onClick={() => setLinkingGameId(game.id)}>
+                    <Button type="button" $variant="ghost" $size="sm" onClick={() => setLinkingGameId(game.id)}>
                       계정 연동
                     </Button>
                   </AccountCard>
@@ -400,7 +409,7 @@ export function ProfileSetupPage() {
 function RefreshAccountButton({ accountId }: { accountId: number }) {
   const refresh = useRefreshGameAccount();
   return (
-    <Button $variant="ghost" $size="sm" onClick={() => refresh.mutate(accountId)} disabled={refresh.isPending}>
+    <Button type="button" $variant="ghost" $size="sm" onClick={() => refresh.mutate(accountId)} disabled={refresh.isPending}>
       {refresh.isPending ? '동기화 중...' : '동기화'}
     </Button>
   );
