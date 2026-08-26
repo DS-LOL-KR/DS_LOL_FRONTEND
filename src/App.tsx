@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useMe } from './features/auth/hooks';
 import { LoginPage } from './pages/LoginPage';
+import { PrivacyPage } from './pages/PrivacyPage';
 import { ProfileSetupPage } from './pages/ProfileSetupPage';
 import { GroupsPage } from './pages/GroupsPage';
 import { GroupManagePage } from './pages/GroupManagePage';
@@ -15,10 +16,15 @@ import { UserProfilePage } from './pages/UserProfilePage';
 
 // GET /users/me doubles as the session check: 200 means the Google OAuth
 // cookie is valid, anything else (401, network error, no backend) means logged out.
+// "/" needs to render real homepage content (app name, purpose, privacy link) for
+// signed-out visitors instead of bouncing straight to /login — Google's OAuth app
+// verification requires the registered homepage URL to show that content directly,
+// not redirect to a sign-in page first.
 function RootGate() {
   const { data, isLoading, isError } = useMe();
   if (isLoading) return null;
-  return <Navigate to={isError || !data ? '/login' : '/groups'} replace />;
+  if (!isError && data) return <Navigate to="/groups" replace />;
+  return <LoginPage />;
 }
 
 // TODO: guard the /groups, /stats, etc. routes the same way once more pages need it.
@@ -28,6 +34,7 @@ function App() {
       <Routes>
         <Route path="/" element={<RootGate />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/onboarding" element={<ProfileSetupPage />} />
         <Route path="/groups" element={<GroupsPage />} />
         <Route path="/groups/:id/manage" element={<GroupManagePage />} />
