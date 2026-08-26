@@ -2,20 +2,22 @@ import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/Button/Button';
-import { useMatch, useMmrChanges } from '../features/matches/hooks';
+import { Avatar } from '../components/Avatar/Avatar';
+import { useFinishMatch, useMatch, useMmrChanges } from '../features/matches/hooks';
 import type { Position } from '../features/tiers/types';
 import { useMe } from '../features/auth/hooks';
+import { resolveAssetUrl } from '../utils/assetUrl';
 
 // TODO: no design frame covers a standalone match-detail page yet (the Figma file
 // only has AI 팀 구성 / 사용자 평가) — this view is assembled from the /matches/:id
-// and /matches/:id/mmr-changes API shapes until a real design lands. There's no
-// nickname source for participants (no roster/join endpoint — see ERD), so
-// players are labeled by userId. Side ('A'/'B') is page-local display shorthand
-// for the real TEAM_A/TEAM_B fields.
+// and /matches/:id/mmr-changes API shapes until a real design lands. Side
+// ('A'/'B') is page-local display shorthand for the real TEAM_A/TEAM_B fields.
 type Side = 'A' | 'B';
 
 interface RosterPlayer {
   userId: number;
+  nickname: string;
+  profileImageUrl: string | null;
   lane: Position | null;
   mmrDelta: number;
   team: Side;
@@ -87,8 +89,15 @@ const PlayerRow = styled.div`
   border-top: 1px solid ${({ theme }) => theme.color.border.base};
 `;
 
-const PlayerName = styled.span`
+const PlayerInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex: 1;
+  min-width: 0;
+`;
+
+const PlayerName = styled.span`
   min-width: 0;
   font: ${({ theme }) => theme.font.body14b};
   color: ${({ theme }) => theme.color.text.primary};
@@ -145,8 +154,21 @@ const ChangeDelta = styled.span<{ $positive: boolean }>`
 
 const Footer = styled.div`
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   padding-top: ${({ theme }) => theme.space.lg}px;
+`;
+
+const WinnerSection = styled.div`
+  width: 100%;
+  padding: ${({ theme }) => theme.space.lg}px 0;
+  border-top: 1px solid ${({ theme }) => theme.color.border.base};
+`;
+
+const WinnerRow = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.space.sm}px;
+  padding-top: 10px;
 `;
 
 export function MatchResultPage() {
@@ -156,11 +178,15 @@ export function MatchResultPage() {
   const { data: match } = useMatch(matchId);
   const { data: mmrChanges } = useMmrChanges(matchId);
   const { data: me } = useMe();
+  const finishMatch = useFinishMatch(matchId);
 
-  // GET /matches/:id now embeds real `participants` — build the roster from
-  // that directly instead of a mocked player list.
+  // GET /matches/:id now embeds real `participants` (nickname/profileImageUrl
+  // included) — build the roster from that directly instead of a mocked list.
+  const participantById = new Map((match?.participants ?? []).map((p) => [p.userId, p]));
   const players: RosterPlayer[] = (match?.participants ?? []).map((p) => ({
     userId: p.userId,
+    nickname: p.nickname,
+    profileImageUrl: p.profileImageUrl,
     lane: p.assignedPosition ?? null,
     mmrDelta: p.mmrChange,
     team: p.assignedTeam === 'TEAM_A' ? 'A' : 'B',
@@ -172,6 +198,10 @@ export function MatchResultPage() {
   const changes = mmrChanges ?? [];
   const alreadyRated = changes.some((c) => c.userId === me?.id);
 
+  const handleFinish = (winner: 'TEAM_A' | 'TEAM_B') => {
+    finishMatch.mutate({ winningTeam: winner });
+  };
+
   return (
     <PageLayout>
       <Header>
@@ -179,7 +209,7 @@ export function MatchResultPage() {
           <Title>내전 결과</Title>
           <Subtitle>{match ? match.createdAt.slice(0, 16).replace('T', ' ') : '불러오는 중...'}</Subtitle>
         </div>
-        {!alreadyRated && (
+        {match?.status === 'FINISHED' && !alreadyRated && (
           <Button onClick={() => navigate(`/matches/${id}/evaluate`)}>팀원 평가하기</Button>
         )}
       </Header>
@@ -197,7 +227,10 @@ export function MatchResultPage() {
               {roster.map((p) => (
                 <PlayerRow key={p.userId}>
                   <PlayerLane>{p.lane ?? '-'}</PlayerLane>
-                  <PlayerName>유저 #{p.userId}</PlayerName>
+                  <PlayerInfo>
+                    <Avatar name={p.nickname} imageUrl={resolveAssetUrl(p.profileImageUrl)} size={22} />
+                    <PlayerName>{p.nickname}</PlayerName>
+                  </PlayerInfo>
                   <PlayerDelta $positive={p.mmrDelta >= 0}>
                     {p.mmrDelta > 0 ? `+${p.mmrDelta}` : p.mmrDelta}
                   </PlayerDelta>
@@ -208,26 +241,43 @@ export function MatchResultPage() {
         </Roster>
       )}
 
-      <Section>
-        <SectionTitle>MMR 변동 내역</SectionTitle>
-        {changes.length === 0 ? (
-          <ChangeRow>
-            <ChangeReason>아직 집계된 변동 내역이 없어요</ChangeReason>
-          </ChangeRow>
-        ) : (
-          changes.map((change) => (
-            <ChangeRow key={change.userId}>
-              <ChangeReason>유저 #{change.userId}</ChangeReason>
-              <ChangeDelta $positive={change.mmrChange >= 0}>
-                {change.mmrChange > 0 ? `+${change.mmrChange}` : change.mmrChange}
-              </ChangeDelta>
+      {match?.status === 'MATCHED' && (
+        <WinnerSection>
+          <SectionTitle>어느 팀이 이겼나요?</SectionTitle>
+          <WinnerRow>
+            <Button onClick={() => handleFinish('TEAM_A')} disabled={finishMatch.isPending}>팀 A 승리</Button>
+            <Button onClick={() => handleFinish('TEAM_B')} disabled={finishMatch.isPending}>팀 B 승리</Button>
+          </WinnerRow>
+        </WinnerSection>
+      )}
+
+      {match?.status === 'FINISHED' && (
+        <Section>
+          <SectionTitle>MMR 변동 내역</SectionTitle>
+          {changes.length === 0 ? (
+            <ChangeRow>
+              <ChangeReason>아직 집계된 변동 내역이 없어요</ChangeReason>
             </ChangeRow>
-          ))
-        )}
-      </Section>
+          ) : (
+            changes.map((change) => (
+              <ChangeRow key={change.userId}>
+                <ChangeReason>{participantById.get(change.userId)?.nickname ?? `유저 #${change.userId}`}</ChangeReason>
+                <ChangeDelta $positive={change.mmrChange >= 0}>
+                  {change.mmrChange > 0 ? `+${change.mmrChange}` : change.mmrChange}
+                </ChangeDelta>
+              </ChangeRow>
+            ))
+          )}
+        </Section>
+      )}
 
       <Footer>
         <Button $variant="ghost" $size="sm" onClick={() => navigate(-1)}>목록으로</Button>
+        {match && match.status !== 'WAITING' && (
+          <Button $variant="ghost" $size="sm" onClick={() => navigate(`/matches/${id}/teams`)}>
+            팀 구성 보기
+          </Button>
+        )}
       </Footer>
     </PageLayout>
   );
