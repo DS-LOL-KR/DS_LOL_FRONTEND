@@ -62,6 +62,9 @@ export interface MatchHistoryEntry {
   playedAt: string;
   durationSeconds: number;
   championId: number;
+  // Resolved server-side from Data Dragon — null only if that lookup failed
+  // (e.g. a brand-new champion Data Dragon hasn't caught up on yet).
+  championName: string | null;
   position: RiotPosition;
   kills: number;
   deaths: number;
@@ -77,6 +80,7 @@ export interface MatchHistoryEntry {
 // POST .../match-history/sync — not the account's lifetime record.
 export interface ChampionStat {
   championId: number;
+  championName: string | null;
   gamesPlayed: number;
   wins: number;
   losses: number;
@@ -85,6 +89,7 @@ export interface ChampionStat {
 
 export interface ChampionMastery {
   championId: number;
+  championName: string | null;
   masteryLevel: number;
   masteryPoints: number;
   lastPlayTime: string;

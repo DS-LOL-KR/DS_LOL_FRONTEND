@@ -460,7 +460,7 @@ export function StatsPage() {
               recentMatches.map((m) => (
                 <MatchRow key={m.matchId}>
                   <MatchResultTag $win={m.win}>{m.win ? '승' : '패'}</MatchResultTag>
-                  <MatchChampion>챔피언 #{m.championId}</MatchChampion>
+                  <MatchChampion>{m.championName ?? `챔피언 #${m.championId}`}</MatchChampion>
                   <MatchMeta>{m.position}</MatchMeta>
                   <MatchKda>{m.kills} / {m.deaths} / {m.assists}</MatchKda>
                 </MatchRow>
@@ -479,7 +479,7 @@ export function StatsPage() {
                 const mastery = masteryByChampion.get(c.championId);
                 return (
                   <ChampRow key={c.championId}>
-                    <ChampName>챔피언 #{c.championId}</ChampName>
+                    <ChampName>{c.championName ?? `챔피언 #${c.championId}`}</ChampName>
                     {mastery && <ChampMastery>숙련도 {mastery.masteryLevel}</ChampMastery>}
                     <ChampRecord>
                       {c.wins}승 {c.losses}패 · {Math.round(c.winRate * 100)}%
