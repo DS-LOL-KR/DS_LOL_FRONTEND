@@ -11,6 +11,7 @@ import {
   transferOwner,
 } from './api';
 import type { CreateGroupRequest, JoinGroupRequest, TransferOwnerRequest } from './types';
+import { clearActiveGroupIdIfMatches } from '../../utils/activeGroup';
 
 export function useGroups() {
   return useQuery({ queryKey: ['groups'], queryFn: getGroups });
@@ -44,7 +45,10 @@ export function useDeleteGroup(groupId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => deleteGroup(groupId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      clearActiveGroupIdIfMatches(groupId);
+    },
   });
 }
 
@@ -70,7 +74,10 @@ export function useLeaveGroup(groupId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => leaveGroup(groupId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      clearActiveGroupIdIfMatches(groupId);
+    },
   });
 }
 
