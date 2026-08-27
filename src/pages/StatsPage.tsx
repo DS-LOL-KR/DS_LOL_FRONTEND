@@ -13,6 +13,10 @@ import {
   useRefreshGameAccount,
   useSyncMatchHistory,
 } from '../features/game-accounts/hooks';
+import { useGroup } from '../features/groups/hooks';
+import { useTierTable } from '../features/tiers/hooks';
+import { useMe } from '../features/auth/hooks';
+import { useActiveGroupId } from '../utils/activeGroup';
 import { formatRelativeTime } from '../utils/formatRelativeTime';
 
 const Header = styled.div`
@@ -58,18 +62,27 @@ const MetricLabel = styled.p`
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
-const MetricValue = styled.p<{ $tone?: 'success' | 'tier2' | 'tier1' }>`
+const MetricValue = styled.p<{ $tone?: 'success' | 'tier2' | 'tier1'; $tier?: 1 | 2 | 3 | 4 | 5 }>`
   margin-top: 5px;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 29px;
   font-weight: 600;
   letter-spacing: -0.6px;
-  color: ${({ theme, $tone }) => {
+  color: ${({ theme, $tone, $tier }) => {
+    if ($tier) return theme.color.tier[$tier];
     if ($tone === 'success') return theme.color.state.success;
     if ($tone === 'tier2') return theme.color.tier[2];
     if ($tone === 'tier1') return theme.color.tier[1];
     return theme.color.text.primary;
   }};
+`;
+
+const MetricSubLabel = styled.span`
+  margin-left: 6px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 400;
+  color: ${({ theme }) => theme.color.text.secondary};
 `;
 
 const Columns = styled.div`
@@ -311,12 +324,23 @@ export function StatsPage() {
   const { data: mmrHistory } = useMyMmrHistory();
   const { data: gameAccounts } = useMyGameAccounts();
   const refreshGameAccount = useRefreshGameAccount();
+  const { data: me } = useMe();
+  const activeGroupId = useActiveGroupId();
+  const activeGroupIdNum = Number(activeGroupId);
+  const { data: activeGroup } = useGroup(activeGroupIdNum);
+  const { data: activeGroupTiers } = useTierTable(activeGroupIdNum);
 
   const history = mmrHistory ?? [];
   const trendSeries = [...history].reverse();
   const myGameAccounts = gameAccounts ?? [];
   const primaryAccount = myGameAccounts[0];
   const currentMmr = primaryAccount?.stats?.internalMmr ?? null;
+
+  // "그룹 내부 티어"는 그룹 하나에 종속된 개념이라 계정 전체 페이지에 하나로
+  // 못 박음 — 여러 그룹에 속해있을 수 있어서, nav가 기억하는 "마지막으로 본
+  // 그룹"(activeGroupId) 기준으로 보여줌. 그 그룹에 티어 기록이 없으면(계정
+  // 미연동 등) '-'.
+  const myGroupTier = activeGroupTiers?.tiers.find((t) => t.userId === me?.id) ?? null;
 
   const accountId = Number(primaryAccount?.id);
   const { data: matchHistory } = useMatchHistory(accountId);
@@ -393,7 +417,14 @@ export function StatsPage() {
         </Metric>
         <Metric>
           <MetricLabel>그룹 내부 티어</MetricLabel>
-          <MetricValue>준비 중</MetricValue>
+          {myGroupTier ? (
+            <MetricValue $tier={myGroupTier.tier}>
+              {myGroupTier.tier}티어
+              <MetricSubLabel>{activeGroup?.name}</MetricSubLabel>
+            </MetricValue>
+          ) : (
+            <MetricValue>{activeGroup ? '기록 없음' : '그룹 없음'}</MetricValue>
+          )}
         </Metric>
         <Metric>
           <MetricLabel>게임 공식 티어</MetricLabel>
