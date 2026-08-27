@@ -10,7 +10,7 @@ import {
   useGames,
   useLinkGameAccount,
   useMyGameAccounts,
-  useRefreshGameAccount,
+  useFullSyncGameAccount,
   useUnlinkGameAccount,
 } from '../features/game-accounts/hooks';
 import { resolveAssetUrl } from '../utils/assetUrl';
@@ -439,10 +439,12 @@ export function ProfileSetupPage() {
 }
 
 function RefreshAccountButton({ accountId }: { accountId: number }) {
-  const refresh = useRefreshGameAccount();
+  // 티어/레벨/숙련도/MMR 갱신 + 전적·라인별 MMR 동기화를 한 번에 — /stats 페이지의
+  // "지금 갱신"/"전적 동기화"와 동일한 동작으로 맞춤.
+  const fullSync = useFullSyncGameAccount(accountId);
   return (
-    <Button type="button" $variant="ghost" $size="sm" onClick={() => refresh.mutate(accountId)} disabled={refresh.isPending}>
-      {refresh.isPending ? '동기화 중...' : '동기화'}
+    <Button type="button" $variant="ghost" $size="sm" onClick={() => fullSync.mutate(undefined)} disabled={fullSync.isPending}>
+      {fullSync.isPending ? '동기화 중...' : '동기화'}
     </Button>
   );
 }

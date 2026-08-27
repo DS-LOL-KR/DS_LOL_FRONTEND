@@ -10,8 +10,7 @@ import {
   useGameAccountFullStats,
   useMatchHistory,
   useMyGameAccounts,
-  useRefreshGameAccount,
-  useSyncMatchHistory,
+  useFullSyncGameAccount,
 } from '../features/game-accounts/hooks';
 import { useGroup } from '../features/groups/hooks';
 import { useTierTable } from '../features/tiers/hooks';
@@ -318,12 +317,9 @@ const ChampRecord = styled.span`
 
 export function StatsPage() {
   const navigate = useNavigate();
-  const [refreshing, setRefreshing] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [activeBar, setActiveBar] = useState<number | null>(null);
   const { data: mmrHistory } = useMyMmrHistory();
   const { data: gameAccounts } = useMyGameAccounts();
-  const refreshGameAccount = useRefreshGameAccount();
   const { data: me } = useMe();
   const activeGroupId = useActiveGroupId();
   const activeGroupIdNum = Number(activeGroupId);
@@ -347,7 +343,7 @@ export function StatsPage() {
   const { data: championStats } = useChampionStats(accountId);
   const { data: championMasteries } = useChampionMasteries(accountId);
   const { data: fullStats } = useGameAccountFullStats(accountId);
-  const syncMatchHistory = useSyncMatchHistory(accountId);
+  const fullSyncGameAccount = useFullSyncGameAccount(accountId);
 
   const recentMatches = matchHistory ?? [];
   const champStats = championStats ?? [];
@@ -374,10 +370,11 @@ export function StatsPage() {
   const recentDelta = history.reduce((sum, h) => sum + h.mmrChange, 0);
   const officialTier = primaryAccount?.stats?.officialTier ?? null;
 
-  const handleRefresh = () => {
+  // "지금 갱신"과 "전적 동기화" 버튼은 위치만 다를 뿐 이제 똑같이 리프레시+동기화를
+  // 전부 실행함 — 어느 쪽을 눌러도 결과가 같아야 한다는 요청이라 핸들러도 하나로 합침.
+  const handleFullSync = () => {
     if (!primaryAccount) return;
-    setRefreshing(true);
-    refreshGameAccount.mutate(primaryAccount.id, { onSettled: () => setRefreshing(false) });
+    fullSyncGameAccount.mutate(undefined);
   };
 
   // Growing the bar to full height before navigating gives the click somewhere
@@ -387,12 +384,6 @@ export function StatsPage() {
     window.setTimeout(() => navigate(`/matches/${matchId}`), 260);
   };
 
-  const handleSync = () => {
-    if (!primaryAccount) return;
-    setSyncing(true);
-    syncMatchHistory.mutate(undefined, { onSettled: () => setSyncing(false) });
-  };
-
   return (
     <PageLayout>
       <Header>
@@ -400,8 +391,8 @@ export function StatsPage() {
           <Title>내 전적</Title>
           <Subtitle>전적은 하루 1회 자동 갱신 · {formatRelativeTime(primaryAccount?.stats?.updatedAt ?? null)}</Subtitle>
         </div>
-        <Button onClick={handleRefresh} disabled={refreshing || !primaryAccount}>
-          {refreshing ? '갱신 중...' : '지금 갱신'}
+        <Button onClick={handleFullSync} disabled={fullSyncGameAccount.isPending || !primaryAccount}>
+          {fullSyncGameAccount.isPending ? '갱신 중...' : '지금 갱신'}
         </Button>
       </Header>
       <Metrics>
@@ -485,8 +476,8 @@ export function StatsPage() {
           <TrendColumn>
             <ColumnHeader>
               <ColumnTitle>최근 매치</ColumnTitle>
-              <Button $variant="ghost" $size="sm" onClick={handleSync} disabled={syncing || !primaryAccount}>
-                {syncing ? '동기화 중...' : '전적 동기화'}
+              <Button $variant="ghost" $size="sm" onClick={handleFullSync} disabled={fullSyncGameAccount.isPending || !primaryAccount}>
+                {fullSyncGameAccount.isPending ? '동기화 중...' : '전적 동기화'}
               </Button>
             </ColumnHeader>
             {recentMatches.length === 0 ? (
