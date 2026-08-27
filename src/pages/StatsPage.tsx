@@ -13,6 +13,7 @@ import {
   useRefreshGameAccount,
   useSyncMatchHistory,
 } from '../features/game-accounts/hooks';
+import { formatRelativeTime } from '../utils/formatRelativeTime';
 
 const Header = styled.div`
   display: flex;
@@ -373,7 +374,7 @@ export function StatsPage() {
       <Header>
         <div>
           <Title>내 전적</Title>
-          <Subtitle>전적은 하루 1회 자동 갱신 · 12분 전 갱신</Subtitle>
+          <Subtitle>전적은 하루 1회 자동 갱신 · {formatRelativeTime(primaryAccount?.stats?.updatedAt ?? null)}</Subtitle>
         </div>
         <Button onClick={handleRefresh} disabled={refreshing || !primaryAccount}>
           {refreshing ? '갱신 중...' : '지금 갱신'}
