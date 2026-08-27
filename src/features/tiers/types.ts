@@ -16,3 +16,10 @@ export interface TierEntry {
   wins: number;
   losses: number;
 }
+
+export interface TierTable {
+  tiers: TierEntry[];
+  // Most recent game_account stats update among the group's linked accounts —
+  // null if nobody in the group has a linked account yet.
+  lastUpdatedAt: string | null;
+}

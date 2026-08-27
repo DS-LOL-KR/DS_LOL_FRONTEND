@@ -184,7 +184,7 @@ export function GroupManagePage() {
   const members: GroupMember[] = useMemo(() => {
     if (!group) return [];
     return group.members.map((membership) => {
-      const rows = (tierRows ?? []).filter((row) => row.userId === membership.userId);
+      const rows = (tierRows?.tiers ?? []).filter((row) => row.userId === membership.userId);
       const mainRow = rows.length
         ? rows.reduce((best, row) => (row.wins + row.losses > best.wins + best.losses ? row : best))
         : null;

@@ -10,6 +10,7 @@ import { useRecalculateTiers, useTierTable } from '../features/tiers/hooks';
 import type { Position, TierEntry } from '../features/tiers/types';
 import { setActiveGroupId } from '../utils/activeGroup';
 import { resolveAssetUrl } from '../utils/assetUrl';
+import { formatRelativeTime } from '../utils/formatRelativeTime';
 
 type Tier = 1 | 2 | 3 | 4 | 5;
 const POSITIONS: Position[] = ['TOP', 'JUG', 'MID', 'ADC', 'SUP'];
@@ -191,7 +192,7 @@ export function TierTablePage() {
     if (groupId) setActiveGroupId(groupId);
   }, [groupId]);
 
-  const allMembers = tierTable ?? [];
+  const allMembers = tierTable?.tiers ?? [];
   // '전체' 탭에서는 한 사람이 여러 라인으로 중복 등장하면 지저분하니, 라인별
   // position_mmr가 가장 높은 한 줄만 남김.
   const filtered = useMemo(() => {
@@ -216,7 +217,7 @@ export function TierTablePage() {
       <Header>
         <div>
           <Title>티어표</Title>
-          <Subtitle>전적 · 그룹 티어 · 사용자 평가를 합산해 계산 · 2시간 전 갱신</Subtitle>
+          <Subtitle>전적 · 그룹 티어 · 사용자 평가를 합산해 계산 · {formatRelativeTime(tierTable?.lastUpdatedAt ?? null)}</Subtitle>
         </div>
         <HeaderActions>
           <Button $size="sm" onClick={() => recalculateTiers.mutate()} disabled={recalculateTiers.isPending}>
@@ -235,7 +236,7 @@ export function TierTablePage() {
       </LaneTabs>
 
       {tierTableError ? (
-        <NoticeLabel>티어표 기능은 아직 준비 중이에요</NoticeLabel>
+        <NoticeLabel>이 그룹의 티어표를 볼 수 없어요 (멤버가 아니거나 그룹을 찾을 수 없어요)</NoticeLabel>
       ) : (
         TIERS.map((tier) => {
         const members = byTier.get(tier) ?? [];
