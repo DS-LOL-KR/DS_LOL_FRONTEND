@@ -1,12 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/Button/Button';
+import { Modal } from '../components/Modal/Modal';
 import { Table } from '../components/Table/Table';
 import type { Column } from '../components/Table/Table';
 import { useGroup } from '../features/groups/hooks';
-import { useMatches } from '../features/matches/hooks';
+import { useDeleteMatch, useMatches } from '../features/matches/hooks';
 import { useGames } from '../features/game-accounts/hooks';
 import { useMe } from '../features/auth/hooks';
 import { setActiveGroupId } from '../utils/activeGroup';
@@ -18,6 +19,7 @@ interface MatchRow {
   team: 'blue' | 'red' | null;
   result: '승' | '패' | '진행중';
   mmrDelta: number;
+  canDelete: boolean;
 }
 
 const Header = styled.div`
@@ -132,6 +134,30 @@ const MmrCell = styled.span<{ $positive: boolean }>`
   color: ${({ theme, $positive }) => ($positive ? theme.color.state.success : theme.color.state.danger)};
 `;
 
+const ActionCell = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+`;
+
+const ModalTitle = styled.p`
+  font: ${({ theme }) => theme.font.sub17};
+  color: ${({ theme }) => theme.color.text.primary};
+  margin-bottom: ${({ theme }) => theme.space.sm}px;
+`;
+
+const ModalBody = styled.p`
+  font: ${({ theme }) => theme.font.body14};
+  color: ${({ theme }) => theme.color.text.secondary};
+`;
+
+const ModalActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: ${({ theme }) => theme.space.xs}px;
+  margin-top: ${({ theme }) => theme.space.md}px;
+`;
+
 export function MatchHistoryPage() {
   const { id: groupId } = useParams();
   const navigate = useNavigate();
@@ -139,6 +165,8 @@ export function MatchHistoryPage() {
   const { data: matches } = useMatches(Number(groupId));
   const { data: games } = useGames();
   const { data: me } = useMe();
+  const deleteMatch = useDeleteMatch(Number(groupId));
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
   useEffect(() => {
     if (groupId) setActiveGroupId(groupId);
@@ -160,8 +188,14 @@ export function MatchHistoryPage() {
       team,
       result,
       mmrDelta: mine?.mmrChange ?? 0,
+      canDelete: me?.id === m.createdBy || me?.id === group?.ownerId,
     };
   });
+
+  const handleDeleteConfirmed = () => {
+    if (deleteTarget === null) return;
+    deleteMatch.mutate(deleteTarget, { onSuccess: () => setDeleteTarget(null) });
+  };
 
   const finished = rows.filter((r) => r.result !== '진행중');
   const wins = finished.filter((r) => r.result === '승').length;
@@ -196,12 +230,19 @@ export function MatchHistoryPage() {
     {
       key: 'action',
       header: '',
-      width: 90,
+      width: 150,
       align: 'right',
       render: (m) => (
-        <Button $variant="ghost" $size="sm" onClick={() => navigate(`/matches/${m.id}`)}>
-          상세
-        </Button>
+        <ActionCell>
+          <Button $variant="ghost" $size="sm" onClick={() => navigate(`/matches/${m.id}`)}>
+            상세
+          </Button>
+          {m.canDelete && (
+            <Button $variant="dangerGhost" $size="sm" onClick={() => setDeleteTarget(m.id)}>
+              삭제
+            </Button>
+          )}
+        </ActionCell>
       ),
     },
   ];
@@ -253,6 +294,15 @@ export function MatchHistoryPage() {
           <Table columns={columns} data={rows} />
         )}
       </TableWrap>
+
+      <Modal open={deleteTarget !== null} onClose={() => setDeleteTarget(null)}>
+        <ModalTitle>이 내전을 삭제할까요?</ModalTitle>
+        <ModalBody>팀 구성·평가 기록이 함께 삭제되며 되돌릴 수 없어요.</ModalBody>
+        <ModalActions>
+          <Button $variant="ghost" $size="sm" onClick={() => setDeleteTarget(null)}>취소</Button>
+          <Button $variant="danger" $size="sm" onClick={handleDeleteConfirmed} disabled={deleteMatch.isPending}>삭제</Button>
+        </ModalActions>
+      </Modal>
     </PageLayout>
   );
 }

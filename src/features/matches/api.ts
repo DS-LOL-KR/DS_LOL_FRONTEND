@@ -27,6 +27,10 @@ export async function getMatch(matchId: number): Promise<Match> {
   return data.match;
 }
 
+export async function deleteMatch(matchId: number): Promise<void> {
+  await apiClient.delete(`/matches/${matchId}`);
+}
+
 export async function generateTeams(matchId: number, payload: GenerateTeamsRequest): Promise<Match> {
   const { data } = await apiClient.post<{ match: Match }>(`/matches/${matchId}/teams/generate`, payload);
   return data.match;

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createMatch,
+  deleteMatch,
   finishMatch,
   generateTeams,
   getMatch,
@@ -24,6 +25,14 @@ export function useCreateMatch(groupId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => createMatch(groupId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['matches', groupId] }),
+  });
+}
+
+export function useDeleteMatch(groupId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (matchId: number) => deleteMatch(matchId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['matches', groupId] }),
   });
 }
