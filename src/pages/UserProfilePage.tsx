@@ -1,4 +1,6 @@
 import { useParams } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Avatar } from '../components/Avatar/Avatar';
@@ -25,11 +27,23 @@ const JoinedAt = styled.p`
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
-const Bio = styled.p`
+const Bio = styled.div`
   margin-top: ${({ theme }) => theme.space.lg}px;
   font: ${({ theme }) => theme.font.body14};
   color: ${({ theme }) => theme.color.text.secondary};
-  white-space: pre-wrap;
+
+  p {
+    margin: 0;
+  }
+
+  p + p {
+    margin-top: ${({ theme }) => theme.space.sm}px;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.2em;
+  }
 `;
 
 const EmptyBio = styled.p`
@@ -56,7 +70,9 @@ export function UserProfilePage() {
       {isError ? (
         <EmptyBio>프로필을 불러올 수 없어요.</EmptyBio>
       ) : user?.bio ? (
-        <Bio>{user.bio}</Bio>
+        <Bio>
+          <ReactMarkdown remarkPlugins={[remarkBreaks]}>{user.bio}</ReactMarkdown>
+        </Bio>
       ) : (
         <EmptyBio>작성된 자기소개가 없어요.</EmptyBio>
       )}
