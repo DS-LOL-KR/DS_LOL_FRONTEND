@@ -1,12 +1,24 @@
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/Button/Button';
+import { Modal } from '../components/Modal/Modal';
 import { Avatar } from '../components/Avatar/Avatar';
-import { useFinishMatch, useMatch, useMmrChanges } from '../features/matches/hooks';
+import {
+  useDuplicateMatchTeams,
+  useFinishMatch,
+  useMatch,
+  useMmrChanges,
+  useSubmitEvaluation,
+} from '../features/matches/hooks';
 import type { Position } from '../features/tiers/types';
 import { useMe } from '../features/auth/hooks';
 import { resolveAssetUrl } from '../utils/assetUrl';
+
+type RatingOption = '아쉬웠어요' | '무난했어요' | '좋았어요';
+const RATING_OPTIONS: RatingOption[] = ['아쉬웠어요', '무난했어요', '좋았어요'];
+const RATING_SCORE: Record<RatingOption, 1 | 2 | 3 | 4 | 5> = { 아쉬웠어요: 1, 무난했어요: 3, 좋았어요: 5 };
 
 // TODO: no design frame covers a standalone match-detail page yet (the Figma file
 // only has AI 팀 구성 / 사용자 평가) — this view is assembled from the /matches/:id
@@ -159,6 +171,11 @@ const Footer = styled.div`
   padding-top: ${({ theme }) => theme.space.lg}px;
 `;
 
+const FooterActions = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.space.xs}px;
+`;
+
 const WinnerSection = styled.div`
   width: 100%;
   padding: ${({ theme }) => theme.space.lg}px 0;
@@ -177,6 +194,136 @@ const WinnerRow = styled.div`
   padding-top: 10px;
 `;
 
+const EvalPanel = styled.div`
+  width: 640px;
+  max-width: 80vw;
+`;
+
+const EvalHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const EvalTitle = styled.p`
+  font: ${({ theme }) => theme.font.title22};
+  letter-spacing: -0.3px;
+  color: ${({ theme }) => theme.color.text.primary};
+`;
+
+const EvalResultLabel = styled.span<{ $won: boolean }>`
+  font: ${({ theme }) => theme.font.body14b};
+  color: ${({ theme, $won }) => ($won ? theme.color.state.success : theme.color.text.secondary)};
+`;
+
+const EvalHint = styled.p`
+  margin-top: 6px;
+  font: ${({ theme }) => theme.font.label12};
+  color: ${({ theme }) => theme.color.text.secondary};
+`;
+
+const EvalDivider = styled.hr`
+  border: none;
+  height: 1px;
+  background: ${({ theme }) => theme.color.border.base};
+  width: 100%;
+  margin: 18px 0 0;
+`;
+
+const EvalProgressRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  font-size: 14px;
+`;
+
+const EvalProgressCount = styled.span`
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  color: ${({ theme }) => theme.color.text.primary};
+`;
+
+const TeammateRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.space.md}px;
+  padding: 14px 0;
+  border-top: 1px solid ${({ theme }) => theme.color.border.base};
+
+  &:last-of-type {
+    border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
+  }
+`;
+
+const TeammateInfo = styled.div`
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const TeammateNameRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const TeammateName = styled.span`
+  font: ${({ theme }) => theme.font.body14b};
+  color: ${({ theme }) => theme.color.text.primary};
+`;
+
+const TeammateLane = styled.span`
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  color: ${({ theme }) => theme.color.text.secondary};
+`;
+
+const TeammateKda = styled.span`
+  display: block;
+  margin-top: 3px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  color: ${({ theme }) => theme.color.text.secondary};
+`;
+
+const OptionRow = styled.div`
+  display: flex;
+  gap: 6px;
+`;
+
+const OptionChip = styled.button<{ $selected: boolean }>`
+  padding: 8px 13px;
+  border-radius: 4px;
+  cursor: pointer;
+  font: ${({ theme, $selected }) => ($selected ? theme.font.small13b : theme.font.small13)};
+  background: ${({ theme, $selected }) => ($selected ? theme.color.text.primary : 'transparent')};
+  border: 1px solid ${({ theme, $selected }) => ($selected ? theme.color.text.primary : theme.color.border.base)};
+  color: ${({ theme, $selected }) => ($selected ? '#121315' : theme.color.text.secondary)};
+`;
+
+const EvalFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16px;
+  border-top: 1px solid ${({ theme }) => theme.color.border.base};
+  margin-top: 4px;
+`;
+
+const AnonymousHint = styled.span`
+  font: ${({ theme }) => theme.font.caption11};
+  color: ${({ theme }) => theme.color.text.secondary};
+`;
+
+const EvalFooterActions = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.space.xs}px;
+`;
+
 export function MatchResultPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -185,6 +332,8 @@ export function MatchResultPage() {
   const { data: mmrChanges } = useMmrChanges(matchId);
   const { data: me } = useMe();
   const finishMatch = useFinishMatch(matchId);
+  const duplicateTeams = useDuplicateMatchTeams(matchId, match?.groupId ?? 0);
+  const submitEvaluation = useSubmitEvaluation(matchId);
 
   // GET /matches/:id now embeds real `participants` (nickname/profileImageUrl
   // included) — build the roster from that directly instead of a mocked list.
@@ -208,6 +357,45 @@ export function MatchResultPage() {
     finishMatch.mutate({ winningTeam: winner });
   };
 
+  const handleDuplicateTeams = () => {
+    duplicateTeams.mutate(undefined, { onSuccess: (next) => navigate(`/matches/${next.id}`) });
+  };
+
+  // 내전이 끝나면(수동 종료든 자동판정이든) 상세 화면에 들어와 있을 때 바로
+  // 평가 모달이 뜨게 함 — "평가하기" 버튼을 따로 눌러야 했던 것 대신.
+  const [evalOpen, setEvalOpen] = useState(false);
+  const [ratings, setRatings] = useState<Record<number, RatingOption>>({});
+  useEffect(() => {
+    if (match?.status === 'FINISHED' && !alreadyRated) setEvalOpen(true);
+  }, [match?.status, alreadyRated]);
+
+  const myTeam = match?.participants?.find((p) => p.userId === me?.id)?.assignedTeam;
+  const teammates = match?.participants && myTeam
+    ? match.participants
+        .filter((p) => p.assignedTeam === myTeam && p.userId !== me?.id)
+        .map((p) => ({
+          id: p.userId,
+          name: p.nickname,
+          profileImageUrl: p.profileImageUrl,
+          lane: p.assignedPosition ?? '-',
+          subtitle: `MMR 변동 ${p.mmrChange > 0 ? '+' : ''}${p.mmrChange}`,
+        }))
+    : [];
+  const wonForEval = myTeam ? match?.winningTeam === myTeam : null;
+  const completedCount = Object.keys(ratings).length;
+
+  const handleSelectRating = (teammateId: number, option: RatingOption) => {
+    setRatings((prev) => ({ ...prev, [teammateId]: option }));
+  };
+
+  const handleSubmitEvaluation = () => {
+    Promise.all(
+      Object.entries(ratings).map(([targetId, option]) =>
+        submitEvaluation.mutateAsync({ targetId: Number(targetId), score: RATING_SCORE[option] }),
+      ),
+    ).then(() => setEvalOpen(false));
+  };
+
   return (
     <PageLayout>
       <Header>
@@ -216,7 +404,7 @@ export function MatchResultPage() {
           <Subtitle>{match ? match.createdAt.slice(0, 16).replace('T', ' ') : '불러오는 중...'}</Subtitle>
         </div>
         {match?.status === 'FINISHED' && !alreadyRated && (
-          <Button onClick={() => navigate(`/matches/${id}/evaluate`)}>팀원 평가하기</Button>
+          <Button onClick={() => setEvalOpen(true)}>팀원 평가하기</Button>
         )}
       </Header>
 
@@ -280,12 +468,75 @@ export function MatchResultPage() {
 
       <Footer>
         <Button $variant="ghost" $size="sm" onClick={() => navigate(-1)}>목록으로</Button>
-        {match && match.status !== 'WAITING' && (
-          <Button $variant="ghost" $size="sm" onClick={() => navigate(`/matches/${id}/teams`)}>
-            팀 구성 보기
-          </Button>
-        )}
+        <FooterActions>
+          {match?.status === 'FINISHED' && (
+            <Button $variant="ghost" $size="sm" onClick={handleDuplicateTeams} disabled={duplicateTeams.isPending}>
+              이 팀 그대로 다음 판 만들기
+            </Button>
+          )}
+          {match && match.status !== 'WAITING' && (
+            <Button $variant="ghost" $size="sm" onClick={() => navigate(`/matches/${id}/teams`)}>
+              팀 구성 보기
+            </Button>
+          )}
+        </FooterActions>
       </Footer>
+
+      <Modal open={evalOpen} onClose={() => setEvalOpen(false)}>
+        <EvalPanel>
+          <EvalHeader>
+            <EvalTitle>팀원 평가</EvalTitle>
+            {wonForEval !== null && <EvalResultLabel $won={wonForEval}>{wonForEval ? '승리' : '패배'}</EvalResultLabel>}
+          </EvalHeader>
+          <EvalHint>평가는 다음 내전의 팀 밸런스와 그룹 티어에 반영돼요</EvalHint>
+          <EvalDivider />
+          <EvalProgressRow>
+            <span>팀원 평가</span>
+            <EvalProgressCount>{completedCount} / {teammates.length}명 완료</EvalProgressCount>
+          </EvalProgressRow>
+
+          {teammates.length === 0 && <EmptyState>평가할 팀원이 없어요</EmptyState>}
+          {teammates.map((mate) => (
+            <TeammateRow key={mate.id}>
+              <TeammateInfo>
+                <Avatar name={mate.name} imageUrl={resolveAssetUrl(mate.profileImageUrl)} size={30} />
+                <div>
+                  <TeammateNameRow>
+                    <TeammateName>{mate.name}</TeammateName>
+                    <TeammateLane>{mate.lane}</TeammateLane>
+                  </TeammateNameRow>
+                  <TeammateKda>{mate.subtitle}</TeammateKda>
+                </div>
+              </TeammateInfo>
+              <OptionRow>
+                {RATING_OPTIONS.map((option) => (
+                  <OptionChip
+                    key={option}
+                    $selected={ratings[mate.id] === option}
+                    onClick={() => handleSelectRating(mate.id, option)}
+                  >
+                    {option}
+                  </OptionChip>
+                ))}
+              </OptionRow>
+            </TeammateRow>
+          ))}
+
+          <EvalFooter>
+            <AnonymousHint>평가는 익명으로 반영돼요</AnonymousHint>
+            <EvalFooterActions>
+              <Button $variant="ghost" $size="sm" onClick={() => setEvalOpen(false)}>나중에</Button>
+              <Button
+                $size="sm"
+                onClick={handleSubmitEvaluation}
+                disabled={submitEvaluation.isPending || completedCount === 0}
+              >
+                평가 제출
+              </Button>
+            </EvalFooterActions>
+          </EvalFooter>
+        </EvalPanel>
+      </Modal>
     </PageLayout>
   );
 }

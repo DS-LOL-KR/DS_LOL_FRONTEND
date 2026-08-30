@@ -46,6 +46,11 @@ export async function finishMatch(matchId: number, payload: FinishMatchRequest):
   return data.match;
 }
 
+export async function duplicateMatchTeams(matchId: number): Promise<Match> {
+  const { data } = await apiClient.post<{ match: Match }>(`/matches/${matchId}/duplicate-teams`);
+  return data.match;
+}
+
 export async function submitEvaluation(matchId: number, payload: SubmitEvaluationRequest): Promise<Evaluation> {
   const { data } = await apiClient.post<{ evaluation: Evaluation }>(`/matches/${matchId}/evaluations`, payload);
   return data.evaluation;

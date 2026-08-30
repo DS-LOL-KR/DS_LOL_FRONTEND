@@ -9,7 +9,6 @@ import { TierTablePage } from './pages/TierTablePage';
 import { MatchCreatePage } from './pages/MatchCreatePage';
 import { TeamFormationPage } from './pages/TeamFormationPage';
 import { MatchResultPage } from './pages/MatchResultPage';
-import { MatchEvaluationPage } from './pages/MatchEvaluationPage';
 import { MatchHistoryPage } from './pages/MatchHistoryPage';
 import { StatsPage } from './pages/StatsPage';
 import { UserProfilePage } from './pages/UserProfilePage';
@@ -42,7 +41,6 @@ function App() {
         <Route path="/groups/:id/matches/new" element={<MatchCreatePage />} />
         <Route path="/groups/:id/matches" element={<MatchHistoryPage />} />
         <Route path="/matches/:id/teams" element={<TeamFormationPage />} />
-        <Route path="/matches/:id/evaluate" element={<MatchEvaluationPage />} />
         <Route path="/matches/:id" element={<MatchResultPage />} />
         <Route path="/stats" element={<StatsPage />} />
         <Route path="/users/:id" element={<UserProfilePage />} />

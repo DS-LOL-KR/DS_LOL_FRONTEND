@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createMatch,
   deleteMatch,
+  duplicateMatchTeams,
   finishMatch,
   generateTeams,
   getMatch,
@@ -68,6 +69,14 @@ export function useFinishMatch(matchId: number) {
   return useMutation({
     mutationFn: (payload: FinishMatchRequest) => finishMatch(matchId, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['matches', 'detail', matchId] }),
+  });
+}
+
+export function useDuplicateMatchTeams(matchId: number, groupId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => duplicateMatchTeams(matchId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['matches', groupId] }),
   });
 }
 
