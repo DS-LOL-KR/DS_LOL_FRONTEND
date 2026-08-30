@@ -1,15 +1,17 @@
 import { apiClient } from '../../api/client';
 import type { User } from '../auth/types';
-import type { UpdateProfileRequest } from './types';
+import type { PublicGameAccount, UpdateProfileRequest } from './types';
 
 export async function getMyProfile(): Promise<User> {
   const { data } = await apiClient.get<{ user: User }>('/users/me');
   return data.user;
 }
 
+export type UserProfile = Omit<User, 'email'> & { gameAccounts: PublicGameAccount[] };
+
 // GET /users/:id omits `email` (other users' profiles are public, email is not).
-export async function getUserProfile(userId: number): Promise<Omit<User, 'email'>> {
-  const { data } = await apiClient.get<{ user: Omit<User, 'email'> }>(`/users/${userId}`);
+export async function getUserProfile(userId: number): Promise<UserProfile> {
+  const { data } = await apiClient.get<{ user: UserProfile }>(`/users/${userId}`);
   return data.user;
 }
 
