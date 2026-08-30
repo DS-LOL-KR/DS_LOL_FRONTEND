@@ -411,6 +411,22 @@ export function MatchResultPage() {
         )}
       </Header>
 
+      <Footer>
+        <Button $variant="ghost" $size="sm" onClick={() => navigate(-1)}>목록으로</Button>
+        <FooterActions>
+          {match?.status === 'FINISHED' && (
+            <Button $variant="ghost" $size="sm" onClick={handleDuplicateTeams} disabled={duplicateTeams.isPending}>
+              이 팀 그대로 다음 판 만들기
+            </Button>
+          )}
+          {match && match.status !== 'WAITING' && (
+            <Button $variant="ghost" $size="sm" onClick={() => navigate(`/matches/${id}/teams`)}>
+              팀 구성 보기
+            </Button>
+          )}
+        </FooterActions>
+      </Footer>
+
       {players.length === 0 ? (
         <EmptyState>아직 팀 배정 정보가 없어요</EmptyState>
       ) : (
@@ -468,22 +484,6 @@ export function MatchResultPage() {
           )}
         </Section>
       )}
-
-      <Footer>
-        <Button $variant="ghost" $size="sm" onClick={() => navigate(-1)}>목록으로</Button>
-        <FooterActions>
-          {match?.status === 'FINISHED' && (
-            <Button $variant="ghost" $size="sm" onClick={handleDuplicateTeams} disabled={duplicateTeams.isPending}>
-              이 팀 그대로 다음 판 만들기
-            </Button>
-          )}
-          {match && match.status !== 'WAITING' && (
-            <Button $variant="ghost" $size="sm" onClick={() => navigate(`/matches/${id}/teams`)}>
-              팀 구성 보기
-            </Button>
-          )}
-        </FooterActions>
-      </Footer>
 
       <Modal open={evalOpen} onClose={() => setEvalOpen(false)}>
         <EvalPanel>
