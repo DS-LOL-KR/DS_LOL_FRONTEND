@@ -68,7 +68,15 @@ export function useFinishMatch(matchId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: FinishMatchRequest) => finishMatch(matchId, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['matches', 'detail', matchId] }),
+    // internal_mmr이 여기서 바로 바뀌는데, 티어표(['tiers'])나 각자의 전적
+    // 화면(['game-accounts'])은 별도 쿼리라 그냥 두면 "전적에서 지금 갱신"을
+    // 눌러야만 반영된 게 보이는 문제가 있었음 — 내전 종료 응답에 이미 groupId가
+    // 있으니 그걸로 관련 캐시를 같이 무효화함(2026-08-30).
+    onSuccess: (match) => {
+      queryClient.setQueryData(['matches', 'detail', matchId], match);
+      queryClient.invalidateQueries({ queryKey: ['tiers', match.groupId] });
+      queryClient.invalidateQueries({ queryKey: ['game-accounts'] });
+    },
   });
 }
 
@@ -80,8 +88,16 @@ export function useDuplicateMatchTeams(matchId: number, groupId: number) {
   });
 }
 
-export function useSubmitEvaluation(matchId: number) {
-  return useMutation({ mutationFn: (payload: SubmitEvaluationRequest) => submitEvaluation(matchId, payload) });
+export function useSubmitEvaluation(matchId: number, groupId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: SubmitEvaluationRequest) => submitEvaluation(matchId, payload),
+    // 매너평가도 internal_mmr에 반영되므로 finishMatch와 동일하게 캐시 무효화.
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tiers', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['game-accounts'] });
+    },
+  });
 }
 
 export function useMmrChanges(matchId: number) {

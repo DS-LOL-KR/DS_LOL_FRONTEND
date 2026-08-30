@@ -333,7 +333,7 @@ export function MatchResultPage() {
   const { data: me } = useMe();
   const finishMatch = useFinishMatch(matchId);
   const duplicateTeams = useDuplicateMatchTeams(matchId, match?.groupId ?? 0);
-  const submitEvaluation = useSubmitEvaluation(matchId);
+  const submitEvaluation = useSubmitEvaluation(matchId, match?.groupId ?? 0);
 
   // GET /matches/:id now embeds real `participants` (nickname/profileImageUrl
   // included) — build the roster from that directly instead of a mocked list.
