@@ -352,6 +352,7 @@ export function MatchResultPage() {
   const teamB = players.filter((p) => p.team === 'B');
   const changes = mmrChanges ?? [];
   const alreadyRated = changes.some((c) => c.userId === me?.id);
+  const isParticipant = (match?.participants ?? []).some((p) => p.userId === me?.id);
 
   const handleFinish = (winner: 'TEAM_A' | 'TEAM_B') => {
     finishMatch.mutate({ winningTeam: winner });
@@ -362,12 +363,14 @@ export function MatchResultPage() {
   };
 
   // 내전이 끝나면(수동 종료든 자동판정이든) 상세 화면에 들어와 있을 때 바로
-  // 평가 모달이 뜨게 함 — "평가하기" 버튼을 따로 눌러야 했던 것 대신.
+  // 평가 모달이 뜨게 함 — "평가하기" 버튼을 따로 눌러야 했던 것 대신. 이 매치의
+  // 실제 참가자가 아닌 사람(그룹장이 구경만 하는 경우 등)한테는 안 뜨게 함 —
+  // 안 그러면 평가할 팀원이 하나도 없는 채로 "0/0명 완료" 모달만 계속 열림.
   const [evalOpen, setEvalOpen] = useState(false);
   const [ratings, setRatings] = useState<Record<number, RatingOption>>({});
   useEffect(() => {
-    if (match?.status === 'FINISHED' && !alreadyRated) setEvalOpen(true);
-  }, [match?.status, alreadyRated]);
+    if (match?.status === 'FINISHED' && !alreadyRated && isParticipant) setEvalOpen(true);
+  }, [match?.status, alreadyRated, isParticipant]);
 
   const myTeam = match?.participants?.find((p) => p.userId === me?.id)?.assignedTeam;
   const teammates = match?.participants && myTeam
@@ -403,7 +406,7 @@ export function MatchResultPage() {
           <Title>내전 결과</Title>
           <Subtitle>{match ? match.createdAt.slice(0, 16).replace('T', ' ') : '불러오는 중...'}</Subtitle>
         </div>
-        {match?.status === 'FINISHED' && !alreadyRated && (
+        {match?.status === 'FINISHED' && !alreadyRated && isParticipant && (
           <Button onClick={() => setEvalOpen(true)}>팀원 평가하기</Button>
         )}
       </Header>
