@@ -255,9 +255,11 @@ export function TierTablePage() {
                   const winRate = total > 0 ? Math.round((m.wins / total) * 100) : 0;
                   return (
                     <MemberRow key={m.userId}>
-                      <LaneBadge>
-                        <LaneIcon lane={m.position} />
-                      </LaneBadge>
+                      {position !== 'ALL' && (
+                        <LaneBadge>
+                          <LaneIcon lane={m.position} />
+                        </LaneBadge>
+                      )}
                       <NameButton onClick={() => navigate(`/users/${m.userId}`)}>
                         <Avatar name={m.nickname} imageUrl={resolveAssetUrl(m.profileImageUrl)} size={22} />
                         <MemberName>{m.nickname}</MemberName>
@@ -266,7 +268,11 @@ export function TierTablePage() {
                         <RecordBar wins={m.wins} losses={m.losses} />
                         <WinRatePct>{winRate}%</WinRatePct>
                       </RecordCell>
-                      <Mmr>{m.positionMmr}</Mmr>
+                      {/* 전체 탭에서는 등급(1~5) 기준인 계정 전체 internal_mmr을 보여줌 —
+                          라인별 position_mmr을 보여주면 숫자 순서랑 등급 순서가 안 맞아
+                          보였음(등급은 라인 탭을 바꿔도 안 흔들리게 internal_mmr 기준으로
+                          고정돼 있어서). 특정 라인 탭에서는 그 라인 MMR 그대로 보여줌. */}
+                      <Mmr>{position === 'ALL' ? m.internalMmr : m.positionMmr}</Mmr>
                     </MemberRow>
                   );
                 })
