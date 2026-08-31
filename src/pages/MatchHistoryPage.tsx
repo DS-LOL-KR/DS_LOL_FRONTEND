@@ -17,7 +17,7 @@ interface MatchRow {
   playedAt: string;
   game: string;
   team: 'blue' | 'red' | null;
-  result: '승' | '패' | '진행중';
+  result: '승' | '패' | '진행중' | '미참여';
   mmrDelta: number;
   canDelete: boolean;
 }
@@ -116,6 +116,7 @@ const ResultCell = styled.span<{ $result: MatchRow['result'] }>`
   color: ${({ theme, $result }) => {
     if ($result === '승') return theme.color.state.success;
     if ($result === '패') return theme.color.text.secondary;
+    if ($result === '미참여') return theme.color.text.secondary;
     return theme.color.accent.blue;
   }};
 `;
@@ -179,8 +180,13 @@ export function MatchHistoryPage() {
   const rows: MatchRow[] = (matches ?? []).map((m) => {
     const mine = m.participants?.find((p) => p.userId === me?.id);
     const team: MatchRow['team'] = mine ? (mine.assignedTeam === 'TEAM_A' ? 'blue' : 'red') : null;
-    const result: MatchRow['result'] =
-      m.status !== 'FINISHED' ? '진행중' : m.winningTeam === mine?.assignedTeam ? '승' : '패';
+    const result: MatchRow['result'] = !mine
+      ? '미참여'
+      : m.status !== 'FINISHED'
+        ? '진행중'
+        : m.winningTeam === mine.assignedTeam
+          ? '승'
+          : '패';
     return {
       id: m.id,
       playedAt: m.createdAt.slice(0, 16).replace('T', ' '),
@@ -197,7 +203,7 @@ export function MatchHistoryPage() {
     deleteMatch.mutate(deleteTarget, { onSuccess: () => setDeleteTarget(null) });
   };
 
-  const finished = rows.filter((r) => r.result !== '진행중');
+  const finished = rows.filter((r) => r.result === '승' || r.result === '패');
   const wins = finished.filter((r) => r.result === '승').length;
   const losses = finished.length - wins;
   const winRate = finished.length ? ((wins / finished.length) * 100).toFixed(1) : '0.0';
@@ -221,7 +227,7 @@ export function MatchHistoryPage() {
       width: 70,
       align: 'right',
       render: (m) =>
-        m.result === '진행중' ? (
+        m.result === '진행중' || m.result === '미참여' ? (
           <MutedCell>-</MutedCell>
         ) : (
           <MmrCell $positive={m.mmrDelta >= 0}>{m.mmrDelta > 0 ? `+${m.mmrDelta}` : m.mmrDelta}</MmrCell>
