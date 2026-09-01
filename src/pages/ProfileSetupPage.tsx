@@ -8,7 +8,7 @@ import { useProfile, useUpdateProfile, useUploadProfileImage } from '../features
 import { useLogout } from '../features/auth/hooks';
 import {
   useGames,
-  useLinkGameAccount,
+  useLinkAndSyncGameAccount,
   useMyGameAccounts,
   useFullSyncGameAccount,
   useUnlinkGameAccount,
@@ -229,7 +229,7 @@ export function ProfileSetupPage() {
   const uploadProfileImage = useUploadProfileImage();
   const { data: games } = useGames();
   const { data: gameAccounts } = useMyGameAccounts();
-  const linkGameAccount = useLinkGameAccount();
+  const linkGameAccount = useLinkAndSyncGameAccount();
   const unlinkGameAccount = useUnlinkGameAccount();
   const logout = useLogout();
 
@@ -419,7 +419,7 @@ export function ProfileSetupPage() {
         <ModalActions>
           <Button $variant="ghost" $size="sm" onClick={closeLinkModal}>취소</Button>
           <Button $size="sm" onClick={handleLinkGameAccount} disabled={linkGameAccount.isPending}>
-            {linkGameAccount.isPending ? '연동 중...' : '연동'}
+            {linkGameAccount.isPending ? '연동하고 전적 가져오는 중...' : '연동'}
           </Button>
         </ModalActions>
       </Modal>

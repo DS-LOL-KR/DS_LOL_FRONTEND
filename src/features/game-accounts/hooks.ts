@@ -21,11 +21,25 @@ export function useMyGameAccounts() {
   return useQuery({ queryKey: ['game-accounts'], queryFn: getMyGameAccounts });
 }
 
-export function useLinkGameAccount() {
+// 연동 버튼만 눌러도 티어/전적까지 바로 채워지길 원하는 피드백으로, link 성공 직후
+// 그 계정 id로 refresh+sync까지 이어서 실행함 (순서는 useFullSyncGameAccount와 동일한
+// 이유로 refresh 먼저 — 라인별 MMR 계산이 그 시점의 internal_mmr을 기준선으로 씀).
+export function useLinkAndSyncGameAccount() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: LinkGameAccountRequest) => linkGameAccount(payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['game-accounts'] }),
+    mutationFn: async (payload: LinkGameAccountRequest) => {
+      const account = await linkGameAccount(payload);
+      await refreshGameAccount(account.id);
+      await syncMatchHistory(account.id);
+      return account;
+    },
+    onSuccess: (account) => {
+      queryClient.invalidateQueries({ queryKey: ['game-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['game-accounts', account.id, 'match-history'] });
+      queryClient.invalidateQueries({ queryKey: ['game-accounts', account.id, 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['game-accounts', account.id, 'champion-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['tiers'] });
+    },
   });
 }
 
