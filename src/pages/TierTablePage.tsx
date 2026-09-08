@@ -251,8 +251,12 @@ export function TierTablePage() {
                 <EmptyLabel>해당 티어 없음</EmptyLabel>
               ) : (
                 members.map((m) => {
-                  const total = m.wins + m.losses;
-                  const winRate = total > 0 ? Math.round((m.wins / total) * 100) : 0;
+                  // "전체" 탭은 라이엇 라인별 전적이 아니라 이 그룹 내전(custom_matches)
+                  // 결과 기준 승/패를 보여줌 — 라인 탭에서는 그대로 라이엇 전적을 씀.
+                  const wins = position === 'ALL' ? m.customMatchWins : m.wins;
+                  const losses = position === 'ALL' ? m.customMatchLosses : m.losses;
+                  const total = wins + losses;
+                  const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
                   return (
                     <MemberRow key={m.userId}>
                       {position !== 'ALL' && (
@@ -265,7 +269,7 @@ export function TierTablePage() {
                         <MemberName>{m.nickname}</MemberName>
                       </NameButton>
                       <RecordCell>
-                        <RecordBar wins={m.wins} losses={m.losses} />
+                        <RecordBar wins={wins} losses={losses} />
                         <WinRatePct>{winRate}%</WinRatePct>
                       </RecordCell>
                       {/* 전체 탭에서는 등급(1~5) 기준인 계정 전체 internal_mmr을 보여줌 —

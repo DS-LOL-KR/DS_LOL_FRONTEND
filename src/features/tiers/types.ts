@@ -15,6 +15,11 @@ export interface TierEntry {
   tier: 1 | 2 | 3 | 4 | 5;
   wins: number;
   losses: number;
+  // "전체" 탭 전용 — 라이엇 전적이 아니라 이 그룹 내전(custom_matches) 결과 기준
+  // 승/패. 라인별로 안 나뉘는 계정 전체 값이라 이 유저의 모든 라인 행에 동일하게
+  // 들어감(internalMmr과 같은 성격).
+  customMatchWins: number;
+  customMatchLosses: number;
 }
 
 export interface TierTable {
