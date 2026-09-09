@@ -14,6 +14,7 @@ import { setActiveGroupId } from '../utils/activeGroup';
 
 interface MatchRow {
   id: number;
+  createdAt: string;
   playedAt: string;
   game: string;
   team: 'blue' | 'red' | null;
@@ -21,6 +22,8 @@ interface MatchRow {
   mmrDelta: number;
   canDelete: boolean;
 }
+
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 const Header = styled.div`
   display: flex;
@@ -168,6 +171,8 @@ export function MatchHistoryPage() {
   const { data: me } = useMe();
   const deleteMatch = useDeleteMatch(Number(groupId));
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
+  const [dateFilter, setDateFilter] = useState<'ALL' | '30D'>('ALL');
+  const [resultFilter, setResultFilter] = useState<'ALL' | 'WIN' | 'LOSS'>('ALL');
 
   useEffect(() => {
     if (groupId) setActiveGroupId(groupId);
@@ -189,6 +194,7 @@ export function MatchHistoryPage() {
           : '패';
     return {
       id: m.id,
+      createdAt: m.createdAt,
       playedAt: m.createdAt.slice(0, 16).replace('T', ' '),
       game: gameList.find((g) => g.id === m.gameId)?.name ?? `게임 #${m.gameId}`,
       team,
@@ -203,13 +209,26 @@ export function MatchHistoryPage() {
     deleteMatch.mutate(deleteTarget, { onSuccess: () => setDeleteTarget(null) });
   };
 
-  const finished = rows.filter((r) => r.result === '승' || r.result === '패');
+  // "최근 30일"은 지표(총 전적/승패/승률/평균MMR)에도 적용 — 필터를 켜면 그 기간
+  // 기준으로 전부 다시 계산되는 게 자연스러움. "승"/"패" 결과 필터는 표 아래
+  // 목록만 좁히고 지표는 그대로 둠 — 결과 필터까지 지표에 반영하면 "승만 보기"를
+  // 누르는 순간 승률이 항상 100%로 보여서 의미가 없어짐.
+  const dateFilteredRows =
+    dateFilter === '30D' ? rows.filter((r) => Date.now() - new Date(r.createdAt).getTime() <= THIRTY_DAYS_MS) : rows;
+
+  const finished = dateFilteredRows.filter((r) => r.result === '승' || r.result === '패');
   const wins = finished.filter((r) => r.result === '승').length;
   const losses = finished.length - wins;
   const winRate = finished.length ? ((wins / finished.length) * 100).toFixed(1) : '0.0';
   const avgMmrDelta = finished.length
     ? (finished.reduce((sum, r) => sum + r.mmrDelta, 0) / finished.length).toFixed(1)
     : '0.0';
+
+  const displayedRows = dateFilteredRows.filter((r) => {
+    if (resultFilter === 'WIN') return r.result === '승';
+    if (resultFilter === 'LOSS') return r.result === '패';
+    return true;
+  });
 
   const columns: Column<MatchRow>[] = [
     { key: 'playedAt', header: '일시', width: 130 },
@@ -260,18 +279,37 @@ export function MatchHistoryPage() {
           <Title>내전 기록</Title>
           <Subtitle>{group?.name ?? (groupError ? '그룹 정보를 불러올 수 없어요' : '불러오는 중...')}</Subtitle>
         </div>
-        {/* TODO: wire these to real date-range/game/result filters once the query params exist. */}
+        {/* "게임" 필터는 없음 — 그룹당 게임이 하나로 고정돼 있어서(group.gameId)
+            이 목록의 모든 내전이 항상 같은 게임이라 필터링할 대상 자체가 없음. */}
         <HeaderActions>
-          <Button $variant="ghost" $size="sm">최근 30일</Button>
-          <Button $variant="ghost" $size="sm">전체 게임</Button>
-          <Button $variant="ghost" $size="sm">전체 결과</Button>
+          <Button
+            $variant={dateFilter === '30D' ? 'primary' : 'ghost'}
+            $size="sm"
+            onClick={() => setDateFilter(dateFilter === '30D' ? 'ALL' : '30D')}
+          >
+            최근 30일
+          </Button>
+          <Button
+            $variant={resultFilter === 'WIN' ? 'primary' : 'ghost'}
+            $size="sm"
+            onClick={() => setResultFilter(resultFilter === 'WIN' ? 'ALL' : 'WIN')}
+          >
+            승
+          </Button>
+          <Button
+            $variant={resultFilter === 'LOSS' ? 'primary' : 'ghost'}
+            $size="sm"
+            onClick={() => setResultFilter(resultFilter === 'LOSS' ? 'ALL' : 'LOSS')}
+          >
+            패
+          </Button>
         </HeaderActions>
       </Header>
       <Metrics>
         <Metric>
           <MetricLabel>총 전적</MetricLabel>
           <MetricValue>
-            {rows.length}
+            {dateFilteredRows.length}
             <MetricUnit> 전</MetricUnit>
           </MetricValue>
         </Metric>
@@ -296,8 +334,10 @@ export function MatchHistoryPage() {
       <TableWrap>
         {rows.length === 0 ? (
           <EmptyLabel>아직 진행된 내전이 없어요</EmptyLabel>
+        ) : displayedRows.length === 0 ? (
+          <EmptyLabel>조건에 맞는 내전이 없어요</EmptyLabel>
         ) : (
-          <Table columns={columns} data={rows} />
+          <Table columns={columns} data={displayedRows} />
         )}
       </TableWrap>
 
