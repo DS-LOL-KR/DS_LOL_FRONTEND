@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { Input, Textarea } from '../components/Input/Input';
 import { Button } from '../components/Button/Button';
 import { Modal } from '../components/Modal/Modal';
+import { LaneIcon } from '../components/LaneIcon/LaneIcon';
 import { useProfile, useUpdateProfile, useUploadProfileImage } from '../features/profile/hooks';
 import { useLogout } from '../features/auth/hooks';
 import {
@@ -12,8 +13,12 @@ import {
   useMyGameAccounts,
   useFullSyncGameAccount,
   useUnlinkGameAccount,
+  useUpdatePreferredPosition,
 } from '../features/game-accounts/hooks';
+import type { Position } from '../features/game-accounts/types';
 import { resolveAssetUrl } from '../utils/assetUrl';
+
+const POSITIONS: Position[] = ['TOP', 'JUG', 'MID', 'ADC', 'SUP'];
 
 const Screen = styled.div`
   min-height: 100vh;
@@ -138,14 +143,51 @@ const GameAccounts = styled.div`
   gap: ${({ theme }) => theme.space.sm}px;
 `;
 
-const AccountCard = styled.div`
+const AccountCard = styled.div<{ $column?: boolean }>`
   display: flex;
-  align-items: center;
+  ${({ $column }) => ($column ? 'flex-direction: column; align-items: stretch;' : 'align-items: center;')}
   gap: ${({ theme }) => theme.space.md}px;
   padding: ${({ theme }) => theme.space.md}px;
   border-radius: ${({ theme }) => theme.radius.sm}px;
   border: 1px solid ${({ theme }) => theme.color.border.base};
   background: ${({ theme }) => theme.color.surface.subtle};
+`;
+
+const AccountCardRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.space.md}px;
+`;
+
+const PositionRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: ${({ theme }) => theme.space.xs}px;
+  border-top: 1px solid ${({ theme }) => theme.color.border.base};
+`;
+
+const PositionRowLabel = styled.span`
+  font: ${({ theme }) => theme.font.caption11m};
+  color: ${({ theme }) => theme.color.text.secondary};
+  margin-right: 2px;
+`;
+
+const PositionIconButton = styled.button<{ $active: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: ${({ theme }) => theme.radius.sm}px;
+  border: 1px solid ${({ theme, $active }) => ($active ? theme.color.text.primary : theme.color.border.base)};
+  background: ${({ theme, $active }) => ($active ? theme.color.text.primary : 'transparent')};
+  color: ${({ theme, $active }) => ($active ? '#121315' : theme.color.text.secondary)};
+  cursor: pointer;
+  transition: filter 0.15s ease;
+
+  &:hover:not(:disabled) { filter: brightness(1.1); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
 const AccountInfo = styled.div`
@@ -359,27 +401,30 @@ export function ProfileSetupPage() {
               {(games ?? []).map((game) => {
                 const account = (gameAccounts ?? []).find((a) => a.gameId === game.id);
                 return account ? (
-                  <AccountCard key={game.id}>
-                    <AccountInfo>
-                      <AccountNameRow>
-                        <AccountName $linked>{account.gameNickname}</AccountName>
-                        <LinkedTag>연동됨</LinkedTag>
-                      </AccountNameRow>
-                      <AccountHint>티어는 라이엇 API에서 자동으로 가져와요 · {account.createdAt.slice(0, 10)} 연동</AccountHint>
-                    </AccountInfo>
-                    <TierBlock>
-                      <TierLabel>게임 티어</TierLabel>
-                      <TierValue>{account.stats?.officialTier ?? '미확인'}</TierValue>
-                    </TierBlock>
-                    <RefreshAccountButton accountId={account.id} />
-                    <Button
-                      type="button"
-                      $variant="dangerGhost"
-                      $size="sm"
-                      onClick={() => setUnlinkTarget({ id: account.id, gameNickname: account.gameNickname })}
-                    >
-                      연동 해제
-                    </Button>
+                  <AccountCard key={game.id} $column>
+                    <AccountCardRow>
+                      <AccountInfo>
+                        <AccountNameRow>
+                          <AccountName $linked>{account.gameNickname}</AccountName>
+                          <LinkedTag>연동됨</LinkedTag>
+                        </AccountNameRow>
+                        <AccountHint>티어는 라이엇 API에서 자동으로 가져와요 · {account.createdAt.slice(0, 10)} 연동</AccountHint>
+                      </AccountInfo>
+                      <TierBlock>
+                        <TierLabel>게임 티어</TierLabel>
+                        <TierValue>{account.stats?.officialTier ?? '미확인'}</TierValue>
+                      </TierBlock>
+                      <RefreshAccountButton accountId={account.id} />
+                      <Button
+                        type="button"
+                        $variant="dangerGhost"
+                        $size="sm"
+                        onClick={() => setUnlinkTarget({ id: account.id, gameNickname: account.gameNickname })}
+                      >
+                        연동 해제
+                      </Button>
+                    </AccountCardRow>
+                    <PreferredPositionPicker accountId={account.id} mainPosition={account.stats?.mainPosition ?? null} />
                   </AccountCard>
                 ) : (
                   <AccountCard key={game.id}>
@@ -446,5 +491,31 @@ function RefreshAccountButton({ accountId }: { accountId: number }) {
     <Button type="button" $variant="ghost" $size="sm" onClick={() => fullSync.mutate(undefined)} disabled={fullSync.isPending}>
       {fullSync.isPending ? '동기화 중...' : '동기화'}
     </Button>
+  );
+}
+
+// 지금까지 팀 구성 시 주라인은 무조건 "판수 1위 라인" 자동 추론이었음 — 억지로
+// 많이 돌린 라인이 실제 선호 라인과 다를 수 있어서 직접 지정할 수 있게 함
+// (2026-09-09). 이미 선택된 라인을 다시 누르면 지정을 해제하고 자동 추론으로
+// 되돌아감. subPosition은 스키마/API는 준비돼 있지만 아직 팀 밸런서가 안 써서
+// (mainPosition만 봄) 여기서는 뺐음 — 아무 효과 없는 UI를 보여주는 게 더 혼란스러움.
+function PreferredPositionPicker({ accountId, mainPosition }: { accountId: number; mainPosition: string | null }) {
+  const updatePosition = useUpdatePreferredPosition(accountId);
+  return (
+    <PositionRow>
+      <PositionRowLabel>주라인{mainPosition ? '' : ' (자동)'}</PositionRowLabel>
+      {POSITIONS.map((p) => (
+        <PositionIconButton
+          key={p}
+          type="button"
+          title={p}
+          $active={mainPosition === p}
+          disabled={updatePosition.isPending}
+          onClick={() => updatePosition.mutate({ mainPosition: mainPosition === p ? null : p })}
+        >
+          <LaneIcon lane={p} size={13} />
+        </PositionIconButton>
+      ))}
+    </PositionRow>
   );
 }

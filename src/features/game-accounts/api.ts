@@ -12,6 +12,7 @@ import type {
   RiotPosition,
   SyncMatchHistoryRequest,
   SyncMatchHistoryResult,
+  UpdatePreferredPositionRequest,
 } from './types';
 
 export async function getGames(): Promise<Game[]> {
@@ -68,6 +69,17 @@ export async function syncMatchHistory(
     payload,
   );
   return data;
+}
+
+export async function updatePreferredPosition(
+  accountId: number,
+  payload: UpdatePreferredPositionRequest,
+): Promise<GameAccountStats> {
+  const { data } = await apiClient.patch<{ stats: GameAccountStats }>(
+    `/game-accounts/${accountId}/preferred-position`,
+    payload,
+  );
+  return data.stats;
 }
 
 export async function getChampionStats(accountId: number): Promise<ChampionStat[]> {

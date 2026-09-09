@@ -10,8 +10,9 @@ import {
   refreshGameAccount,
   syncMatchHistory,
   unlinkGameAccount,
+  updatePreferredPosition,
 } from './api';
-import type { LinkGameAccountRequest, SyncMatchHistoryRequest } from './types';
+import type { LinkGameAccountRequest, SyncMatchHistoryRequest, UpdatePreferredPositionRequest } from './types';
 
 export function useGames() {
   return useQuery({ queryKey: ['games'], queryFn: getGames });
@@ -48,6 +49,20 @@ export function useUnlinkGameAccount() {
   return useMutation({
     mutationFn: (accountId: number) => unlinkGameAccount(accountId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['game-accounts'] }),
+  });
+}
+
+// 지금까지 주라인은 "판수 1위 라인" 자동 추론뿐이었는데, 직접 지정할 수 있게
+// 함(2026-09-09) — 팀 구성(matches.service.ts resolvePreferredPosition)이 이
+// 값을 최우선으로 씀. null을 보내면 자동 추론으로 되돌아감.
+export function useUpdatePreferredPosition(accountId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: UpdatePreferredPositionRequest) => updatePreferredPosition(accountId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['game-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['game-accounts', accountId, 'stats'] });
+    },
   });
 }
 

@@ -52,6 +52,16 @@ export interface LinkGameAccountRequest {
   tagLine: string;
 }
 
+// 내전 팀 배정 쪽(assignedPosition 등)과 같은 내부 약어 — 라이엇 원본 값
+// (TOP/JUNGLE/MIDDLE/BOTTOM/UTILITY, RiotPosition)과는 다름.
+export type Position = 'TOP' | 'JUG' | 'MID' | 'ADC' | 'SUP';
+
+export interface UpdatePreferredPositionRequest {
+  // 명시적으로 null을 보내면 "직접 지정 해제 → 자동 추론(판수 1위 라인)으로 되돌리기".
+  mainPosition?: Position | null;
+  subPosition?: Position | null;
+}
+
 // Riot's own lane naming (from match-history sync), distinct from the
 // TOP/JUG/MID/ADC/SUP used for custom-match team assignment.
 export type RiotPosition = 'TOP' | 'JUNGLE' | 'MIDDLE' | 'BOTTOM' | 'UTILITY';
