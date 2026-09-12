@@ -184,7 +184,8 @@ export function MatchHistoryPage() {
   // logged-in user's team/result/MMR-delta from that instead of mocking it.
   const rows: MatchRow[] = (matches ?? []).map((m) => {
     const mine = m.participants?.find((p) => p.userId === me?.id);
-    const team: MatchRow['team'] = mine ? (mine.assignedTeam === 'TEAM_A' ? 'blue' : 'red') : null;
+    // TEAM_A = 레드, TEAM_B = 블루 (2026-09-12부터 — 그 전엔 반대였음)
+    const team: MatchRow['team'] = mine ? (mine.assignedTeam === 'TEAM_A' ? 'red' : 'blue') : null;
     const result: MatchRow['result'] = !mine
       ? '미참여'
       : m.status !== 'FINISHED'

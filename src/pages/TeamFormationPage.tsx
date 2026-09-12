@@ -100,7 +100,7 @@ const BalanceLabel = styled.div<{ $team: Side }>`
   strong {
     font-family: 'IBM Plex Mono', monospace;
     font-weight: 600;
-    color: ${({ theme, $team }) => ($team === 'A' ? theme.color.team.blue : theme.color.team.red)};
+    color: ${({ theme, $team }) => ($team === 'A' ? theme.color.team.red : theme.color.team.blue)};
   }
 `;
 
@@ -255,8 +255,9 @@ const NoticeLabel = styled.p`
   opacity: 0.7;
 `;
 
+// TEAM_A = 레드, TEAM_B = 블루 (2026-09-12부터 — 그 전엔 반대였음)
 function teamColor(theme: DefaultTheme, team: Side): string {
-  return team === 'A' ? theme.color.team.blue : theme.color.team.red;
+  return team === 'A' ? theme.color.team.red : theme.color.team.blue;
 }
 
 export function TeamFormationPage() {
@@ -413,7 +414,7 @@ export function TeamFormationPage() {
               <TeamHeader>
                 <TeamNameRow>
                   <TeamName>팀 {team}</TeamName>
-                  <TeamSideTag $team={team}>{team === 'A' ? '블루' : '레드'}</TeamSideTag>
+                  <TeamSideTag $team={team}>{team === 'A' ? '레드' : '블루'}</TeamSideTag>
                 </TeamNameRow>
                 <TeamMmrSum>MMR 합계 {roster.reduce((sum, p) => sum + p.mmr, 0)}</TeamMmrSum>
               </TeamHeader>
