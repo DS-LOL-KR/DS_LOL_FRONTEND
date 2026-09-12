@@ -220,6 +220,31 @@ const MmrCell = styled.span`
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
+const MoveButton = styled.button`
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: ${({ theme }) => theme.radius.sm}px;
+  border: 1px solid ${({ theme }) => theme.color.border.base};
+  background: transparent;
+  color: ${({ theme }) => theme.color.text.secondary};
+  cursor: pointer;
+  font-size: 13px;
+  transition: filter 0.15s ease;
+
+  &:hover:not(:disabled) {
+    color: ${({ theme }) => theme.color.text.primary};
+    border-color: ${({ theme }) => theme.color.text.primary};
+  }
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+`;
+
 const RationaleSection = styled.div`
   width: 100%;
   padding-top: 34px;
@@ -321,6 +346,18 @@ export function TeamFormationPage() {
     (p) => p.preferredPosition && p.assignedPosition === p.preferredPosition,
   ).length;
 
+  // "커스텀" 모드에 실제 기능이 없다는 문의로 추가(2026-09-13) — AI 배정 결과를
+  // 그대로 쓰는 대신 직접 팀을 옮길 수 있게 함. PATCH /matches/:id/teams가 원래
+  // 부분 배정 변경(바뀐 사람만)을 받고, teamAnalysis도 매번 현재 배정 기준으로
+  // 새로 계산되게 설계돼 있어서, 이 참가자 하나만 보내도 지표(밸런스%/평균 MMR/
+  // 예상 승률)까지 바로 갱신됨.
+  const handleMoveToOtherTeam = (p: TeamParticipant) => {
+    const nextTeam = p.assignedTeam === 'TEAM_A' ? 'TEAM_B' : 'TEAM_A';
+    updateTeams.mutate({
+      assignments: [{ userId: p.userId, assignedTeam: nextTeam, assignedPosition: p.assignedPosition ?? undefined }],
+    });
+  };
+
   const renderTeamPlayer = (p: TeamParticipant) => (
     <PlayerRow key={p.userId}>
       <PosCell>{p.assignedPosition ?? '-'}</PosCell>
@@ -330,6 +367,14 @@ export function TeamFormationPage() {
       </NameCell>
       <TierCell>{p.tier ?? (p.hasLinkedAccount ? '언랭크' : '미연동')}</TierCell>
       <MmrCell>{p.mmr}</MmrCell>
+      <MoveButton
+        type="button"
+        title={p.assignedTeam === 'TEAM_A' ? '블루팀으로 이동' : '레드팀으로 이동'}
+        onClick={() => handleMoveToOtherTeam(p)}
+        disabled={updateTeams.isPending || match?.status === 'FINISHED'}
+      >
+        ⇄
+      </MoveButton>
     </PlayerRow>
   );
 
@@ -423,6 +468,7 @@ export function TeamFormationPage() {
                 <span style={{ flex: 1 }}>소환사</span>
                 <span style={{ width: 90 }}>티어</span>
                 <span style={{ width: 52, textAlign: 'right' }}>MMR</span>
+                <span style={{ width: 26 }} />
               </RosterHeaderRow>
               {roster.map(renderTeamPlayer)}
             </TeamColumn>
