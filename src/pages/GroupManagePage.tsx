@@ -198,7 +198,8 @@ export function GroupManagePage() {
 
   // GET /groups/:id gives role/joinedAt/nickname/profile image; GET /groups/:id/tiers
   // gives per-line tier/MMR. Neither alone has everything the table wants, so merge
-  // by userId — picking each member's most-played line as their "주 라인" row.
+  // by userId — picking each member's most-played line as their "주 라인" row
+  // (tier/mmr은 라인 무관 계정 전체 값이라 어느 행에서 가져와도 동일함).
   const members: GroupMember[] = useMemo(() => {
     if (!group) return [];
     return group.members.map((membership) => {
@@ -206,13 +207,18 @@ export function GroupManagePage() {
       const mainRow = rows.length
         ? rows.reduce((best, row) => (row.wins + row.losses > best.wins + best.losses ? row : best))
         : null;
+      // 유저가 프로필에서 주라인을 직접 지정했으면 그걸 최우선으로 쓰고, 없으면
+      // 지금까지처럼 판수(승+패)가 가장 많은 라인으로 자동 추론 — 직접 지정해도
+      // 이 컬럼이 반영을 안 하던 버그 수정(2026-09-12). mainPosition은 라인 무관
+      // 계정 전체 값이라 rows 중 아무 거서나 읽어도 동일함.
+      const mainLane = rows[0]?.mainPosition ?? mainRow?.position ?? null;
       return {
         userId: membership.userId,
         nickname: membership.user.nickname,
         profileImageUrl: membership.user.profileImageUrl,
         isOwner: membership.role === 'OWNER',
         internalTier: mainRow?.tier ?? null,
-        mainLane: mainRow?.position ?? null,
+        mainLane,
         mmr: mainRow?.internalMmr ?? null,
         joinedAt: membership.joinedAt,
       };
