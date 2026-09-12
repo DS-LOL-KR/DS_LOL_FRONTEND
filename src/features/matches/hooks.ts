@@ -8,6 +8,7 @@ import {
   getMatch,
   getMatches,
   getMmrChanges,
+  getMyEvaluatedTargetIds,
   getMyMmrHistory,
   submitEvaluation,
   updateTeams,
@@ -96,7 +97,19 @@ export function useSubmitEvaluation(matchId: number, groupId: number) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tiers', groupId] });
       queryClient.invalidateQueries({ queryKey: ['game-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['matches', matchId, 'evaluations', 'me'] });
     },
+  });
+}
+
+// 새로고침/재방문해도 이미 평가한 팀원한테 평가 모달이 다시 뜨던 문제 수정용
+// (2026-09-13) — 그 전엔 "이미 제출함" 여부를 세션 안 로컬 state로만 추적해서
+// 페이지를 새로고침하면 초기화됐음.
+export function useMyEvaluatedTargetIds(matchId: number) {
+  return useQuery({
+    queryKey: ['matches', matchId, 'evaluations', 'me'],
+    queryFn: () => getMyEvaluatedTargetIds(matchId),
+    enabled: Number.isFinite(matchId),
   });
 }
 

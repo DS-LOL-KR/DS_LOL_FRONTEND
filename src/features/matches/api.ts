@@ -56,6 +56,13 @@ export async function submitEvaluation(matchId: number, payload: SubmitEvaluatio
   return data.evaluation;
 }
 
+// 이 매치에서 내가(로그인한 유저) 이미 평가 제출을 마친 팀원 targetId 목록.
+// 새로고침/재방문해도 이미 평가한 사람에게 평가 모달이 다시 뜨는 걸 막으려고 씀.
+export async function getMyEvaluatedTargetIds(matchId: number): Promise<number[]> {
+  const { data } = await apiClient.get<{ targetIds: number[] }>(`/matches/${matchId}/evaluations/me`);
+  return data.targetIds;
+}
+
 export async function getMmrChanges(matchId: number): Promise<MmrChange[]> {
   const { data } = await apiClient.get<{ changes: MmrChange[] }>(`/matches/${matchId}/mmr-changes`);
   return data.changes;

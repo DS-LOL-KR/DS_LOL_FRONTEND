@@ -10,6 +10,7 @@ import {
   useFinishMatch,
   useMatch,
   useMmrChanges,
+  useMyEvaluatedTargetIds,
   useSubmitEvaluation,
 } from '../features/matches/hooks';
 import type { Position } from '../features/tiers/types';
@@ -353,6 +354,7 @@ export function MatchResultPage() {
   const finishMatch = useFinishMatch(matchId);
   const duplicateTeams = useDuplicateMatchTeams(matchId, match?.groupId ?? 0);
   const submitEvaluation = useSubmitEvaluation(matchId, match?.groupId ?? 0);
+  const { data: evaluatedTargetIds, isLoading: evaluatedIdsLoading } = useMyEvaluatedTargetIds(matchId);
 
   // GET /matches/:id now embeds real `participants` (nickname/profileImageUrl
   // included) — build the roster from that directly instead of a mocked list.
@@ -395,12 +397,16 @@ export function MatchResultPage() {
         }))
     : [];
 
-  // 팀원 평가가 끝났는지는 서버에 물어볼 방법이 없어서(GET으로 "내가 이미 평가한
-  // 대상" 목록을 안 줌 — mmr-changes는 평가 여부와 무관하게 매치가 FINISHED가
-  // 되는 순간 전원에 대해 채워짐) 이번 세션에서 내가 실제로 제출에 성공한
-  // targetId만 로컬로 추적함. 일부만 제출하고 모달을 닫아도 남은 팀원에 대해
-  // 다시 열 수 있어야 하므로, "평가하기" 진입점은 전원을 평가했는지로만 판단함.
+  // GET /matches/:id/evaluations/me로 "이 매치에서 내가 이미 평가한 팀원"을
+  // 서버에서 받아와 시드로 씀(2026-09-13 추가 — 그 전엔 이번 세션에 실제로
+  // 제출한 targetId만 로컬로 추적해서, 새로고침/재방문하면 이미 평가한
+  // 사람한테도 평가 모달이 다시 뜨는 문제가 있었음). 방금 이 화면에서 제출한
+  // 건 submitEvaluation 성공 콜백에서 바로 더해줘서, 서버 재조회(invalidate)를
+  // 기다리지 않고도 즉시 반영됨.
   const [submittedIds, setSubmittedIds] = useState<Set<number>>(new Set());
+  useEffect(() => {
+    if (evaluatedTargetIds) setSubmittedIds((prev) => new Set([...prev, ...evaluatedTargetIds]));
+  }, [evaluatedTargetIds]);
   const pendingTeammates = teammates.filter((t) => !submittedIds.has(t.id));
   const allTeammatesRated = teammates.length > 0 && pendingTeammates.length === 0;
 
@@ -408,11 +414,15 @@ export function MatchResultPage() {
   // 평가 모달이 뜨게 함 — "평가하기" 버튼을 따로 눌러야 했던 것 대신. 이 매치의
   // 실제 참가자가 아닌 사람(그룹장이 구경만 하는 경우 등)한테는 안 뜨게 함 —
   // 안 그러면 평가할 팀원이 하나도 없는 채로 "0/0명 완료" 모달만 계속 열림.
+  // evaluatedIdsLoading 동안은 판단을 보류함 — 안 그러면 이미 평가 끝난 사람도
+  // 그 응답이 오기 전 잠깐 allTeammatesRated=false로 계산돼 모달이 열렸다가,
+  // 데이터가 도착해도 이 effect엔 "다시 닫기" 분기가 없어서 계속 열려있게 됨.
   const [evalOpen, setEvalOpen] = useState(false);
   const [ratings, setRatings] = useState<Record<number, RatingOption>>({});
   useEffect(() => {
+    if (evaluatedIdsLoading) return;
     if (match?.status === 'FINISHED' && isParticipant && !allTeammatesRated) setEvalOpen(true);
-  }, [match?.status, isParticipant, allTeammatesRated]);
+  }, [match?.status, isParticipant, allTeammatesRated, evaluatedIdsLoading]);
 
   const wonForEval = myTeam ? match?.winningTeam === myTeam : null;
   const completedCount = submittedIds.size + Object.keys(ratings).length;
