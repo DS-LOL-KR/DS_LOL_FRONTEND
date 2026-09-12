@@ -7,6 +7,7 @@ import { Modal } from '../components/Modal/Modal';
 import { Table } from '../components/Table/Table';
 import type { Column } from '../components/Table/Table';
 import { Avatar } from '../components/Avatar/Avatar';
+import { Input } from '../components/Input/Input';
 import {
   useDeleteGroup,
   useGroup,
@@ -14,6 +15,7 @@ import {
   useLeaveGroup,
   useRefreshInviteCode,
   useTransferOwner,
+  useUpdateDiscordWebhook,
 } from '../features/groups/hooks';
 import type { GroupMember } from '../features/groups/types';
 import { useTierTable } from '../features/tiers/hooks';
@@ -79,6 +81,10 @@ const InviteHint = styled.span`
   flex: 1;
   font: ${({ theme }) => theme.font.caption11};
   color: ${({ theme }) => theme.color.text.secondary};
+`;
+
+const WebhookInputWrap = styled.div`
+  width: 320px;
 `;
 
 const TableWrap = styled.div`
@@ -170,11 +176,13 @@ export function GroupManagePage() {
   const transferOwner = useTransferOwner(numericGroupId);
   const refreshInviteCode = useRefreshInviteCode(numericGroupId);
   const leaveGroup = useLeaveGroup(numericGroupId);
+  const updateDiscordWebhook = useUpdateDiscordWebhook(numericGroupId);
 
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [kickTarget, setKickTarget] = useState<GroupMember | null>(null);
+  const [webhookInput, setWebhookInput] = useState('');
 
   useEffect(() => {
     if (groupId) setActiveGroupId(groupId);
@@ -182,6 +190,10 @@ export function GroupManagePage() {
 
   useEffect(() => {
     if (group) setInviteCode(group.inviteCode);
+  }, [group]);
+
+  useEffect(() => {
+    if (group) setWebhookInput(group.discordWebhookUrl ?? '');
   }, [group]);
 
   // GET /groups/:id gives role/joinedAt/nickname/profile image; GET /groups/:id/tiers
@@ -224,6 +236,16 @@ export function GroupManagePage() {
 
   const handleTransferOwner = (userId: number) => {
     transferOwner.mutate({ newOwnerId: userId });
+  };
+
+  const handleSaveDiscordWebhook = () => {
+    const trimmed = webhookInput.trim();
+    updateDiscordWebhook.mutate({ webhookUrl: trimmed || null });
+  };
+
+  const handleClearDiscordWebhook = () => {
+    setWebhookInput('');
+    updateDiscordWebhook.mutate({ webhookUrl: null });
   };
 
   const handleKickConfirmed = () => {
@@ -326,6 +348,30 @@ export function GroupManagePage() {
       )}
       {transferOwner.isError && (
         <InlineError>{transferOwner.error.message || '그룹장 위임에 실패했어요'}</InlineError>
+      )}
+      {isViewerOwner && (
+        <InviteRow>
+          <InviteLabel>디스코드 알림</InviteLabel>
+          <WebhookInputWrap>
+            <Input
+              value={webhookInput}
+              onChange={(e) => setWebhookInput(e.target.value)}
+              placeholder="https://discord.com/api/webhooks/..."
+            />
+          </WebhookInputWrap>
+          <Button $variant="ghost" $size="sm" onClick={handleSaveDiscordWebhook} disabled={updateDiscordWebhook.isPending}>
+            저장
+          </Button>
+          {group?.discordWebhookUrl && (
+            <Button $variant="dangerGhost" $size="sm" onClick={handleClearDiscordWebhook} disabled={updateDiscordWebhook.isPending}>
+              끄기
+            </Button>
+          )}
+          <InviteHint>등록하면 팀 구성/내전 종료 결과가 이 채널로 자동 전송돼요</InviteHint>
+        </InviteRow>
+      )}
+      {updateDiscordWebhook.isError && (
+        <InlineError>{updateDiscordWebhook.error.message || '디스코드 웹후크 설정에 실패했어요'}</InlineError>
       )}
       <TableWrap>
         {groupLoading ? (

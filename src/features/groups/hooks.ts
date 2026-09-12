@@ -9,8 +9,9 @@ import {
   leaveGroup,
   refreshInviteCode,
   transferOwner,
+  updateDiscordWebhook,
 } from './api';
-import type { CreateGroupRequest, JoinGroupRequest, TransferOwnerRequest } from './types';
+import type { CreateGroupRequest, JoinGroupRequest, TransferOwnerRequest, UpdateDiscordWebhookRequest } from './types';
 import { clearActiveGroupIdIfMatches } from '../../utils/activeGroup';
 
 export function useGroups() {
@@ -86,6 +87,14 @@ export function useTransferOwner(groupId: number) {
   return useMutation({
     mutationFn: (payload: TransferOwnerRequest) => transferOwner(groupId, payload),
     // Same reasoning as useRefreshInviteCode — the response has no `members`.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups', groupId] }),
+  });
+}
+
+export function useUpdateDiscordWebhook(groupId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: UpdateDiscordWebhookRequest) => updateDiscordWebhook(groupId, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups', groupId] }),
   });
 }

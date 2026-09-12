@@ -19,6 +19,9 @@ export interface Group {
   ownerId: number;
   gameId: number;
   inviteCode: string;
+  // 팀 구성 완료/내전 종료 알림을 보낼 디스코드 웹후크 URL — 그룹장이 설정,
+  // 안 하면 null(알림 없음).
+  discordWebhookUrl: string | null;
   createdAt: string;
 }
 
@@ -47,6 +50,11 @@ export interface JoinGroupRequest {
 
 export interface TransferOwnerRequest {
   newOwnerId: number;
+}
+
+export interface UpdateDiscordWebhookRequest {
+  // null을 보내면 알림 끄기(연동 해제).
+  webhookUrl: string | null;
 }
 
 // Merges GET /groups/:id's roster with GET /groups/:id/tiers per member — the
