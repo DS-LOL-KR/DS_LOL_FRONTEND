@@ -33,6 +33,17 @@ export interface ModalProps {
 export function Modal({ open, onClose, children }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // 호출부가 onClose={() => ...} 처럼 인라인 함수를 넘기면 렌더될 때마다 참조가
+  // 바뀜 — 이 값을 아래 effect의 deps에 넣으면(예전 코드) 모달 내부 입력창에
+  // 타이핑할 때마다(부모가 리렌더될 때마다) effect가 다시 실행되면서
+  // panelRef.current?.focus()가 매 글자마다 포커스를 패널로 빼앗아갔음(실제
+  // 버그로 발견됨, 2026-09-12). ref에 최신 onClose만 담아두고 effect 자체는
+  // open이 실제로 바뀔 때만 다시 돌게 함.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   useEffect(() => {
     if (!open) return;
 
@@ -42,7 +53,7 @@ export function Modal({ open, onClose, children }: ModalProps) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== 'Tab') return;
@@ -71,7 +82,7 @@ export function Modal({ open, onClose, children }: ModalProps) {
       document.removeEventListener('keydown', handleKeyDown, true);
       previouslyFocused?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
