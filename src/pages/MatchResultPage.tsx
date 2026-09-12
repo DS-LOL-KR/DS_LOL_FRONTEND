@@ -188,6 +188,25 @@ const WinnerHint = styled.p`
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
+const InlineError = styled.p`
+  margin-top: ${({ theme }) => theme.space.xs}px;
+  font: ${({ theme }) => theme.font.caption11};
+  color: ${({ theme }) => theme.color.state.danger};
+`;
+
+const ModalTitle = styled.p`
+  font: ${({ theme }) => theme.font.sub17};
+  color: ${({ theme }) => theme.color.text.primary};
+  margin-bottom: ${({ theme }) => theme.space.sm}px;
+`;
+
+const ModalActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: ${({ theme }) => theme.space.xs}px;
+  margin-top: ${({ theme }) => theme.space.md}px;
+`;
+
 const WinnerRow = styled.div`
   display: flex;
   gap: ${({ theme }) => theme.space.sm}px;
@@ -351,26 +370,17 @@ export function MatchResultPage() {
   const teamA = players.filter((p) => p.team === 'A');
   const teamB = players.filter((p) => p.team === 'B');
   const changes = mmrChanges ?? [];
-  const alreadyRated = changes.some((c) => c.userId === me?.id);
   const isParticipant = (match?.participants ?? []).some((p) => p.userId === me?.id);
 
-  const handleFinish = (winner: 'TEAM_A' | 'TEAM_B') => {
-    finishMatch.mutate({ winningTeam: winner });
+  const [pendingWinner, setPendingWinner] = useState<'TEAM_A' | 'TEAM_B' | null>(null);
+  const handleFinish = () => {
+    if (!pendingWinner) return;
+    finishMatch.mutate({ winningTeam: pendingWinner }, { onSuccess: () => setPendingWinner(null) });
   };
 
   const handleDuplicateTeams = () => {
     duplicateTeams.mutate(undefined, { onSuccess: (next) => navigate(`/matches/${next.id}`) });
   };
-
-  // 내전이 끝나면(수동 종료든 자동판정이든) 상세 화면에 들어와 있을 때 바로
-  // 평가 모달이 뜨게 함 — "평가하기" 버튼을 따로 눌러야 했던 것 대신. 이 매치의
-  // 실제 참가자가 아닌 사람(그룹장이 구경만 하는 경우 등)한테는 안 뜨게 함 —
-  // 안 그러면 평가할 팀원이 하나도 없는 채로 "0/0명 완료" 모달만 계속 열림.
-  const [evalOpen, setEvalOpen] = useState(false);
-  const [ratings, setRatings] = useState<Record<number, RatingOption>>({});
-  useEffect(() => {
-    if (match?.status === 'FINISHED' && !alreadyRated && isParticipant) setEvalOpen(true);
-  }, [match?.status, alreadyRated, isParticipant]);
 
   const myTeam = match?.participants?.find((p) => p.userId === me?.id)?.assignedTeam;
   const teammates = match?.participants && myTeam
@@ -384,19 +394,44 @@ export function MatchResultPage() {
           subtitle: `MMR 변동 ${p.mmrChange > 0 ? '+' : ''}${p.mmrChange}`,
         }))
     : [];
+
+  // 팀원 평가가 끝났는지는 서버에 물어볼 방법이 없어서(GET으로 "내가 이미 평가한
+  // 대상" 목록을 안 줌 — mmr-changes는 평가 여부와 무관하게 매치가 FINISHED가
+  // 되는 순간 전원에 대해 채워짐) 이번 세션에서 내가 실제로 제출에 성공한
+  // targetId만 로컬로 추적함. 일부만 제출하고 모달을 닫아도 남은 팀원에 대해
+  // 다시 열 수 있어야 하므로, "평가하기" 진입점은 전원을 평가했는지로만 판단함.
+  const [submittedIds, setSubmittedIds] = useState<Set<number>>(new Set());
+  const pendingTeammates = teammates.filter((t) => !submittedIds.has(t.id));
+  const allTeammatesRated = teammates.length > 0 && pendingTeammates.length === 0;
+
+  // 내전이 끝나면(수동 종료든 자동판정이든) 상세 화면에 들어와 있을 때 바로
+  // 평가 모달이 뜨게 함 — "평가하기" 버튼을 따로 눌러야 했던 것 대신. 이 매치의
+  // 실제 참가자가 아닌 사람(그룹장이 구경만 하는 경우 등)한테는 안 뜨게 함 —
+  // 안 그러면 평가할 팀원이 하나도 없는 채로 "0/0명 완료" 모달만 계속 열림.
+  const [evalOpen, setEvalOpen] = useState(false);
+  const [ratings, setRatings] = useState<Record<number, RatingOption>>({});
+  useEffect(() => {
+    if (match?.status === 'FINISHED' && isParticipant && !allTeammatesRated) setEvalOpen(true);
+  }, [match?.status, isParticipant, allTeammatesRated]);
+
   const wonForEval = myTeam ? match?.winningTeam === myTeam : null;
-  const completedCount = Object.keys(ratings).length;
+  const completedCount = submittedIds.size + Object.keys(ratings).length;
 
   const handleSelectRating = (teammateId: number, option: RatingOption) => {
     setRatings((prev) => ({ ...prev, [teammateId]: option }));
   };
 
   const handleSubmitEvaluation = () => {
+    const entries = Object.entries(ratings);
     Promise.all(
-      Object.entries(ratings).map(([targetId, option]) =>
+      entries.map(([targetId, option]) =>
         submitEvaluation.mutateAsync({ targetId: Number(targetId), score: RATING_SCORE[option] }),
       ),
-    ).then(() => setEvalOpen(false));
+    ).then(() => {
+      setSubmittedIds((prev) => new Set([...prev, ...entries.map(([targetId]) => Number(targetId))]));
+      setRatings({});
+      setEvalOpen(false);
+    });
   };
 
   return (
@@ -406,7 +441,7 @@ export function MatchResultPage() {
           <Title>내전 결과</Title>
           <Subtitle>{match ? match.createdAt.slice(0, 16).replace('T', ' ') : '불러오는 중...'}</Subtitle>
         </div>
-        {match?.status === 'FINISHED' && !alreadyRated && isParticipant && (
+        {match?.status === 'FINISHED' && !allTeammatesRated && isParticipant && (
           <Button onClick={() => setEvalOpen(true)}>팀원 평가하기</Button>
         )}
       </Header>
@@ -418,6 +453,9 @@ export function MatchResultPage() {
             <Button $variant="ghost" $size="sm" onClick={handleDuplicateTeams} disabled={duplicateTeams.isPending}>
               이 팀 그대로 다음 판 만들기
             </Button>
+          )}
+          {duplicateTeams.isError && (
+            <InlineError>{duplicateTeams.error.message || '다음 판 생성에 실패했어요'}</InlineError>
           )}
           {match && match.status !== 'WAITING' && (
             <Button $variant="ghost" $size="sm" onClick={() => navigate(`/matches/${id}/teams`)}>
@@ -459,11 +497,26 @@ export function MatchResultPage() {
           <SectionTitle>어느 팀이 이겼나요?</SectionTitle>
           <WinnerHint>참가자들의 라이엇 전적이 동기화되면 자동으로 반영돼요. 급하면 직접 골라도 돼요.</WinnerHint>
           <WinnerRow>
-            <Button onClick={() => handleFinish('TEAM_A')} disabled={finishMatch.isPending}>팀 A 승리</Button>
-            <Button onClick={() => handleFinish('TEAM_B')} disabled={finishMatch.isPending}>팀 B 승리</Button>
+            <Button onClick={() => setPendingWinner('TEAM_A')} disabled={finishMatch.isPending}>팀 A 승리</Button>
+            <Button onClick={() => setPendingWinner('TEAM_B')} disabled={finishMatch.isPending}>팀 B 승리</Button>
           </WinnerRow>
+          {finishMatch.isError && (
+            <InlineError>{finishMatch.error.message || '승리팀 확정에 실패했어요'}</InlineError>
+          )}
         </WinnerSection>
       )}
+
+      <Modal open={pendingWinner !== null} onClose={() => setPendingWinner(null)}>
+        <ModalTitle>{pendingWinner === 'TEAM_A' ? '팀 A' : '팀 B'} 승리로 확정할까요?</ModalTitle>
+        <WinnerHint>확정하면 참가자 전원의 MMR에 즉시 반영되며 되돌릴 수 없어요.</WinnerHint>
+        {finishMatch.isError && (
+          <InlineError>{finishMatch.error.message || '승리팀 확정에 실패했어요'}</InlineError>
+        )}
+        <ModalActions>
+          <Button $variant="ghost" $size="sm" onClick={() => setPendingWinner(null)}>취소</Button>
+          <Button $size="sm" onClick={handleFinish} disabled={finishMatch.isPending}>확정</Button>
+        </ModalActions>
+      </Modal>
 
       {match?.status === 'FINISHED' && (
         <Section>
@@ -498,8 +551,8 @@ export function MatchResultPage() {
             <EvalProgressCount>{completedCount} / {teammates.length}명 완료</EvalProgressCount>
           </EvalProgressRow>
 
-          {teammates.length === 0 && <EmptyState>평가할 팀원이 없어요</EmptyState>}
-          {teammates.map((mate) => (
+          {pendingTeammates.length === 0 && <EmptyState>평가할 팀원이 없어요</EmptyState>}
+          {pendingTeammates.map((mate) => (
             <TeammateRow key={mate.id}>
               <TeammateInfo>
                 <Avatar name={mate.name} imageUrl={resolveAssetUrl(mate.profileImageUrl)} size={30} />

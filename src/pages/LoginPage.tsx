@@ -41,9 +41,10 @@ const Description = styled.p`
 const PrivacyNotice = styled.div`
   margin-top: ${({ theme }) => theme.space.md}px;
   padding: 12px;
-  background-color: rgba(0, 0, 0, 0.03);
-  border-radius: 6px;
-  font-size: 12px;
+  background-color: ${({ theme }) => theme.color.surface.subtle};
+  border: 1px solid ${({ theme }) => theme.color.border.base};
+  border-radius: ${({ theme }) => theme.radius.sm}px;
+  font: ${({ theme }) => theme.font.caption11};
   color: ${({ theme }) => theme.color.text.secondary};
   line-height: 1.5;
 `;

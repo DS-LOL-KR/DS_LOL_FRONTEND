@@ -180,6 +180,12 @@ const NoticeLabel = styled.p`
   opacity: 0.7;
 `;
 
+const InlineError = styled.p`
+  margin-top: ${({ theme }) => theme.space.xs}px;
+  font: ${({ theme }) => theme.font.caption11};
+  color: ${({ theme }) => theme.color.state.danger};
+`;
+
 export function TierTablePage() {
   const { id: groupId } = useParams();
   const navigate = useNavigate();
@@ -225,6 +231,9 @@ export function TierTablePage() {
           </Button>
         </HeaderActions>
       </Header>
+      {recalculateTiers.isError && (
+        <InlineError>{recalculateTiers.error.message || '티어 재선정에 실패했어요'}</InlineError>
+      )}
       <LaneTabs>
         <LaneTab $active={position === 'ALL'} onClick={() => setPosition('ALL')}>전체</LaneTab>
         {POSITIONS.map((p) => (

@@ -152,6 +152,12 @@ const EmptyLabel = styled.p`
   opacity: 0.7;
 `;
 
+const InlineError = styled.p`
+  margin-top: ${({ theme }) => theme.space.xs}px;
+  font: ${({ theme }) => theme.font.caption11};
+  color: ${({ theme }) => theme.color.state.danger};
+`;
+
 export function GroupManagePage() {
   const { id: groupId } = useParams();
   const numericGroupId = Number(groupId);
@@ -222,8 +228,7 @@ export function GroupManagePage() {
 
   const handleKickConfirmed = () => {
     if (!kickTarget) return;
-    kickMember.mutate(kickTarget.userId);
-    setKickTarget(null);
+    kickMember.mutate(kickTarget.userId, { onSuccess: () => setKickTarget(null) });
   };
 
   const handleDeleteGroup = () => {
@@ -316,6 +321,12 @@ export function GroupManagePage() {
         </Button>
         <InviteHint>키가 유출됐다면 재발급하세요. 기존 키는 즉시 만료됩니다</InviteHint>
       </InviteRow>
+      {refreshInviteCode.isError && (
+        <InlineError>{refreshInviteCode.error.message || '초대 키 재발급에 실패했어요'}</InlineError>
+      )}
+      {transferOwner.isError && (
+        <InlineError>{transferOwner.error.message || '그룹장 위임에 실패했어요'}</InlineError>
+      )}
       <TableWrap>
         {groupLoading ? (
           <EmptyLabel>불러오는 중...</EmptyLabel>
@@ -338,9 +349,10 @@ export function GroupManagePage() {
       <Modal open={Boolean(kickTarget)} onClose={() => setKickTarget(null)}>
         <ModalTitle>{kickTarget?.nickname}님을 추방할까요?</ModalTitle>
         <ModalBody>추방된 그룹원은 초대 링크로 다시 참여할 수 있어요.</ModalBody>
+        {kickMember.isError && <InlineError>{kickMember.error.message || '추방에 실패했어요'}</InlineError>}
         <ModalActions>
           <Button $variant="ghost" $size="sm" onClick={() => setKickTarget(null)}>취소</Button>
-          <Button $variant="danger" $size="sm" onClick={handleKickConfirmed}>추방</Button>
+          <Button $variant="danger" $size="sm" onClick={handleKickConfirmed} disabled={kickMember.isPending}>추방</Button>
         </ModalActions>
       </Modal>
     </PageLayout>

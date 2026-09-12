@@ -9,8 +9,6 @@ import { useGames } from '../features/game-accounts/hooks';
 import { setActiveGroupId } from '../utils/activeGroup';
 
 type Mode = '5v5' | '3v3' | 'custom';
-type TeamMode = 'ai' | 'manual';
-type TierBasis = 'internal' | 'official';
 
 const MODE_TARGET: Record<Mode, number | null> = { '5v5': 10, '3v3': 6, custom: null };
 
@@ -55,11 +53,13 @@ const GameRow = styled.div`
   flex: 1;
 `;
 
-const GameChip = styled.button<{ $active: boolean }>`
+const GameChip = styled.div<{ $active: boolean }>`
+  display: flex;
+  align-items: center;
   width: 140px;
   height: 38px;
+  padding: 0 12px;
   border-radius: ${({ theme }) => theme.radius.sm}px;
-  cursor: pointer;
   font: ${({ theme, $active }) => ($active ? theme.font.body14b : theme.font.body14)};
   background: ${({ theme, $active }) => ($active ? theme.color.surface.subtle : 'transparent')};
   border: 1px solid ${({ theme, $active }) => ($active ? theme.color.text.secondary : theme.color.border.base)};
@@ -148,23 +148,15 @@ export function MatchCreatePage() {
   const { data: games } = useGames();
 
   const gameList = games ?? [];
+  const currentGame = gameList.find((g) => g.id === group?.gameId) ?? null;
 
-  const [gameId, setGameId] = useState<number | undefined>(gameList[0]?.id);
   const [mode, setMode] = useState<Mode>('5v5');
-  const [teamMode, setTeamMode] = useState<TeamMode>('ai');
-  const [tierBasis, setTierBasis] = useState<TierBasis>('internal');
   const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
   const [participantError, setParticipantError] = useState<string | null>(null);
 
   useEffect(() => {
     if (groupId) setActiveGroupId(groupId);
   }, [groupId]);
-
-  useEffect(() => {
-    if (gameId === undefined && gameList[0]) setGameId(gameList[0].id);
-    // Only seed once the real game list arrives.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [games]);
 
   // Default to everyone in (most matches use the whole group), but let members
   // be unchecked for a round they're sitting out.
@@ -187,10 +179,13 @@ export function MatchCreatePage() {
   // The actual participant list is only needed by /matches/:id/teams/generate,
   // so the selection made here is carried over via router state for
   // TeamFormationPage to use on its first generate call.
-  // gameId/mode/teamMode/tierBasis stay local until the backend grows fields for them.
   const handleCreate = () => {
     if (!groupId) return;
-    if (selectedUserIds.size < 2) {
+    if (target !== null && selectedUserIds.size !== target) {
+      setParticipantError(`${mode}는 참여자를 정확히 ${target}명 선택해주세요`);
+      return;
+    }
+    if (target === null && selectedUserIds.size < 2) {
       setParticipantError('참여자를 2명 이상 선택해주세요');
       return;
     }
@@ -219,11 +214,9 @@ export function MatchCreatePage() {
           {gameList.length === 0 ? (
             <NoticeLabel>불러오는 중...</NoticeLabel>
           ) : (
-            gameList.map((g) => (
-              <GameChip key={g.id} $active={gameId === g.id} onClick={() => setGameId(g.id)}>
-                {g.name}
-              </GameChip>
-            ))
+            <GameChip key={currentGame?.id ?? 'unknown'} $active>
+              {currentGame?.name ?? '알 수 없음'}
+            </GameChip>
           )}
         </GameRow>
       </Section>
@@ -242,18 +235,10 @@ export function MatchCreatePage() {
             </ChipRow>
           </OptionGroup>
           <OptionGroup>
-            <OptionLabel>팀 구성</OptionLabel>
-            <ChipRow>
-              <Chip $active={teamMode === 'ai'} onClick={() => setTeamMode('ai')}>AI 자동</Chip>
-              <Chip $active={teamMode === 'manual'} onClick={() => setTeamMode('manual')}>직접 배정</Chip>
-            </ChipRow>
-          </OptionGroup>
-          <OptionGroup>
-            <OptionLabel>티어 기준</OptionLabel>
-            <ChipRow>
-              <Chip $active={tierBasis === 'internal'} onClick={() => setTierBasis('internal')}>그룹 내부 티어</Chip>
-              <Chip $active={tierBasis === 'official'} onClick={() => setTierBasis('official')}>게임 공식 티어</Chip>
-            </ChipRow>
+            <OptionLabel>팀 구성 · 티어 기준</OptionLabel>
+            <NoticeLabel style={{ marginTop: 0 }}>
+              AI가 그룹 내부 티어를 기준으로 자동 배정해요 (직접 배정은 아직 지원하지 않아요)
+            </NoticeLabel>
           </OptionGroup>
         </OptionGroups>
       </Section>
