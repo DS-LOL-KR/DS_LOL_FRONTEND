@@ -318,11 +318,13 @@ const ChampRecord = styled.span`
 export function StatsPage() {
   const navigate = useNavigate();
   const [activeBar, setActiveBar] = useState<number | null>(null);
-  const { data: mmrHistory } = useMyMmrHistory();
   const { data: gameAccounts } = useMyGameAccounts();
   const { data: me } = useMe();
   const activeGroupId = useActiveGroupId();
   const activeGroupIdNum = Number(activeGroupId);
+  // "그룹 내부 티어"가 activeGroupId 기준으로 보이는데 MMR 추이는 필터 없이 유저의
+  // 모든 그룹이 섞여서 나오던 버그 수정(2026-09-13 문의) — 같은 그룹 기준으로 맞춤.
+  const { data: mmrHistory } = useMyMmrHistory(activeGroupIdNum > 0 ? activeGroupIdNum : undefined);
   const { data: activeGroup } = useGroup(activeGroupIdNum);
   const { data: activeGroupTiers } = useTierTable(activeGroupIdNum);
 

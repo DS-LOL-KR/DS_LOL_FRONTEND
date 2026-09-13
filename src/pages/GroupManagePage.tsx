@@ -362,6 +362,9 @@ export function GroupManagePage() {
             <Input
               value={webhookInput}
               onChange={(e) => setWebhookInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSaveDiscordWebhook();
+              }}
               placeholder="https://discord.com/api/webhooks/..."
             />
           </WebhookInputWrap>

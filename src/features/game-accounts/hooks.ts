@@ -25,13 +25,20 @@ export function useMyGameAccounts() {
 // 연동 버튼만 눌러도 티어/전적까지 바로 채워지길 원하는 피드백으로, link 성공 직후
 // 그 계정 id로 refresh+sync까지 이어서 실행함 (순서는 useFullSyncGameAccount와 동일한
 // 이유로 refresh 먼저 — 라인별 MMR 계산이 그 시점의 internal_mmr을 기준선으로 씀).
+// refresh/sync는 아직 League-V4/Match-V5 등 LOL 전용 라이엇 API만 붙어있어서
+// (발로란트는 계정 연동까지만, 2026-09-13) gameCode가 "LOL"일 때만 이어서 실행함 —
+// 안 그러면 계정 연동 자체는 성공했는데도 그 다음 refresh 호출이 서버 가드에 막혀
+// 실패로 보여서 연동 성공이 가려지는 문제가 생김.
 export function useLinkAndSyncGameAccount() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: LinkGameAccountRequest) => {
-      const account = await linkGameAccount(payload);
-      await refreshGameAccount(account.id);
-      await syncMatchHistory(account.id);
+    mutationFn: async (payload: LinkGameAccountRequest & { gameCode: string }) => {
+      const { gameCode, ...body } = payload;
+      const account = await linkGameAccount(body);
+      if (gameCode === 'LOL') {
+        await refreshGameAccount(account.id);
+        await syncMatchHistory(account.id);
+      }
       return account;
     },
     onSuccess: (account) => {

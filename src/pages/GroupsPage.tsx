@@ -180,6 +180,9 @@ export function GroupsPage() {
         <JoinInput
           value={joinKey}
           onChange={(e) => setJoinKey(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleJoinGroup();
+          }}
           placeholder="A7K2-9QMD"
         />
         <Button $variant="ghost" $size="sm" onClick={handleJoinGroup} disabled={joinGroup.isPending}>
@@ -208,6 +211,9 @@ export function GroupsPage() {
         <Input
           value={newGroupName}
           onChange={(e) => setNewGroupName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleCreateGroup();
+          }}
           placeholder="그룹 이름"
           autoFocus
         />

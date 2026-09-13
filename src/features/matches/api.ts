@@ -68,7 +68,12 @@ export async function getMmrChanges(matchId: number): Promise<MmrChange[]> {
   return data.changes;
 }
 
-export async function getMyMmrHistory(): Promise<MmrHistoryEntry[]> {
-  const { data } = await apiClient.get<{ history: MmrHistoryEntry[] }>('/users/me/mmr-history');
+// groupId 없이 부르면 유저가 속한 모든 그룹의 내전이 섞여서 나옴 — StatsPage의
+// "그룹 내부 티어"는 activeGroupId 기준인데 이 MMR 추이만 다른 그룹 걸 보여주던
+// 버그 수정용(2026-09-13). 그룹 화면에서 볼 땐 반드시 groupId를 넘길 것.
+export async function getMyMmrHistory(groupId?: number): Promise<MmrHistoryEntry[]> {
+  const { data } = await apiClient.get<{ history: MmrHistoryEntry[] }>('/users/me/mmr-history', {
+    params: { groupId },
+  });
   return data.history;
 }

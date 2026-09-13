@@ -121,6 +121,11 @@ export function useMmrChanges(matchId: number) {
   });
 }
 
-export function useMyMmrHistory() {
-  return useQuery({ queryKey: ['me', 'mmr-history'], queryFn: getMyMmrHistory });
+// groupId를 안 넘기면(예: 활성 그룹이 아직 없을 때) 유저의 모든 그룹이 섞인
+// 전체 이력을 보여줌 — 그룹 화면에서는 항상 groupId를 넘겨서 그 그룹 것만 보이게 함.
+export function useMyMmrHistory(groupId?: number) {
+  return useQuery({
+    queryKey: ['me', 'mmr-history', groupId ?? 'all'],
+    queryFn: () => getMyMmrHistory(groupId),
+  });
 }

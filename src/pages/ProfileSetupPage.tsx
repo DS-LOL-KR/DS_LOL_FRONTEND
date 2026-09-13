@@ -317,8 +317,11 @@ export function ProfileSetupPage() {
       return;
     }
     setLinkError(null);
+    // 전적 갱신/동기화는 아직 LOL 전용 라이엇 API만 붙어있어서(발로란트는 계정
+    // 연동까지만) gameCode로 분기함 — useLinkAndSyncGameAccount 참고.
+    const gameCode = games?.find((g) => g.id === linkingGameId)?.code ?? '';
     linkGameAccount.mutate(
-      { gameId: linkingGameId, gameName, tagLine },
+      { gameId: linkingGameId, gameName, tagLine, gameCode },
       {
         onSuccess: () => {
           setLinkingGameId(null);
@@ -400,6 +403,9 @@ export function ProfileSetupPage() {
               {(!games || games.length === 0) && <AccountHint>연동 가능한 게임을 불러오는 중이에요</AccountHint>}
               {(games ?? []).map((game) => {
                 const account = (gameAccounts ?? []).find((a) => a.gameId === game.id);
+                // 전적 갱신/동기화, 주라인 선택은 아직 LOL 전용 라이엇 API·라인 개념이라
+                // (발로란트는 계정 연동까지만, 2026-09-13) 게임별로 분기함.
+                const isLol = game.code === 'LOL';
                 return account ? (
                   <AccountCard key={game.id} $column>
                     <AccountCardRow>
@@ -408,13 +414,19 @@ export function ProfileSetupPage() {
                           <AccountName $linked>{account.gameNickname}</AccountName>
                           <LinkedTag>연동됨</LinkedTag>
                         </AccountNameRow>
-                        <AccountHint>티어는 라이엇 API에서 자동으로 가져와요 · {account.createdAt.slice(0, 10)} 연동</AccountHint>
+                        <AccountHint>
+                          {isLol
+                            ? `티어는 라이엇 API에서 자동으로 가져와요 · ${account.createdAt.slice(0, 10)} 연동`
+                            : `계정 연동만 지원돼요 · 전적/티어 갱신은 준비 중이에요 · ${account.createdAt.slice(0, 10)} 연동`}
+                        </AccountHint>
                       </AccountInfo>
-                      <TierBlock>
-                        <TierLabel>게임 티어</TierLabel>
-                        <TierValue>{account.stats?.officialTier ?? '미확인'}</TierValue>
-                      </TierBlock>
-                      <RefreshAccountButton accountId={account.id} />
+                      {isLol && (
+                        <TierBlock>
+                          <TierLabel>게임 티어</TierLabel>
+                          <TierValue>{account.stats?.officialTier ?? '미확인'}</TierValue>
+                        </TierBlock>
+                      )}
+                      {isLol && <RefreshAccountButton accountId={account.id} />}
                       <Button
                         type="button"
                         $variant="dangerGhost"
@@ -424,7 +436,9 @@ export function ProfileSetupPage() {
                         연동 해제
                       </Button>
                     </AccountCardRow>
-                    <PreferredPositionPicker accountId={account.id} mainPosition={account.stats?.mainPosition ?? null} />
+                    {isLol && (
+                      <PreferredPositionPicker accountId={account.id} mainPosition={account.stats?.mainPosition ?? null} />
+                    )}
                   </AccountCard>
                 ) : (
                   <AccountCard key={game.id}>
@@ -457,6 +471,9 @@ export function ProfileSetupPage() {
         <Input
           value={riotIdInput}
           onChange={(e) => setRiotIdInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleLinkGameAccount();
+          }}
           placeholder="Hide on bush#KR1"
           autoFocus
         />
