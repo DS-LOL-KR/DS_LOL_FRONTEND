@@ -6,6 +6,7 @@ import { Button } from '../components/Button/Button';
 import { useCreateMatch } from '../features/matches/hooks';
 import { useGroup } from '../features/groups/hooks';
 import { useGames } from '../features/game-accounts/hooks';
+import { useTierTable } from '../features/tiers/hooks';
 import { setActiveGroupId } from '../utils/activeGroup';
 
 type Mode = '5v5' | '3v3' | 'custom';
@@ -124,6 +125,10 @@ const MemberList = styled.div`
 `;
 
 const MemberChip = styled.button<{ $selected: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
   padding: 6px 10px;
   border-radius: ${({ theme }) => theme.radius.sm}px;
   cursor: pointer;
@@ -132,6 +137,11 @@ const MemberChip = styled.button<{ $selected: boolean }>`
   font: ${({ theme }) => theme.font.small13};
   color: ${({ theme, $selected }) => ($selected ? theme.color.text.primary : theme.color.text.secondary)};
   opacity: ${({ $selected }) => ($selected ? 1 : 0.5)};
+`;
+
+const MemberTier = styled.span<{ $tier: 1 | 2 | 3 | 4 | 5 | null }>`
+  font: ${({ theme }) => theme.font.caption11};
+  color: ${({ theme, $tier }) => ($tier ? theme.color.tier[$tier] : theme.color.text.secondary)};
 `;
 
 const ParticipantError = styled.p`
@@ -146,9 +156,18 @@ export function MatchCreatePage() {
   const createMatch = useCreateMatch(Number(groupId));
   const { data: group, isError: groupError } = useGroup(Number(groupId));
   const { data: games } = useGames();
+  const { data: tierTable } = useTierTable(Number(groupId));
 
   const gameList = games ?? [];
   const currentGame = gameList.find((g) => g.id === group?.gameId) ?? null;
+
+  // 이 페이지가 그동안 티어 데이터를 아예 안 불러오고 있어서(useGroup만 씀)
+  // 참여자 칩에 티어가 안 보였던 문제 수정(2026-09-13 문의). "전체" 등급은
+  // 라인 무관 계정 전체 값이라 그 유저의 아무 행에서나 가져와도 동일함.
+  const tierByUserId = new Map<number, 1 | 2 | 3 | 4 | 5>();
+  for (const row of tierTable?.tiers ?? []) {
+    if (!tierByUserId.has(row.userId)) tierByUserId.set(row.userId, row.tier);
+  }
 
   const [mode, setMode] = useState<Mode>('5v5');
   const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
@@ -254,16 +273,20 @@ export function MatchCreatePage() {
           {group ? (
             <>
               <MemberList>
-                {group.members.map((m) => (
-                  <MemberChip
-                    key={m.userId}
-                    type="button"
-                    $selected={selectedUserIds.has(m.userId)}
-                    onClick={() => toggleParticipant(m.userId)}
-                  >
-                    {m.user.nickname}
-                  </MemberChip>
-                ))}
+                {group.members.map((m) => {
+                  const tier = tierByUserId.get(m.userId) ?? null;
+                  return (
+                    <MemberChip
+                      key={m.userId}
+                      type="button"
+                      $selected={selectedUserIds.has(m.userId)}
+                      onClick={() => toggleParticipant(m.userId)}
+                    >
+                      {m.user.nickname}
+                      <MemberTier $tier={tier}>{tier ? `${tier}티어` : '미확인'}</MemberTier>
+                    </MemberChip>
+                  );
+                })}
               </MemberList>
               <NoticeLabel>클릭해서 이번 판에 빠지는 그룹원을 뺄 수 있어요.</NoticeLabel>
               {participantError && <ParticipantError>{participantError}</ParticipantError>}
