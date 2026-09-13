@@ -17,6 +17,7 @@ import {
 } from '../features/game-accounts/hooks';
 import type { Position } from '../features/game-accounts/types';
 import { resolveAssetUrl } from '../utils/assetUrl';
+import { getGameDisplayName } from '../utils/gameDisplayName';
 
 const POSITIONS: Position[] = ['TOP', 'JUG', 'MID', 'ADC', 'SUP'];
 
@@ -443,7 +444,7 @@ export function ProfileSetupPage() {
                 ) : (
                   <AccountCard key={game.id}>
                     <AccountInfo>
-                      <AccountName>{game.name}</AccountName>
+                      <AccountName>{getGameDisplayName(game)}</AccountName>
                       <AccountHint>연동하면 티어와 전적을 자동으로 불러와요</AccountHint>
                     </AccountInfo>
                     <Button type="button" $variant="ghost" $size="sm" onClick={() => setLinkingGameId(game.id)}>

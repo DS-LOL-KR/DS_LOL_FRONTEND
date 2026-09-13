@@ -8,6 +8,7 @@ import { useGroup } from '../features/groups/hooks';
 import { useGames } from '../features/game-accounts/hooks';
 import { useTierTable } from '../features/tiers/hooks';
 import { setActiveGroupId } from '../utils/activeGroup';
+import { getGameDisplayName } from '../utils/gameDisplayName';
 
 type Mode = '5v5' | '3v3' | 'custom';
 
@@ -54,7 +55,7 @@ const GameRow = styled.div`
   flex: 1;
 `;
 
-const GameChip = styled.div<{ $active: boolean }>`
+const GameChip = styled.div<{ $active: boolean; $disabled?: boolean }>`
   display: flex;
   align-items: center;
   width: 140px;
@@ -65,6 +66,8 @@ const GameChip = styled.div<{ $active: boolean }>`
   background: ${({ theme, $active }) => ($active ? theme.color.surface.subtle : 'transparent')};
   border: 1px solid ${({ theme, $active }) => ($active ? theme.color.text.secondary : theme.color.border.base)};
   color: ${({ theme, $active }) => ($active ? theme.color.text.primary : theme.color.text.secondary)};
+  opacity: ${({ $disabled }) => ($disabled ? 0.4 : 1)};
+  cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'default')};
 `;
 
 const OptionGroups = styled.div`
@@ -233,9 +236,13 @@ export function MatchCreatePage() {
           {gameList.length === 0 ? (
             <NoticeLabel>불러오는 중...</NoticeLabel>
           ) : (
-            <GameChip key={currentGame?.id ?? 'unknown'} $active>
-              {currentGame?.name ?? '알 수 없음'}
-            </GameChip>
+            // 그룹의 게임 종목은 생성 시 이미 고정돼있어 여기서 바꿀 수 없음 — 다른
+            // 게임(예: 발로란트)도 존재한다는 걸 보여주되 클릭은 안 되게 흐리게 표시.
+            gameList.map((game) => (
+              <GameChip key={game.id} $active={game.id === currentGame?.id} $disabled={game.id !== currentGame?.id}>
+                {getGameDisplayName(game)}
+              </GameChip>
+            ))
           )}
         </GameRow>
       </Section>

@@ -12,6 +12,7 @@ import type { Group } from '../features/groups/types';
 import { useGames } from '../features/game-accounts/hooks';
 import { useMe } from '../features/auth/hooks';
 import { setActiveGroupId } from '../utils/activeGroup';
+import { getGameDisplayName } from '../utils/gameDisplayName';
 
 const Header = styled.div`
   display: flex;
@@ -112,7 +113,10 @@ export function GroupsPage() {
   const [newGroupName, setNewGroupName] = useState('');
 
   const rows = groups ?? [];
-  const gameName = (gameId: number) => games?.find((g) => g.id === gameId)?.name ?? `게임 #${gameId}`;
+  const gameName = (gameId: number) => {
+    const game = games?.find((g) => g.id === gameId);
+    return game ? getGameDisplayName(game) : `게임 #${gameId}`;
+  };
 
   const enterGroup = (groupId: number) => {
     setActiveGroupId(String(groupId));
