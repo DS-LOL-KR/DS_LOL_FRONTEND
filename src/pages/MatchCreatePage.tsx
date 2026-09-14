@@ -192,6 +192,13 @@ export function MatchCreatePage() {
     memberInfoByUserId.set(m.userId, { tier: mainRow?.tier ?? null, lane: mainRow?.position ?? null });
   }
 
+  // 티어 순(1티어 먼저)으로 보여줌 — 미확인(연동 안 됐거나 전적 없음)은 맨 뒤.
+  const sortedMembers = [...(group?.members ?? [])].sort((a, b) => {
+    const tierA = memberInfoByUserId.get(a.userId)?.tier ?? 6;
+    const tierB = memberInfoByUserId.get(b.userId)?.tier ?? 6;
+    return tierA - tierB;
+  });
+
   const [mode, setMode] = useState<Mode>('5v5');
   const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
   const [participantError, setParticipantError] = useState<string | null>(null);
@@ -300,7 +307,7 @@ export function MatchCreatePage() {
           {group ? (
             <>
               <MemberList>
-                {group.members.map((m) => {
+                {sortedMembers.map((m) => {
                   const info = memberInfoByUserId.get(m.userId);
                   return (
                     <MemberCell
