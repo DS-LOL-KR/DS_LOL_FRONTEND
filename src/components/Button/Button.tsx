@@ -16,13 +16,16 @@ export const Button = styled.button<{ $variant?: Variant; $size?: Size }>`
       ? css`
           height: 32px;
           padding: 0 12px;
-          border-radius: ${theme.radius.sm}px;
+          /* Figma spec buttons are 4-5px, not the 8-12px theme.radius scale —
+             kept literal here since that scale is shared with unrelated things
+             (cards, tier badges) that weren't part of this ask. */
+          border-radius: 4px;
           font: ${theme.font.small13b};
         `
       : css`
           height: 44px;
           padding: 0 22px;
-          border-radius: ${theme.radius.md}px;
+          border-radius: 6px;
           font: ${theme.font.body14b};
         `}
 

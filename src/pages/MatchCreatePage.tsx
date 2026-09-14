@@ -61,7 +61,7 @@ const GameChip = styled.div<{ $active: boolean; $disabled?: boolean }>`
   width: 140px;
   height: 38px;
   padding: 0 12px;
-  border-radius: ${({ theme }) => theme.radius.sm}px;
+  border-radius: 5px;
   font: ${({ theme, $active }) => ($active ? theme.font.body14b : theme.font.body14)};
   background: ${({ theme, $active }) => ($active ? theme.color.surface.subtle : 'transparent')};
   border: 1px solid ${({ theme, $active }) => ($active ? theme.color.text.secondary : theme.color.border.base)};
@@ -123,27 +123,42 @@ const NoticeLabel = styled.p`
 const MemberList = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
   margin-top: ${({ theme }) => theme.space.sm}px;
 `;
 
-const MemberChip = styled.button<{ $selected: boolean }>`
+const MemberCell = styled.button<{ $selected: boolean }>`
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  padding: 6px 10px;
-  border-radius: ${({ theme }) => theme.radius.sm}px;
+  align-items: center;
+  gap: 5px;
+  flex: 1 0 68px;
+  padding: 12px 8px;
+  border: none;
+  border-left: 1px solid ${({ theme }) => theme.color.border.base};
+  background: none;
   cursor: pointer;
-  background: ${({ theme, $selected }) => ($selected ? theme.color.surface.subtle : 'transparent')};
-  border: 1px solid ${({ theme, $selected }) => ($selected ? theme.color.border.base : theme.color.border.base)};
-  font: ${({ theme }) => theme.font.small13};
-  color: ${({ theme, $selected }) => ($selected ? theme.color.text.primary : theme.color.text.secondary)};
-  opacity: ${({ $selected }) => ($selected ? 1 : 0.5)};
+  opacity: ${({ $selected }) => ($selected ? 1 : 0.4)};
+
+  &:first-child {
+    border-left: none;
+  }
+`;
+
+const MemberName = styled.span`
+  font: ${({ theme }) => theme.font.label12m};
+  color: ${({ theme }) => theme.color.text.primary};
+`;
+
+const MemberLane = styled.span`
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  color: ${({ theme }) => theme.color.text.secondary};
 `;
 
 const MemberTier = styled.span<{ $tier: 1 | 2 | 3 | 4 | 5 | null }>`
-  font: ${({ theme }) => theme.font.caption11};
+  font-size: 11px;
+  font-weight: 500;
   color: ${({ theme, $tier }) => ($tier ? theme.color.tier[$tier] : theme.color.text.secondary)};
 `;
 
@@ -166,10 +181,15 @@ export function MatchCreatePage() {
 
   // 이 페이지가 그동안 티어 데이터를 아예 안 불러오고 있어서(useGroup만 씀)
   // 참여자 칩에 티어가 안 보였던 문제 수정(2026-09-13 문의). "전체" 등급은
-  // 라인 무관 계정 전체 값이라 그 유저의 아무 행에서나 가져와도 동일함.
-  const tierByUserId = new Map<number, 1 | 2 | 3 | 4 | 5>();
-  for (const row of tierTable?.tiers ?? []) {
-    if (!tierByUserId.has(row.userId)) tierByUserId.set(row.userId, row.tier);
+  // 라인 무관 계정 전체 값이라 그 유저의 아무 행에서나 가져와도 동일함. 주
+  // 라인은 GroupManagePage와 동일하게 판수(승+패)가 가장 많은 라인 행을 씀.
+  const memberInfoByUserId = new Map<number, { tier: 1 | 2 | 3 | 4 | 5 | null; lane: string | null }>();
+  for (const m of group?.members ?? []) {
+    const rows = (tierTable?.tiers ?? []).filter((row) => row.userId === m.userId);
+    const mainRow = rows.length
+      ? rows.reduce((best, row) => (row.wins + row.losses > best.wins + best.losses ? row : best))
+      : null;
+    memberInfoByUserId.set(m.userId, { tier: mainRow?.tier ?? null, lane: mainRow?.position ?? null });
   }
 
   const [mode, setMode] = useState<Mode>('5v5');
@@ -263,7 +283,7 @@ export function MatchCreatePage() {
           <OptionGroup>
             <OptionLabel>팀 구성 · 티어 기준</OptionLabel>
             <NoticeLabel style={{ marginTop: 0 }}>
-              AI가 그룹 내부 티어를 기준으로 자동 배정해요 (직접 배정은 아직 지원하지 않아요)
+              AI가 그룹 내부 티어를 기준으로 자동 배정해요 (다음 화면에서 팀을 직접 조정할 수 있어요)
             </NoticeLabel>
           </OptionGroup>
         </OptionGroups>
@@ -281,17 +301,18 @@ export function MatchCreatePage() {
             <>
               <MemberList>
                 {group.members.map((m) => {
-                  const tier = tierByUserId.get(m.userId) ?? null;
+                  const info = memberInfoByUserId.get(m.userId);
                   return (
-                    <MemberChip
+                    <MemberCell
                       key={m.userId}
                       type="button"
                       $selected={selectedUserIds.has(m.userId)}
                       onClick={() => toggleParticipant(m.userId)}
                     >
-                      {m.user.nickname}
-                      <MemberTier $tier={tier}>{tier ? `${tier}티어` : '미확인'}</MemberTier>
-                    </MemberChip>
+                      <MemberName>{m.user.nickname}</MemberName>
+                      <MemberLane>{info?.lane ?? '-'}</MemberLane>
+                      <MemberTier $tier={info?.tier ?? null}>{info?.tier ? `${info.tier}티어` : '미확인'}</MemberTier>
+                    </MemberCell>
                   );
                 })}
               </MemberList>
