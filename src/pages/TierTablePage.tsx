@@ -89,7 +89,7 @@ const TierName = styled.span<{ $tier: Tier }>`
 
 const TierCount = styled.span`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 15px;
+  font-size: 18px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -142,7 +142,7 @@ const RecordCell = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 130px;
+  width: 150px;
   flex-shrink: 0;
 `;
 
@@ -151,19 +151,19 @@ const RecordBar = styled(WinRateBar)`
 `;
 
 const WinRatePct = styled.span`
-  width: 40px;
+  width: 46px;
   text-align: right;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 600;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
 const Mmr = styled.span`
-  width: 60px;
+  width: 66px;
   text-align: right;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 600;
   color: ${({ theme }) => theme.color.text.primary};
 `;

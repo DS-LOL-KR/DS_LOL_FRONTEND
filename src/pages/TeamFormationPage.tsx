@@ -66,14 +66,14 @@ const MetricLabel = styled.p`
 const MetricValue = styled.p`
   margin-top: 5px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 29px;
+  font-size: 32px;
   font-weight: 600;
   letter-spacing: -0.6px;
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
 const MetricUnit = styled.span`
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 400;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -161,7 +161,7 @@ const TeamSideTag = styled.span<{ $team: Side }>`
 
 const TeamMmrSum = styled.span`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
+  font-size: 16px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -170,7 +170,7 @@ const RosterHeaderRow = styled.div`
   gap: 12px;
   padding-bottom: 8px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px;
+  font-size: 15px;
   letter-spacing: 0.5px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -190,7 +190,7 @@ const PlayerRow = styled.div`
 const PosCell = styled.span`
   width: 44px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
+  font-size: 16px;
   letter-spacing: 0.3px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -206,16 +206,16 @@ const NameCell = styled.span`
 `;
 
 const TierCell = styled.span`
-  width: 90px;
+  width: 115px;
   font: ${({ theme }) => theme.font.label12};
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
 const MmrCell = styled.span`
-  width: 52px;
+  width: 56px;
   text-align: right;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
   color: ${({ theme }) => theme.color.text.primary};
 `;
@@ -466,8 +466,8 @@ export function TeamFormationPage() {
               <RosterHeaderRow>
                 <span style={{ width: 44 }}>POS</span>
                 <span style={{ flex: 1 }}>소환사</span>
-                <span style={{ width: 90 }}>티어</span>
-                <span style={{ width: 52, textAlign: 'right' }}>MMR</span>
+                <span style={{ width: 115 }}>티어</span>
+                <span style={{ width: 56, textAlign: 'right' }}>MMR</span>
                 <span style={{ width: 26 }} />
               </RosterHeaderRow>
               {roster.map(renderTeamPlayer)}

@@ -88,7 +88,7 @@ const MetricLabel = styled.p`
 const MetricValue = styled.p`
   margin-top: 5px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 29px;
+  font-size: 32px;
   font-weight: 600;
   letter-spacing: -0.6px;
   color: ${({ theme }) => theme.color.text.primary};
@@ -164,17 +164,17 @@ const MatchChampion = styled.span`
 `;
 
 const MatchMeta = styled.span`
-  width: 70px;
+  width: 85px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
+  font-size: 16px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
 const MatchKda = styled.span`
-  width: 100px;
+  width: 110px;
   text-align: right;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px;
+  font-size: 17px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -204,7 +204,7 @@ const ChampMastery = styled.span`
 
 const ChampRecord = styled.span`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px;
+  font-size: 17px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 

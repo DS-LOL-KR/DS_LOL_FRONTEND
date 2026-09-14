@@ -119,15 +119,15 @@ const PlayerName = styled.span`
 const PlayerLane = styled.span`
   width: 44px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
+  font-size: 16px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
 const PlayerDelta = styled.span<{ $positive: boolean }>`
-  width: 48px;
+  width: 52px;
   text-align: right;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
   color: ${({ theme, $positive }) => ($positive ? theme.color.state.success : theme.color.state.danger)};
 `;
@@ -160,7 +160,7 @@ const ChangeReason = styled.span`
 
 const ChangeDelta = styled.span<{ $positive: boolean }>`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 600;
   color: ${({ theme, $positive }) => ($positive ? theme.color.state.success : theme.color.state.danger)};
 `;
@@ -255,7 +255,7 @@ const EvalProgressRow = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 12px 0;
-  font-size: 14px;
+  font-size: 17px;
 `;
 
 const EvalProgressCount = styled.span`
@@ -297,7 +297,7 @@ const TeammateName = styled.span`
 
 const TeammateLane = styled.span`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
+  font-size: 16px;
   letter-spacing: 0.3px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -306,7 +306,7 @@ const TeammateKda = styled.span`
   display: block;
   margin-top: 3px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
+  font-size: 16px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 

@@ -48,7 +48,7 @@ const JoinRow = styled.div`
 `;
 
 const JoinLabel = styled.span`
-  width: 100px;
+  width: 130px;
   font: ${({ theme }) => theme.font.label12m};
   letter-spacing: 0.3px;
   color: ${({ theme }) => theme.color.text.secondary};
@@ -125,7 +125,7 @@ export function GroupsPage() {
 
   const columns: Column<Group>[] = [
     { key: 'name', header: '그룹', render: (row) => row.name },
-    { key: 'game', header: '게임', width: 160, render: (row) => gameName(row.gameId) },
+    { key: 'game', header: '게임', width: 180, render: (row) => gameName(row.gameId) },
     {
       key: 'role',
       header: '역할',

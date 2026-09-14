@@ -73,7 +73,7 @@ const InviteLinkBox = styled.div`
   border: 1px solid ${({ theme }) => theme.color.border.base};
   background: ${({ theme }) => theme.color.surface.subtle};
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 15px;
+  font-size: 18px;
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
@@ -292,11 +292,11 @@ export function GroupManagePage() {
     },
     { key: 'mainLane', header: '주 라인', width: 90, render: (m) => m.mainLane ?? '-' },
     { key: 'mmr', header: 'MMR', width: 80, align: 'right', render: (m) => m.mmr ?? '-' },
-    { key: 'joinedAt', header: '가입일', width: 100, align: 'right', render: (m) => m.joinedAt.slice(2, 10) },
+    { key: 'joinedAt', header: '가입일', width: 115, align: 'right', render: (m) => m.joinedAt.slice(2, 10) },
     {
       key: 'action',
       header: '관리',
-      width: 200,
+      width: 215,
       align: 'right',
       render: (m) =>
         isViewerOwner && !m.isOwner ? (

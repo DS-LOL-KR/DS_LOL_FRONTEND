@@ -76,14 +76,14 @@ const MetricLabel = styled.p`
 const MetricValue = styled.p<{ $tone?: 'success' }>`
   margin-top: 5px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 29px;
+  font-size: 32px;
   font-weight: 600;
   letter-spacing: -0.6px;
   color: ${({ theme, $tone }) => ($tone === 'success' ? theme.color.state.success : theme.color.text.primary)};
 `;
 
 const MetricUnit = styled.span`
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 400;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -126,14 +126,14 @@ const ResultCell = styled.span<{ $result: MatchRow['result'] }>`
 
 const MutedCell = styled.span`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px;
+  font-size: 17px;
   color: ${({ theme }) => theme.color.text.secondary};
   opacity: 0.6;
 `;
 
 const MmrCell = styled.span<{ $positive: boolean }>`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
   color: ${({ theme, $positive }) => ($positive ? theme.color.state.success : theme.color.state.danger)};
 `;
@@ -232,19 +232,19 @@ export function MatchHistoryPage() {
   });
 
   const columns: Column<MatchRow>[] = [
-    { key: 'playedAt', header: '일시', width: 130 },
+    { key: 'playedAt', header: '일시', width: 145 },
     { key: 'game', header: '게임' },
     {
       key: 'team',
       header: '팀',
-      width: 80,
+      width: 85,
       render: (m) => (m.team ? <TeamCell $team={m.team}>{m.team === 'blue' ? '블루' : '레드'}</TeamCell> : <MutedCell>-</MutedCell>),
     },
-    { key: 'result', header: '결과', width: 60, render: (m) => <ResultCell $result={m.result}>{m.result}</ResultCell> },
+    { key: 'result', header: '결과', width: 85, render: (m) => <ResultCell $result={m.result}>{m.result}</ResultCell> },
     {
       key: 'mmrDelta',
       header: 'MMR',
-      width: 70,
+      width: 75,
       align: 'right',
       render: (m) =>
         m.result === '진행중' || m.result === '미참여' ? (
@@ -256,7 +256,7 @@ export function MatchHistoryPage() {
     {
       key: 'action',
       header: '',
-      width: 150,
+      width: 175,
       align: 'right',
       render: (m) => (
         <ActionCell>

@@ -64,7 +64,7 @@ const MetricLabel = styled.p`
 const MetricValue = styled.p<{ $tone?: 'success' | 'tier2' | 'tier1'; $tier?: 1 | 2 | 3 | 4 | 5 }>`
   margin-top: 5px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 29px;
+  font-size: 32px;
   font-weight: 600;
   letter-spacing: -0.6px;
   color: ${({ theme, $tone, $tier }) => {
@@ -79,7 +79,7 @@ const MetricValue = styled.p<{ $tone?: 'success' | 'tier2' | 'tier1'; $tier?: 1 
 const MetricSubLabel = styled.span`
   margin-left: 6px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 400;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -110,7 +110,7 @@ const ColumnTitle = styled.p`
 
 const ColumnHint = styled.span`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
+  font-size: 16px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -161,7 +161,7 @@ const Bar = styled.button<{ $height: number; $delay: number; $active: boolean }>
 
 const BarIndex = styled.span`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px;
+  font-size: 15px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -218,10 +218,10 @@ const ChangeReason = styled.p`
 `;
 
 const ChangeDelta = styled.span<{ $positive: boolean }>`
-  width: 56px;
+  width: 62px;
   text-align: right;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 600;
   color: ${({ theme, $positive }) => ($positive ? theme.color.state.success : theme.color.state.danger)};
 `;
@@ -271,17 +271,17 @@ const MatchChampion = styled.span`
 `;
 
 const MatchMeta = styled.span`
-  width: 70px;
+  width: 85px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
+  font-size: 16px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
 const MatchKda = styled.span`
-  width: 100px;
+  width: 110px;
   text-align: right;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px;
+  font-size: 17px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -311,7 +311,7 @@ const ChampMastery = styled.span`
 
 const ChampRecord = styled.span`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px;
+  font-size: 17px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 

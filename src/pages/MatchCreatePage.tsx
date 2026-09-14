@@ -58,7 +58,8 @@ const GameRow = styled.div`
 const GameChip = styled.div<{ $active: boolean; $disabled?: boolean }>`
   display: flex;
   align-items: center;
-  width: 140px;
+  justify-content: center;
+  width: 168px;
   height: 38px;
   padding: 0 12px;
   border-radius: 5px;
@@ -131,7 +132,7 @@ const MemberCell = styled.button<{ $selected: boolean }>`
   flex-direction: column;
   align-items: center;
   gap: 5px;
-  flex: 1 0 68px;
+  flex: 1 0 76px;
   padding: 12px 8px;
   border: none;
   border-left: 1px solid ${({ theme }) => theme.color.border.base};
@@ -151,13 +152,13 @@ const MemberName = styled.span`
 
 const MemberLane = styled.span`
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-size: 14px;
   letter-spacing: 0.3px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
 const MemberTier = styled.span<{ $tier: 1 | 2 | 3 | 4 | 5 | null }>`
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 500;
   color: ${({ theme, $tier }) => ($tier ? theme.color.tier[$tier] : theme.color.text.secondary)};
 `;
