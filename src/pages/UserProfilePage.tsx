@@ -4,10 +4,12 @@ import remarkBreaks from 'remark-breaks';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Avatar } from '../components/Avatar/Avatar';
+import { Button } from '../components/Button/Button';
 import { useUserProfile } from '../features/profile/hooks';
 import {
   useChampionMasteries,
   useChampionStats,
+  useFullSyncGameAccount,
   useGameAccountFullStats,
   useGames,
   useMatchHistory,
@@ -124,11 +126,23 @@ const RiotSection = styled.div`
   border-top: 1px solid ${({ theme }) => theme.color.border.base};
 `;
 
+const SectionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: ${({ theme }) => theme.space.sm}px;
+`;
+
 const SectionTitle = styled.p`
   font: ${({ theme }) => theme.font.title22};
   letter-spacing: -0.3px;
   color: ${({ theme }) => theme.color.text.primary};
-  padding-bottom: ${({ theme }) => theme.space.sm}px;
+`;
+
+const InlineError = styled.p`
+  margin-top: ${({ theme }) => theme.space.xs}px;
+  font: ${({ theme }) => theme.font.caption11};
+  color: ${({ theme }) => theme.color.state.danger};
 `;
 
 const EmptyHint = styled.p`
@@ -229,6 +243,15 @@ export function UserProfilePage() {
   const { data: matchHistory } = useMatchHistory(accountId);
   const { data: championStats } = useChampionStats(accountId);
   const { data: championMasteries } = useChampionMasteries(accountId);
+  // 본인 계정이 아니어도 호출 가능하게 백엔드에서 소유권 제한을 풀어서(2026-09-19),
+  // 그룹원 프로필에 들어가서 "대신 갱신"을 눌러줄 수 있음 — 전적이 오래된 팀원을
+  // 매번 "본인이 갱신할 때까지" 기다릴 필요 없이 아무나 최신화할 수 있게 함.
+  const fullSyncGameAccount = useFullSyncGameAccount(accountId);
+
+  const handleFullSync = () => {
+    if (!account) return;
+    fullSyncGameAccount.mutate(undefined);
+  };
 
   const recentMatches = matchHistory ?? [];
   const champStats = championStats ?? [];
@@ -273,7 +296,20 @@ export function UserProfilePage() {
           </Metrics>
 
           <RiotSection>
-            <SectionTitle>라이엇 전적</SectionTitle>
+            <SectionHeader>
+              <SectionTitle>라이엇 전적</SectionTitle>
+              <Button
+                $variant="ghost"
+                $size="sm"
+                onClick={handleFullSync}
+                disabled={fullSyncGameAccount.isPending || !account}
+              >
+                {fullSyncGameAccount.isPending ? '갱신 중...' : '지금 갱신'}
+              </Button>
+            </SectionHeader>
+            {fullSyncGameAccount.isError && (
+              <InlineError>{fullSyncGameAccount.error.message || '전적 갱신에 실패했어요'}</InlineError>
+            )}
             <Columns>
               <TrendColumn>
                 <ColumnTitle>최근 매치</ColumnTitle>
@@ -313,7 +349,9 @@ export function UserProfilePage() {
           </RiotSection>
 
           <RiotSection>
-            <SectionTitle>라인별 기록</SectionTitle>
+            <SectionHeader>
+              <SectionTitle>라인별 기록</SectionTitle>
+            </SectionHeader>
             {positionStats.length === 0 ? (
               <EmptyHint>아직 집계된 라인 기록이 없어요</EmptyHint>
             ) : (
