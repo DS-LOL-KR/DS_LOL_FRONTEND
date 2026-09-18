@@ -34,6 +34,7 @@ const Menu = styled.div`
 `;
 
 const MenuLink = styled(Link)<{ $active?: boolean }>`
+  white-space: nowrap;
   font: ${({ theme, $active }) => ($active ? theme.font.small13b : theme.font.small13)};
   color: ${({ theme, $active }) => ($active ? theme.color.text.primary : theme.color.text.secondary)};
 `;
@@ -45,6 +46,7 @@ const UserGroup = styled(Link)`
 `;
 
 const UserName = styled.span`
+  white-space: nowrap;
   font: ${({ theme }) => theme.font.body14b};
   color: ${({ theme }) => theme.color.text.primary};
 `;

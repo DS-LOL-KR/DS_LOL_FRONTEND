@@ -319,6 +319,8 @@ const OptionChip = styled.button<{ $selected: boolean }>`
   padding: 8px 13px;
   border-radius: 4px;
   cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
   font: ${({ theme, $selected }) => ($selected ? theme.font.small13b : theme.font.small13)};
   background: ${({ theme, $selected }) => ($selected ? theme.color.text.primary : 'transparent')};
   border: 1px solid ${({ theme, $selected }) => ($selected ? theme.color.text.primary : theme.color.border.base)};

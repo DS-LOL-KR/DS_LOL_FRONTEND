@@ -12,6 +12,8 @@ const StyledTable = styled.table`
     font: ${({ theme }) => theme.font.body14};
     border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
     overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   th {

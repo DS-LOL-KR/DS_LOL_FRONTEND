@@ -59,9 +59,10 @@ const GameChip = styled.div<{ $active: boolean; $disabled?: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 168px;
+  min-width: 140px;
   height: 38px;
-  padding: 0 12px;
+  padding: 0 14px;
+  white-space: nowrap;
   border-radius: 5px;
   font: ${({ theme, $active }) => ($active ? theme.font.body14b : theme.font.body14)};
   background: ${({ theme, $active }) => ($active ? theme.color.surface.subtle : 'transparent')};
@@ -97,6 +98,7 @@ const Chip = styled.button<{ $active: boolean }>`
   padding: 7px 12px;
   border-radius: 4px;
   cursor: pointer;
+  white-space: nowrap;
   font: ${({ theme, $active }) => ($active ? theme.font.small13b : theme.font.small13)};
   background: ${({ theme, $active }) => ($active ? theme.color.text.primary : 'transparent')};
   border: 1px solid ${({ theme, $active }) => ($active ? theme.color.text.primary : theme.color.border.base)};
@@ -138,6 +140,7 @@ const MemberCell = styled.button<{ $selected: boolean }>`
   border-left: 1px solid ${({ theme }) => theme.color.border.base};
   background: none;
   cursor: pointer;
+  white-space: nowrap;
   opacity: ${({ $selected }) => ($selected ? 1 : 0.4)};
 
   &:first-child {

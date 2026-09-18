@@ -51,6 +51,8 @@ const LaneTab = styled.button<{ $active: boolean }>`
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
+  white-space: nowrap;
   background: none;
   border: none;
   cursor: pointer;

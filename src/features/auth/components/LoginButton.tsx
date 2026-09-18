@@ -12,6 +12,7 @@ const StyledLink = styled.a`
   background: ${({ theme }) => theme.color.text.primary};
   color: #121315;
   font: ${({ theme }) => theme.font.body14b};
+  white-space: nowrap;
   transition: filter 0.15s ease;
 
   &:hover {

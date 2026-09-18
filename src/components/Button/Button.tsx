@@ -7,6 +7,8 @@ export const Button = styled.button<{ $variant?: Variant; $size?: Size }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  white-space: nowrap;
   border: none;
   cursor: pointer;
   transition: filter 0.15s ease;
