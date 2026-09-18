@@ -259,6 +259,7 @@ const EvalProgressRow = styled.div`
 `;
 
 const EvalProgressCount = styled.span`
+  white-space: nowrap;
   font-family: 'IBM Plex Mono', monospace;
   font-weight: 700;
   color: ${({ theme }) => theme.color.text.primary};
@@ -305,6 +306,7 @@ const TeammateLane = styled.span`
 const TeammateKda = styled.span`
   display: block;
   margin-top: 3px;
+  white-space: nowrap;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 16px;
   color: ${({ theme }) => theme.color.text.secondary};

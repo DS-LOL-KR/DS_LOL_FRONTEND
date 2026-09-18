@@ -272,6 +272,7 @@ const MatchChampion = styled.span`
 
 const MatchMeta = styled.span`
   width: 85px;
+  white-space: nowrap;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 16px;
   color: ${({ theme }) => theme.color.text.secondary};
@@ -280,6 +281,7 @@ const MatchMeta = styled.span`
 const MatchKda = styled.span`
   width: 110px;
   text-align: right;
+  white-space: nowrap;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 17px;
   color: ${({ theme }) => theme.color.text.secondary};
@@ -310,6 +312,7 @@ const ChampMastery = styled.span`
 `;
 
 const ChampRecord = styled.span`
+  white-space: nowrap;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 17px;
   color: ${({ theme }) => theme.color.text.secondary};

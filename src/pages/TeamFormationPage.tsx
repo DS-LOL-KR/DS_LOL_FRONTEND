@@ -65,6 +65,7 @@ const MetricLabel = styled.p`
 
 const MetricValue = styled.p`
   margin-top: 5px;
+  white-space: nowrap;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 32px;
   font-weight: 600;
