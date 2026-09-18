@@ -402,34 +402,38 @@ export function MatchResultPage() {
     : [];
 
   // GET /matches/:id/evaluations/me로 "이 매치에서 내가 이미 평가한 팀원"을
-  // 서버에서 받아와 시드로 씀(2026-09-13 추가 — 그 전엔 이번 세션에 실제로
-  // 제출한 targetId만 로컬로 추적해서, 새로고침/재방문하면 이미 평가한
-  // 사람한테도 평가 모달이 다시 뜨는 문제가 있었음). 방금 이 화면에서 제출한
-  // 건 submitEvaluation 성공 콜백에서 바로 더해줘서, 서버 재조회(invalidate)를
-  // 기다리지 않고도 즉시 반영됨.
-  const [submittedIds, setSubmittedIds] = useState<Set<number>>(new Set());
-  useEffect(() => {
-    if (evaluatedTargetIds) setSubmittedIds((prev) => new Set([...prev, ...evaluatedTargetIds]));
-  }, [evaluatedTargetIds]);
-  const pendingTeammates = teammates.filter((t) => !submittedIds.has(t.id));
+  // 서버에서 받아옴. 방금 이 화면에서 제출한 건 justSubmittedIds에 바로 더해서,
+  // 서버 재조회(invalidate)를 기다리지 않고도 즉시 반영됨.
+  //
+  // evaluatedTargetIds를 별도 state로 "시드"해서 옮겨 담는 방식(구 submittedIds)은
+  // 쓰지 않음 — 그 방식은 쿼리가 응답을 받은 렌더와 그 값을 state로 옮기는 렌더
+  // 사이에 한 틱(tick) 간격이 생겨서, 바로 아래 "평가 모달 자동으로 열기" 판단이
+  // 그 간격 동안 "아직 다 평가 안 함"으로 잘못 계산되는 문제가 있었음(2026-09-18
+  // 문의로 발견 — 이미 평가를 끝낸 사람도 내전 상세를 다시 열 때마다 모달이 잠깐
+  // 잘못 열렸다가, 그 뒤엔 다시 닫는 분기가 없어서 계속 열려있는 것처럼 보였음).
+  // evaluatedTargetIds(서버 데이터)를 매 렌더 직접 합쳐서 쓰면 그 틈이 아예 없음.
+  const [justSubmittedIds, setJustSubmittedIds] = useState<Set<number>>(new Set());
+  const ratedIds = new Set([...(evaluatedTargetIds ?? []), ...justSubmittedIds]);
+  const pendingTeammates = teammates.filter((t) => !ratedIds.has(t.id));
   const allTeammatesRated = teammates.length > 0 && pendingTeammates.length === 0;
 
   // 내전이 끝나면(수동 종료든 자동판정이든) 상세 화면에 들어와 있을 때 바로
   // 평가 모달이 뜨게 함 — "평가하기" 버튼을 따로 눌러야 했던 것 대신. 이 매치의
   // 실제 참가자가 아닌 사람(그룹장이 구경만 하는 경우 등)한테는 안 뜨게 함 —
   // 안 그러면 평가할 팀원이 하나도 없는 채로 "0/0명 완료" 모달만 계속 열림.
-  // evaluatedIdsLoading 동안은 판단을 보류함 — 안 그러면 이미 평가 끝난 사람도
-  // 그 응답이 오기 전 잠깐 allTeammatesRated=false로 계산돼 모달이 열렸다가,
-  // 데이터가 도착해도 이 effect엔 "다시 닫기" 분기가 없어서 계속 열려있게 됨.
+  // evaluatedIdsLoading 동안은 판단을 보류함(첫 조회 자체가 아직 안 끝난 상태) —
+  // allTeammatesRated는 위에서 evaluatedTargetIds를 직접 합쳐서 계산하므로 이후엔
+  // 지연 없이 항상 최신 값임. allTeammatesRated가 true면 명시적으로 닫아서, 이미
+  // 평가를 끝낸 사람한테 모달이 열린 채로 남는 일이 없게 함.
   const [evalOpen, setEvalOpen] = useState(false);
   const [ratings, setRatings] = useState<Record<number, RatingOption>>({});
   useEffect(() => {
     if (evaluatedIdsLoading) return;
-    if (match?.status === 'FINISHED' && isParticipant && !allTeammatesRated) setEvalOpen(true);
+    setEvalOpen(match?.status === 'FINISHED' && isParticipant && !allTeammatesRated);
   }, [match?.status, isParticipant, allTeammatesRated, evaluatedIdsLoading]);
 
   const wonForEval = myTeam ? match?.winningTeam === myTeam : null;
-  const completedCount = submittedIds.size + Object.keys(ratings).length;
+  const completedCount = ratedIds.size + Object.keys(ratings).length;
 
   const handleSelectRating = (teammateId: number, option: RatingOption) => {
     setRatings((prev) => ({ ...prev, [teammateId]: option }));
@@ -442,7 +446,7 @@ export function MatchResultPage() {
         submitEvaluation.mutateAsync({ targetId: Number(targetId), score: RATING_SCORE[option] }),
       ),
     ).then(() => {
-      setSubmittedIds((prev) => new Set([...prev, ...entries.map(([targetId]) => Number(targetId))]));
+      setJustSubmittedIds((prev) => new Set([...prev, ...entries.map(([targetId]) => Number(targetId))]));
       setRatings({});
       setEvalOpen(false);
     });
