@@ -22,6 +22,10 @@ export interface Group {
   // 팀 구성 완료/내전 종료 알림을 보낼 디스코드 웹후크 URL — 그룹장이 설정,
   // 안 하면 null(알림 없음).
   discordWebhookUrl: string | null;
+  // /티어표 등 슬래시 명령어가 "이 서버가 어느 그룹인지" 찾는 데 쓰는 디스코드
+  // 서버(길드) ID — discordWebhookUrl과 반대 방향 연동. "봇 초대" 버튼으로 자동
+  // 채워지거나(2026-09-18), 아직 안 했으면 null.
+  discordGuildId: string | null;
   createdAt: string;
 }
 

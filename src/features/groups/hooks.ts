@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createGroup,
   deleteGroup,
+  getDiscordInviteUrl,
   getGroup,
   getGroups,
   joinGroup,
@@ -96,5 +97,17 @@ export function useUpdateDiscordWebhook(groupId: number) {
   return useMutation({
     mutationFn: (payload: UpdateDiscordWebhookRequest) => updateDiscordWebhook(groupId, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups', groupId] }),
+  });
+}
+
+// 클릭하면 URL을 받아서 그 자리에서 바로 디스코드로 이동함(window.location.href) —
+// 그래야 브라우저가 "우리 서버 → 디스코드"로 진짜 이동한 상태가 되고, 승인 후
+// 디스코드가 우리 백엔드로 리다이렉트해줄 수 있음(새 탭/팝업이면 이 흐름이 안 됨).
+export function useDiscordInviteUrl(groupId: number) {
+  return useMutation({
+    mutationFn: () => getDiscordInviteUrl(groupId),
+    onSuccess: (url) => {
+      window.location.href = url;
+    },
   });
 }

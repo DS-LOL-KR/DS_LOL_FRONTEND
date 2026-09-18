@@ -55,3 +55,11 @@ export async function updateDiscordWebhook(groupId: number, payload: UpdateDisco
   const { data } = await apiClient.patch<{ group: Group }>(`/groups/${groupId}/discord-webhook`, payload);
   return data.group;
 }
+
+// "봇 초대 → 그룹 자동 연동" 흐름의 시작점 — 이 URL로 브라우저를 이동시키면
+// 사용자가 디스코드에서 서버 선택/승인을 마치는 순간 자동으로 group.discordGuildId가
+// 채워짐(백엔드 discord.controller.ts의 OAuth 콜백).
+export async function getDiscordInviteUrl(groupId: number): Promise<string> {
+  const { data } = await apiClient.get<{ url: string }>(`/groups/${groupId}/discord-guild/invite-url`);
+  return data.url;
+}

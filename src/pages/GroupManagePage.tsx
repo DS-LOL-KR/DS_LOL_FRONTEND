@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/Button/Button';
@@ -10,6 +10,7 @@ import { Avatar } from '../components/Avatar/Avatar';
 import { Input } from '../components/Input/Input';
 import {
   useDeleteGroup,
+  useDiscordInviteUrl,
   useGroup,
   useKickMember,
   useLeaveGroup,
@@ -164,6 +165,12 @@ const InlineError = styled.p`
   color: ${({ theme }) => theme.color.state.danger};
 `;
 
+const InlineSuccess = styled.p`
+  margin-top: ${({ theme }) => theme.space.xs}px;
+  font: ${({ theme }) => theme.font.caption11};
+  color: ${({ theme }) => theme.color.state.success};
+`;
+
 export function GroupManagePage() {
   const { id: groupId } = useParams();
   const numericGroupId = Number(groupId);
@@ -177,6 +184,22 @@ export function GroupManagePage() {
   const refreshInviteCode = useRefreshInviteCode(numericGroupId);
   const leaveGroup = useLeaveGroup(numericGroupId);
   const updateDiscordWebhook = useUpdateDiscordWebhook(numericGroupId);
+  const discordInviteUrl = useDiscordInviteUrl(numericGroupId);
+
+  // 디스코드 OAuth 콜백(discord.controller.ts handleOAuthCallback)이 성공/실패를
+  // 쿼리로 알려주며 이 화면으로 돌려보냄 — 한 번 보여준 뒤엔 새로고침해도 다시
+  // 안 뜨게 쿼리를 지움.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const discordLinked = searchParams.get('discordLinked') === '1';
+  const discordLinkError = searchParams.get('discordLinkError') === '1';
+  useEffect(() => {
+    if (!discordLinked && !discordLinkError) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('discordLinked');
+    next.delete('discordLinkError');
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -381,6 +404,33 @@ export function GroupManagePage() {
       )}
       {updateDiscordWebhook.isError && (
         <InlineError>{updateDiscordWebhook.error.message || '디스코드 웹후크 설정에 실패했어요'}</InlineError>
+      )}
+      {isViewerOwner && (
+        <InviteRow>
+          <InviteLabel>디스코드 명령어</InviteLabel>
+          {group?.discordGuildId ? (
+            <InviteHint>연동됨 · 디스코드 서버에서 /티어표, /전적, /내전결과 명령어를 쓸 수 있어요</InviteHint>
+          ) : (
+            <>
+              <Button
+                $variant="ghost"
+                $size="sm"
+                onClick={() => discordInviteUrl.mutate()}
+                disabled={discordInviteUrl.isPending}
+              >
+                디스코드 봇 초대
+              </Button>
+              <InviteHint>봇을 서버에 초대하면 그 서버가 자동으로 이 그룹에 연동돼요</InviteHint>
+            </>
+          )}
+        </InviteRow>
+      )}
+      {discordInviteUrl.isError && (
+        <InlineError>{discordInviteUrl.error.message || '초대 링크를 만들지 못했어요'}</InlineError>
+      )}
+      {discordLinked && <InlineSuccess>✅ 디스코드 서버가 이 그룹에 연동됐어요.</InlineSuccess>}
+      {discordLinkError && (
+        <InlineError>디스코드 연동에 실패했어요. 서버 선택을 취소했거나 권한이 없을 수 있어요 — 다시 시도해주세요.</InlineError>
       )}
       <TableWrap>
         {groupLoading ? (
