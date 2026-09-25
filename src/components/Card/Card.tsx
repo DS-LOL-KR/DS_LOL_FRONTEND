@@ -2,9 +2,9 @@ import type { ReactNode } from 'react';
 import styled from 'styled-components';
 
 const StyledCard = styled.div`
-  background: ${({ theme }) => theme.gradient.card};
+  background: ${({ theme }) => theme.color.surface.raised};
   border: 1px solid ${({ theme }) => theme.color.border.base};
-  border-radius: ${({ theme }) => theme.radius.lg}px;
+  border-radius: ${({ theme }) => theme.radius.md}px;
   padding: ${({ theme }) => theme.space.md}px;
 `;
 

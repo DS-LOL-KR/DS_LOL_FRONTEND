@@ -5,6 +5,7 @@ import { Input, Textarea } from '../components/Input/Input';
 import { Button } from '../components/Button/Button';
 import { Modal } from '../components/Modal/Modal';
 import { LaneIcon } from '../components/LaneIcon/LaneIcon';
+import { Wordmark } from '../components/Wordmark/Wordmark';
 import { useProfile, useUpdateProfile, useUploadProfileImage } from '../features/profile/hooks';
 import { useLogout } from '../features/auth/hooks';
 import {
@@ -32,7 +33,7 @@ const TopBar = styled.header`
   justify-content: space-between;
   height: 56px;
   padding: 0 ${({ theme }) => theme.space.lg}px;
-  background: ${({ theme }) => theme.color.surface.subtle};
+  background: ${({ theme }) => theme.color.surface.raised};
   border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
 
   ${({ theme }) => theme.media.mobile} {
@@ -40,11 +41,6 @@ const TopBar = styled.header`
   }
 `;
 
-const Brand = styled.span`
-  font: ${({ theme }) => theme.font.sub15};
-  letter-spacing: -0.01em;
-  color: ${({ theme }) => theme.color.text.primary};
-`;
 
 const TopBarRight = styled.div`
   display: flex;
@@ -147,20 +143,20 @@ const FileInput = styled.input`
   display: none;
 `;
 
+// Linked accounts are rows in the form, not boxed cards stacked inside it —
+// the rest of the form already separates groups with hairlines.
 const GameAccounts = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.space.sm}px;
+  border-top: 1px solid ${({ theme }) => theme.color.border.base};
 `;
 
 const AccountCard = styled.div<{ $column?: boolean }>`
   display: flex;
   ${({ $column }) => ($column ? 'flex-direction: column; align-items: stretch;' : 'align-items: center;')}
   gap: ${({ theme }) => theme.space.md}px;
-  padding: ${({ theme }) => theme.space.md}px;
-  border-radius: ${({ theme }) => theme.radius.sm}px;
-  border: 1px solid ${({ theme }) => theme.color.border.base};
-  background: ${({ theme }) => theme.color.surface.subtle};
+  padding: ${({ theme }) => theme.space.md}px 0;
+  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
 `;
 
 const AccountCardRow = styled.div`
@@ -174,8 +170,6 @@ const PositionRow = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
-  padding-top: ${({ theme }) => theme.space.xs}px;
-  border-top: 1px solid ${({ theme }) => theme.color.border.base};
 `;
 
 const PositionRowLabel = styled.span`
@@ -242,7 +236,7 @@ const TierLabel = styled.span`
 
 const TierValue = styled.span`
   font: ${({ theme }) => theme.font.body14b};
-  color: ${({ theme }) => theme.color.tier[2]};
+  color: ${({ theme }) => theme.color.text.primary};
 `;
 
 const Footer = styled.div`
@@ -361,7 +355,7 @@ export function ProfileSetupPage() {
   return (
     <Screen>
       <TopBar>
-        <Brand>DS_LOL</Brand>
+        <Wordmark size={21} />
         <TopBarRight>
           <PageName>프로필 설정</PageName>
           <Button $variant="ghost" $size="sm" onClick={handleLogout} disabled={logout.isPending}>

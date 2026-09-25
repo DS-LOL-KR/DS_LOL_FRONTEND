@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle, HeaderActions } from '../components/layout/PageHeader';
-import { Metrics, Metric, MetricLabel, MetricValue as BaseMetricValue, MetricUnit } from '../components/layout/Metrics';
 import { Button } from '../components/Button/Button';
 import { Modal } from '../components/Modal/Modal';
 import { Table } from '../components/Table/Table';
@@ -29,9 +28,122 @@ interface MatchRow {
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
-const MetricValue = styled(BaseMetricValue)<{ $tone?: 'success' | 'danger' }>`
-  color: ${({ theme, $tone }) =>
-    $tone === 'success' ? theme.color.state.success : $tone === 'danger' ? theme.color.state.danger : theme.color.text.primary};
+// The record reads like a player card line — "1승 1패" is the headline, the
+// derived numbers sit beside it, and recent results are a W/L strip (the
+// op.gg-style form guide players already scan for) instead of four equal tiles.
+// Filters are states, not actions — a joined segmented control reads as
+// "pick one view" where three loose buttons read as three commands.
+const Segmented = styled.div`
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 6px;
+  border: 1px solid ${({ theme }) => theme.color.border.base};
+  background: ${({ theme }) => theme.color.surface.row};
+`;
+
+const SegmentButton = styled.button<{ $active: boolean }>`
+  flex: 1 0 auto;
+  min-height: 34px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  font: ${({ theme, $active }) => ($active ? theme.font.small13b : theme.font.small13)};
+  color: ${({ theme, $active }) => ($active ? '#121315' : theme.color.text.secondary)};
+  background: ${({ theme, $active }) => ($active ? theme.color.text.primary : 'transparent')};
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+
+  &:hover {
+    color: ${({ theme, $active }) => ($active ? '#121315' : theme.color.text.primary)};
+  }
+`;
+
+const Record = styled.section`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: ${({ theme }) => theme.space.md}px 32px;
+  padding: 28px 0 24px;
+  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
+`;
+
+const RecordHeadline = styled.p`
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: ${({ theme }) => theme.color.text.primary};
+
+  ${({ theme }) => theme.media.mobile} {
+    font-size: 32px;
+  }
+`;
+
+const Wins = styled.span`
+  color: ${({ theme }) => theme.color.state.success};
+`;
+
+const RecordDetail = styled.p`
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font: ${({ theme }) => theme.font.label12};
+  font-variant-numeric: tabular-nums;
+  color: ${({ theme }) => theme.color.text.secondary};
+
+  strong {
+    font-weight: 600;
+    color: ${({ theme }) => theme.color.text.primary};
+  }
+`;
+
+const DeltaValue = styled.strong<{ $tone?: 'success' | 'danger' }>`
+  && {
+    color: ${({ theme, $tone }) =>
+      $tone === 'success' ? theme.color.state.success : $tone === 'danger' ? theme.color.state.danger : theme.color.text.primary};
+  }
+`;
+
+const Form = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+
+  ${({ theme }) => theme.media.mobile} {
+    align-items: flex-start;
+  }
+`;
+
+const FormLabel = styled.span`
+  font: ${({ theme }) => theme.font.caption11};
+  color: ${({ theme }) => theme.color.text.secondary};
+`;
+
+const FormStrip = styled.ol`
+  display: flex;
+  gap: 4px;
+  list-style: none;
+`;
+
+const FormPip = styled.li<{ $win: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  font: ${({ theme }) => theme.font.caption11m};
+  font-weight: 700;
+  color: ${({ theme, $win }) => ($win ? '#08110D' : theme.color.text.secondary)};
+  background: ${({ theme, $win }) => ($win ? theme.color.state.success : theme.color.surface.subtle)};
+  border: 1px solid ${({ theme, $win }) => ($win ? 'transparent' : theme.color.border.strong)};
 `;
 
 const TableWrap = styled.div`
@@ -232,58 +344,67 @@ export function MatchHistoryPage() {
         {/* "게임" 필터는 없음 — 그룹당 게임이 하나로 고정돼 있어서(group.gameId)
             이 목록의 모든 내전이 항상 같은 게임이라 필터링할 대상 자체가 없음. */}
         <HeaderActions>
-          <Button
-            $variant={dateFilter === '30D' ? 'primary' : 'ghost'}
-            $size="sm"
-            aria-pressed={dateFilter === '30D'}
-            onClick={() => setDateFilter(dateFilter === '30D' ? 'ALL' : '30D')}
-          >
-            최근 30일
-          </Button>
-          <Button
-            $variant={resultFilter === 'WIN' ? 'primary' : 'ghost'}
-            $size="sm"
-            aria-pressed={resultFilter === 'WIN'}
-            onClick={() => setResultFilter(resultFilter === 'WIN' ? 'ALL' : 'WIN')}
-          >
-            승
-          </Button>
-          <Button
-            $variant={resultFilter === 'LOSS' ? 'primary' : 'ghost'}
-            $size="sm"
-            aria-pressed={resultFilter === 'LOSS'}
-            onClick={() => setResultFilter(resultFilter === 'LOSS' ? 'ALL' : 'LOSS')}
-          >
-            패
-          </Button>
+          <Segmented role="group" aria-label="기간">
+            {([['ALL', '전체 기간'], ['30D', '최근 30일']] as const).map(([value, label]) => (
+              <SegmentButton
+                key={value}
+                type="button"
+                $active={dateFilter === value}
+                aria-pressed={dateFilter === value}
+                onClick={() => setDateFilter(value)}
+              >
+                {label}
+              </SegmentButton>
+            ))}
+          </Segmented>
+          <Segmented role="group" aria-label="결과">
+            {([['ALL', '전체'], ['WIN', '승'], ['LOSS', '패']] as const).map(([value, label]) => (
+              <SegmentButton
+                key={value}
+                type="button"
+                $active={resultFilter === value}
+                aria-pressed={resultFilter === value}
+                onClick={() => setResultFilter(value)}
+              >
+                {label}
+              </SegmentButton>
+            ))}
+          </Segmented>
         </HeaderActions>
       </Header>
-      <Metrics>
-        <Metric>
-          <MetricLabel>총 전적</MetricLabel>
-          <MetricValue>
-            {dateFilteredRows.length}
-            <MetricUnit> 전</MetricUnit>
-          </MetricValue>
-        </Metric>
-        <Metric>
-          <MetricLabel>승 · 패</MetricLabel>
-          <MetricValue>{wins} · {losses}</MetricValue>
-        </Metric>
-        <Metric>
-          <MetricLabel>승률</MetricLabel>
-          <MetricValue>
-            {winRate}
-            <MetricUnit>%</MetricUnit>
-          </MetricValue>
-        </Metric>
-        <Metric>
-          <MetricLabel>평균 MMR 변동</MetricLabel>
-          <MetricValue $tone={finished.length === 0 ? undefined : Number(avgMmrDelta) >= 0 ? 'success' : 'danger'}>
-            {Number(avgMmrDelta) > 0 ? `+${avgMmrDelta}` : avgMmrDelta}
-          </MetricValue>
-        </Metric>
-      </Metrics>
+      <Record aria-label="내 전적 요약">
+        <div>
+          <RecordHeadline>
+            <Wins>{wins}승</Wins> {losses}패
+          </RecordHeadline>
+          <RecordDetail>
+            <span>
+              승률 <strong>{winRate}%</strong>
+            </span>
+            <span>
+              평균 MMR{' '}
+              <DeltaValue $tone={finished.length === 0 ? undefined : Number(avgMmrDelta) >= 0 ? 'success' : 'danger'}>
+                {Number(avgMmrDelta) > 0 ? `+${avgMmrDelta}` : avgMmrDelta}
+              </DeltaValue>
+            </span>
+            <span>
+              전체 <strong>{dateFilteredRows.length}</strong>판{dateFilteredRows.length > finished.length ? ` (진행중·미참여 ${dateFilteredRows.length - finished.length})` : ''}
+            </span>
+          </RecordDetail>
+        </div>
+        {finished.length > 0 && (
+          <Form>
+            <FormLabel>최근 {Math.min(finished.length, 10)}판</FormLabel>
+            <FormStrip>
+              {finished.slice(0, 10).map((r) => (
+                <FormPip key={r.id} $win={r.result === '승'} title={`${r.playedAt} · ${r.result}`}>
+                  {r.result}
+                </FormPip>
+              ))}
+            </FormStrip>
+          </Form>
+        )}
+      </Record>
       <TableWrap>
         {rows.length === 0 ? (
           <EmptyLabel>아직 진행된 내전이 없어요</EmptyLabel>

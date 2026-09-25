@@ -6,6 +6,7 @@ import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle } fr
 import { Button } from '../components/Button/Button';
 import { Modal } from '../components/Modal/Modal';
 import { Avatar } from '../components/Avatar/Avatar';
+import { LaneIcon } from '../components/LaneIcon/LaneIcon';
 import {
   useDuplicateMatchTeams,
   useFinishMatch,
@@ -93,18 +94,19 @@ const TeamSideTag = styled.span<{ $team: Side }>`
   color: ${({ theme, $team }) => teamColor(theme, $team)};
 `;
 
+// Result as a word at the team's own weight, like a scoreboard's WIN/LOSE —
+// the soft tinted pill it replaced was a generic status-chip default.
 const WinTag = styled.span`
   margin-left: auto;
-  padding: 2px 10px;
-  border-radius: 999px;
-  font: ${({ theme }) => theme.font.caption11m};
+  font: ${({ theme }) => theme.font.sub17};
+  font-weight: 800;
+  letter-spacing: -0.01em;
   color: ${({ theme }) => theme.color.state.success};
-  background: rgba(74, 222, 161, 0.12);
 `;
 
 const LoseTag = styled(WinTag)`
   color: ${({ theme }) => theme.color.text.secondary};
-  background: ${({ theme }) => theme.color.surface.subtle};
+  font-weight: 600;
 `;
 
 const PlayerRow = styled.div`
@@ -133,7 +135,10 @@ const PlayerName = styled.span`
 `;
 
 const PlayerLane = styled.span`
-  width: 44px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 64px;
   flex-shrink: 0;
   font: ${({ theme }) => theme.font.caption11m};
   color: ${({ theme }) => theme.color.text.secondary};
@@ -533,7 +538,10 @@ export function MatchResultPage() {
               </TeamHeader>
               {roster.map((p) => (
                 <PlayerRow key={p.userId}>
-                  <PlayerLane>{p.lane ?? '-'}</PlayerLane>
+                  <PlayerLane>
+                    {p.lane && <LaneIcon lane={p.lane} size={14} />}
+                    {p.lane ?? '-'}
+                  </PlayerLane>
                   <PlayerInfo>
                     <Avatar name={p.nickname} imageUrl={resolveAssetUrl(p.profileImageUrl)} size={22} />
                     <PlayerName>{p.nickname}</PlayerName>

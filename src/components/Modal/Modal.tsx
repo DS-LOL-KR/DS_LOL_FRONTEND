@@ -19,9 +19,9 @@ const Overlay = styled.div`
 `;
 
 const Panel = styled.div`
-  background: ${({ theme }) => theme.gradient.card};
+  background: ${({ theme }) => theme.color.surface.raised};
   border: 1px solid ${({ theme }) => theme.color.border.strong};
-  border-radius: ${({ theme }) => theme.radius.lg}px;
+  border-radius: ${({ theme }) => theme.radius.md}px;
   padding: ${({ theme }) => theme.space.lg}px;
   width: min(100%, max-content);
   min-width: min(360px, 100%);

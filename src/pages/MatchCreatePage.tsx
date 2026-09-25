@@ -4,12 +4,14 @@ import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle } from '../components/layout/PageHeader';
 import { Button } from '../components/Button/Button';
+import { LaneIcon } from '../components/LaneIcon/LaneIcon';
 import { useCreateMatch } from '../features/matches/hooks';
 import { useGroup } from '../features/groups/hooks';
 import { useGames } from '../features/game-accounts/hooks';
 import { useTierTable } from '../features/tiers/hooks';
 import { setActiveGroupId } from '../utils/activeGroup';
 import { getGameDisplayName } from '../utils/gameDisplayName';
+import type { Position } from '../features/tiers/types';
 
 type Mode = '5v5' | '3v3' | 'custom';
 
@@ -132,71 +134,77 @@ const NoticeLabel = styled.p`
   opacity: 0.7;
 `;
 
+// A roster checklist in the same hairline-row vocabulary as the tier table —
+// the previous grid of twelve identical boxed cards was a template pattern and
+// made a 12-person group look like a product catalogue.
 const MemberList = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
-  gap: ${({ theme }) => theme.space.xs}px;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  column-gap: 32px;
   margin-top: ${({ theme }) => theme.space.sm}px;
+  border-top: 1px solid ${({ theme }) => theme.color.border.base};
 `;
 
-// Selection reads from the border + check mark, not from opacity alone — a
-// faded chip used to be the only cue, which vanished against the dark ground.
 const MemberCell = styled.button<{ $selected: boolean }>`
-  position: relative;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  align-items: center;
+  gap: 12px;
   min-width: 0;
-  padding: 10px 12px;
-  border-radius: ${({ theme }) => theme.radius.sm}px;
-  border: 1px solid ${({ theme, $selected }) => ($selected ? theme.color.text.secondary : theme.color.border.base)};
-  background: ${({ theme, $selected }) => ($selected ? theme.color.surface.subtle : 'transparent')};
+  min-height: 52px;
+  padding: 0 4px;
+  border: none;
+  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
+  background: none;
   cursor: pointer;
   text-align: left;
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease,
-    opacity 0.15s ease;
-  opacity: ${({ $selected }) => ($selected ? 1 : 0.55)};
+  transition: background 0.15s ease;
 
   &:hover {
-    border-color: ${({ theme }) => theme.color.text.secondary};
-    opacity: 1;
+    background: ${({ theme }) => theme.color.surface.row};
   }
 `;
 
 const CheckMark = styled.span<{ $selected: boolean }>`
-  position: absolute;
-  top: 10px;
-  right: 10px;
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 4px;
   border: 1.5px solid ${({ theme, $selected }) => ($selected ? theme.color.text.primary : theme.color.border.strong)};
   background: ${({ theme, $selected }) => ($selected ? theme.color.text.primary : 'transparent')};
   color: #121315;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
 `;
 
-const MemberName = styled.span`
-  max-width: calc(100% - 24px);
+const MemberName = styled.span<{ $selected: boolean }>`
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   font: ${({ theme }) => theme.font.body14b};
-  color: ${({ theme }) => theme.color.text.primary};
+  color: ${({ theme, $selected }) => ($selected ? theme.color.text.primary : theme.color.text.secondary)};
+  transition: color 0.12s ease;
 `;
 
-const MemberMeta = styled.span`
+const MemberMeta = styled.span<{ $selected: boolean }>`
   display: flex;
-  gap: 8px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
   font: ${({ theme }) => theme.font.caption11m};
+  opacity: ${({ $selected }) => ($selected ? 1 : 0.5)};
 `;
 
 const MemberLane = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 52px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -225,7 +233,7 @@ export function MatchCreatePage() {
   // 참여자 칩에 티어가 안 보였던 문제 수정(2026-09-13 문의). "전체" 등급은
   // 라인 무관 계정 전체 값이라 그 유저의 아무 행에서나 가져와도 동일함. 주
   // 라인은 GroupManagePage와 동일하게 판수(승+패)가 가장 많은 라인 행을 씀.
-  const memberInfoByUserId = new Map<number, { tier: 1 | 2 | 3 | 4 | 5 | null; lane: string | null }>();
+  const memberInfoByUserId = new Map<number, { tier: 1 | 2 | 3 | 4 | 5 | null; lane: Position | null }>();
   for (const m of group?.members ?? []) {
     const rows = (tierTable?.tiers ?? []).filter((row) => row.userId === m.userId);
     const mainRow = rows.length
@@ -372,10 +380,13 @@ export function MatchCreatePage() {
                           </svg>
                         )}
                       </CheckMark>
-                      <MemberName>{m.user.nickname}</MemberName>
-                      <MemberMeta>
+                      <MemberName $selected={selectedUserIds.has(m.userId)}>{m.user.nickname}</MemberName>
+                      <MemberMeta $selected={selectedUserIds.has(m.userId)}>
                         <MemberTier $tier={info?.tier ?? null}>{info?.tier ? `${info.tier}티어` : '미확인'}</MemberTier>
-                        <MemberLane>{info?.lane ?? '-'}</MemberLane>
+                        <MemberLane>
+                          {info?.lane && <LaneIcon lane={info.lane} size={13} />}
+                          {info?.lane ?? '-'}
+                        </MemberLane>
                       </MemberMeta>
                     </MemberCell>
                   );

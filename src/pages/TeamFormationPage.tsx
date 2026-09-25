@@ -3,9 +3,9 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import styled, { type DefaultTheme } from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { PageHeader as Header, PageTitle as Title, HeaderActions } from '../components/layout/PageHeader';
-import { Metrics, Metric, MetricLabel, MetricValue, MetricUnit } from '../components/layout/Metrics';
 import { Button } from '../components/Button/Button';
 import { Avatar } from '../components/Avatar/Avatar';
+import { LaneIcon } from '../components/LaneIcon/LaneIcon';
 import { useGenerateTeams, useMatch, useUpdateTeams } from '../features/matches/hooks';
 import type { TeamParticipant } from '../features/matches/types';
 import { useGroup } from '../features/groups/hooks';
@@ -24,46 +24,119 @@ const SubtitleRow = styled.div`
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
-const BalanceSection = styled.div`
+// One broadcast-style scoreboard instead of four equal stat tiles plus a
+// separate gauge that repeated the same averages: the two sides face each other,
+// the balance verdict sits between them, and the bar underneath is the split.
+const Matchup = styled.section`
+  padding: 28px 0 24px;
+  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
+`;
+
+const MatchupRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
+  gap: ${({ theme }) => theme.space.md}px;
+`;
+
+const SideBlock = styled.div<{ $team: Side }>`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: ${({ theme }) => theme.space.md}px 0 22px;
+  align-items: ${({ $team }) => ($team === 'A' ? 'flex-start' : 'flex-end')};
+  gap: 2px;
+  min-width: 0;
 `;
 
-const BalanceLabels = styled.div`
-  display: flex;
-  justify-content: space-between;
+const SideName = styled.span<{ $team: Side }>`
+  font: ${({ theme }) => theme.font.small13b};
+  color: ${({ theme, $team }) => teamColor(theme, $team)};
 `;
 
-const BalanceLabel = styled.div<{ $team: Side }>`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font: ${({ theme }) => theme.font.label12m};
-  color: ${({ theme }) => theme.color.text.secondary};
+const SideMmr = styled.span`
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: ${({ theme }) => theme.color.text.primary};
 
-  strong {
-    font-variant-numeric: tabular-nums;
-    font-weight: 600;
-    color: ${({ theme, $team }) => ($team === 'A' ? theme.color.team.red : theme.color.team.blue)};
+  ${({ theme }) => theme.media.mobile} {
+    font-size: 30px;
   }
 `;
 
-const Gauge = styled.div`
+const SideCaption = styled.span`
+  font: ${({ theme }) => theme.font.caption11};
+  color: ${({ theme }) => theme.color.text.secondary};
+`;
+
+const Verdict = styled.div`
   display: flex;
-  gap: 2px;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 4px;
+  text-align: center;
+`;
+
+const VerdictValue = styled.span`
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: ${({ theme }) => theme.color.text.primary};
+
+  ${({ theme }) => theme.media.mobile} {
+    font-size: 22px;
+  }
+`;
+
+const VerdictLabel = styled.span`
+  font: ${({ theme }) => theme.font.caption11};
+  color: ${({ theme }) => theme.color.text.secondary};
+`;
+
+const Gauge = styled.div`
+  position: relative;
+  display: flex;
+  gap: 3px;
   width: 100%;
+  margin-top: 18px;
 `;
 
 // Each side's width is its expected win rate, so a lopsided draw is visible at
-// a glance instead of every match drawing the same 50:50 bar.
+// a glance; the notch marks dead center to measure it against.
 const GaugeSegment = styled.div<{ $team: Side; $share: number }>`
   flex: ${({ $share }) => $share} 1 0;
-  height: 6px;
-  border-radius: 1px;
+  height: 10px;
   background: ${({ theme, $team }) => teamColor(theme, $team)};
   transition: flex-grow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+`;
+
+const CenterNotch = styled.span`
+  position: absolute;
+  left: 50%;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  transform: translateX(-50%);
+  background: ${({ theme }) => theme.color.text.primary};
+`;
+
+const MatchupFootnote = styled.p`
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 10px;
+  font: ${({ theme }) => theme.font.label12};
+  font-variant-numeric: tabular-nums;
+  color: ${({ theme }) => theme.color.text.secondary};
+
+  strong {
+    font-weight: 600;
+    color: ${({ theme }) => theme.color.text.primary};
+  }
 `;
 
 const Roster = styled.div`
@@ -145,7 +218,10 @@ const PlayerRow = styled.div`
 `;
 
 const PosCell = styled.span`
-  width: 44px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 64px;
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
   font-size: 16px;
@@ -250,7 +326,7 @@ function SwapIcon() {
 
 const RationaleSection = styled.div`
   width: 100%;
-  padding-top: 34px;
+  padding-top: 48px;
 `;
 
 const RationaleHeader = styled.div`
@@ -363,7 +439,10 @@ export function TeamFormationPage() {
 
   const renderTeamPlayer = (p: TeamParticipant) => (
     <PlayerRow key={p.userId}>
-      <PosCell>{p.assignedPosition ?? '-'}</PosCell>
+      <PosCell>
+        {p.assignedPosition && <LaneIcon lane={p.assignedPosition} size={14} />}
+        {p.assignedPosition ?? '-'}
+      </PosCell>
       <NameCell>
         <Avatar name={p.nickname} imageUrl={resolveAssetUrl(p.profileImageUrl)} size={20} />
         {p.nickname}
@@ -421,37 +500,39 @@ export function TeamFormationPage() {
 
       {analysis && (
         <>
-          <Metrics>
-            <Metric>
-              <MetricLabel>팀 밸런스</MetricLabel>
-              <MetricValue>{analysis.balancePercent}<MetricUnit>%</MetricUnit></MetricValue>
-            </Metric>
-            <Metric>
-              <MetricLabel>평균 MMR 차이</MetricLabel>
-              <MetricValue>{Math.abs(analysis.teamA.averageMmr - analysis.teamB.averageMmr)}</MetricValue>
-            </Metric>
-            <Metric>
-              <MetricLabel>예상 승률</MetricLabel>
-              <MetricValue>
-                {Math.round(analysis.teamA.expectedWinRate * 100)} : {Math.round(analysis.teamB.expectedWinRate * 100)}
-              </MetricValue>
-            </Metric>
-            <Metric>
-              <MetricLabel>주 라인 배정</MetricLabel>
-              <MetricValue>{onPreferredLane} / {participants.length}</MetricValue>
-            </Metric>
-          </Metrics>
-
-          <BalanceSection>
-            <BalanceLabels>
-              <BalanceLabel $team="A">팀 A 평균 <strong>{analysis.teamA.averageMmr}</strong></BalanceLabel>
-              <BalanceLabel $team="B"><strong>{analysis.teamB.averageMmr}</strong> 팀 B 평균</BalanceLabel>
-            </BalanceLabels>
+          <Matchup aria-label="팀 밸런스">
+            <MatchupRow>
+              <SideBlock $team="A">
+                <SideName $team="A">레드 · 팀 A</SideName>
+                <SideMmr>{analysis.teamA.averageMmr}</SideMmr>
+                <SideCaption>평균 MMR</SideCaption>
+              </SideBlock>
+              <Verdict>
+                <VerdictValue>밸런스 {analysis.balancePercent}%</VerdictValue>
+                <VerdictLabel>
+                  예상 승률 {Math.round(analysis.teamA.expectedWinRate * 100)} : {Math.round(analysis.teamB.expectedWinRate * 100)}
+                </VerdictLabel>
+              </Verdict>
+              <SideBlock $team="B">
+                <SideName $team="B">블루 · 팀 B</SideName>
+                <SideMmr>{analysis.teamB.averageMmr}</SideMmr>
+                <SideCaption>평균 MMR</SideCaption>
+              </SideBlock>
+            </MatchupRow>
             <Gauge>
               <GaugeSegment $team="A" $share={analysis.teamA.expectedWinRate} />
               <GaugeSegment $team="B" $share={analysis.teamB.expectedWinRate} />
+              <CenterNotch aria-hidden="true" />
             </Gauge>
-          </BalanceSection>
+            <MatchupFootnote>
+              <span>
+                평균 MMR 차이 <strong>{Math.abs(analysis.teamA.averageMmr - analysis.teamB.averageMmr)}</strong>
+              </span>
+              <span>
+                주 라인 배정 <strong>{onPreferredLane}</strong> / {participants.length}명
+              </span>
+            </MatchupFootnote>
+          </Matchup>
         </>
       )}
 
@@ -468,7 +549,7 @@ export function TeamFormationPage() {
                 <TeamMmrSum>MMR 합계 {roster.reduce((sum, p) => sum + p.mmr, 0)}</TeamMmrSum>
               </TeamHeader>
               <RosterHeaderRow>
-                <HeaderCell $width={44}>라인</HeaderCell>
+                <HeaderCell $width={64}>라인</HeaderCell>
                 <HeaderCell>소환사</HeaderCell>
                 <TierHeaderCell $width={115}>티어</TierHeaderCell>
                 <HeaderCell $width={56} $align="right">MMR</HeaderCell>

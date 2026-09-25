@@ -8,7 +8,7 @@ export const PageHeader = styled.header`
   align-items: flex-end;
   justify-content: space-between;
   gap: ${({ theme }) => theme.space.md}px;
-  padding-bottom: ${({ theme }) => theme.space.lg}px;
+  padding-bottom: 24px;
   border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
 
   ${({ theme }) => theme.media.mobile} {
@@ -19,7 +19,8 @@ export const PageHeader = styled.header`
 
 export const PageTitle = styled.h1`
   font: ${({ theme }) => theme.font.title26};
-  letter-spacing: -0.02em;
+  font-weight: 800;
+  letter-spacing: -0.03em;
   color: ${({ theme }) => theme.color.text.primary};
   text-wrap: balance;
 

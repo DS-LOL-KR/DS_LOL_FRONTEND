@@ -4,6 +4,7 @@ import { useMe } from '../../features/auth/hooks';
 import { useActiveGroupId } from '../../utils/activeGroup';
 import { resolveAssetUrl } from '../../utils/assetUrl';
 import { Avatar } from '../Avatar/Avatar';
+import { Wordmark } from '../Wordmark/Wordmark';
 
 const Bar = styled.nav`
   display: flex;
@@ -12,7 +13,7 @@ const Bar = styled.nav`
   gap: ${({ theme }) => theme.space.md}px;
   height: 56px;
   padding: 0 ${({ theme }) => theme.space.lg}px;
-  background: ${({ theme }) => theme.color.surface.subtle};
+  background: ${({ theme }) => theme.color.surface.raised};
   border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
 
   ${({ theme }) => theme.media.mobile} {
@@ -32,10 +33,9 @@ const LeftGroup = styled.div`
 `;
 
 const Brand = styled(Link)`
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
-  font: ${({ theme }) => theme.font.sub15};
-  letter-spacing: -0.01em;
-  color: ${({ theme }) => theme.color.text.primary};
 `;
 
 const Menu = styled.div`
@@ -116,7 +116,9 @@ export function Navbar() {
   return (
     <Bar>
       <LeftGroup>
-        <Brand to="/groups">DS_LOL</Brand>
+        <Brand to="/groups" aria-label="DS_LOL 홈">
+          <Wordmark size={21} />
+        </Brand>
         <Menu>
           {navItems.map((item) => (
             <MenuLink key={item.key} to={item.to} $active={item.active} aria-current={item.active ? 'page' : undefined}>

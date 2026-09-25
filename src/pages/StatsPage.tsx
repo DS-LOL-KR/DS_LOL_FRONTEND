@@ -1,9 +1,8 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle } from '../components/layout/PageHeader';
-import { Metrics, Metric, MetricLabel, MetricValue as BaseMetricValue } from '../components/layout/Metrics';
+import { MmrSummary } from '../components/MmrSummary/MmrSummary';
 import { SplitColumns as Columns, SplitPrimary as TrendColumn, SplitSecondary as ChangesColumn } from '../components/layout/Split';
 import { Button } from '../components/Button/Button';
 import { useMyMmrHistory } from '../features/matches/hooks';
@@ -21,23 +20,6 @@ import { useMe } from '../features/auth/hooks';
 import { useActiveGroupId } from '../utils/activeGroup';
 import { formatRelativeTime } from '../utils/formatRelativeTime';
 import { formatDateTime } from '../utils/formatDateTime';
-
-const MetricValue = styled(BaseMetricValue)<{ $tone?: 'success' | 'danger'; $tier?: 1 | 2 | 3 | 4 | 5 }>`
-  color: ${({ theme, $tone, $tier }) => {
-    if ($tier) return theme.color.tier[$tier];
-    if ($tone === 'success') return theme.color.state.success;
-    if ($tone === 'danger') return theme.color.state.danger;
-    return theme.color.text.primary;
-  }};
-`;
-
-const MetricSubLabel = styled.span`
-  margin-left: 8px;
-  font-size: 16px;
-  font-weight: 500;
-  letter-spacing: 0;
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
 
 const ColumnHeader = styled.div`
   display: flex;
@@ -71,13 +53,6 @@ const StickyTrendColumn = styled(TrendColumn)`
 const CHART_HEIGHT = 220;
 const MIN_BAR_RATIO = 0.16;
 
-// Reveal from the baseline with clip-path so the entrance doesn't fight the
-// scaleY that encodes each bar's value.
-const growIn = keyframes`
-  from { clip-path: inset(100% 0 0 0); }
-  to { clip-path: inset(0 0 0 0); }
-`;
-
 const BarChart = styled.div`
   display: flex;
   align-items: flex-end;
@@ -102,7 +77,7 @@ const BarTrack = styled.div`
   width: 100%;
 `;
 
-const Bar = styled.button<{ $ratio: number; $delay: number; $active: boolean }>`
+const Bar = styled.button<{ $ratio: number; $current: boolean }>`
   position: absolute;
   inset: 0;
   width: 100%;
@@ -112,10 +87,8 @@ const Bar = styled.button<{ $ratio: number; $delay: number; $active: boolean }>`
   cursor: pointer;
   transform-origin: bottom;
   transform: scaleY(${({ $ratio }) => $ratio});
-  background: ${({ theme, $active }) => ($active ? theme.color.accent.blue : theme.color.accent.blueMuted)};
-  animation: ${growIn} 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-  animation-delay: ${({ $delay }) => $delay}ms;
-  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), background 0.15s ease;
+  background: ${({ theme, $current }) => ($current ? theme.color.accent.blue : theme.color.accent.blueMuted)};
+  transition: background 0.15s ease;
 
   &:hover,
   &:focus-visible {
@@ -123,7 +96,6 @@ const Bar = styled.button<{ $ratio: number; $delay: number; $active: boolean }>`
   }
 
   @media (prefers-reduced-motion: reduce) {
-    animation: none;
     transition: background 0.15s ease;
   }
 `;
@@ -189,7 +161,8 @@ const ChangeDelta = styled.span<{ $positive: boolean }>`
 `;
 
 const RiotSection = styled.section`
-  padding-top: ${({ theme }) => theme.space.xl}px;
+  margin-top: 24px;
+  padding-top: 40px;
   border-top: 1px solid ${({ theme }) => theme.color.border.base};
 `;
 
@@ -282,7 +255,6 @@ const ChampRecord = styled.span`
 
 export function StatsPage() {
   const navigate = useNavigate();
-  const [activeBar, setActiveBar] = useState<number | null>(null);
   const { data: gameAccounts } = useMyGameAccounts();
   const { data: me } = useMe();
   const activeGroupId = useActiveGroupId();
@@ -344,12 +316,9 @@ export function StatsPage() {
     fullSyncGameAccount.mutate(undefined);
   };
 
-  // Growing the bar to full height before navigating gives the click somewhere
-  // to land — the trend "shoots up" instead of instantly cutting to a new page.
-  const handleBarClick = (i: number, matchId: number) => {
-    setActiveBar(i);
-    window.setTimeout(() => navigate(`/matches/${matchId}`), 260);
-  };
+  // 막대를 누르면 260ms 동안 "쭉 자라는" 연출 뒤에 이동했는데, 정보 없이 이동만
+  // 늦추는 장식이라 바로 이동하게 바꿈. 가장 최근 경기(현재 MMR) 막대만 진하게.
+  const handleBarClick = (matchId: number) => navigate(`/matches/${matchId}`);
 
   return (
     <PageLayout>
@@ -362,33 +331,16 @@ export function StatsPage() {
           {fullSyncGameAccount.isPending ? '갱신 중...' : '지금 갱신'}
         </Button>
       </Header>
-      <Metrics>
-        <Metric>
-          <MetricLabel>현재 MMR</MetricLabel>
-          <MetricValue>{currentMmr ?? '-'}</MetricValue>
-        </Metric>
-        <Metric>
-          <MetricLabel>30일 변동</MetricLabel>
-          <MetricValue $tone={history.length === 0 ? undefined : recentDelta >= 0 ? 'success' : 'danger'}>
-            {history.length === 0 ? '-' : recentDelta > 0 ? `+${recentDelta}` : recentDelta}
-          </MetricValue>
-        </Metric>
-        <Metric>
-          <MetricLabel>그룹 내부 티어</MetricLabel>
-          {myGroupTier ? (
-            <MetricValue $tier={myGroupTier.tier}>
-              {myGroupTier.tier}티어
-              <MetricSubLabel>{activeGroup?.name}</MetricSubLabel>
-            </MetricValue>
-          ) : (
-            <MetricValue>{activeGroup ? '기록 없음' : '그룹 없음'}</MetricValue>
-          )}
-        </Metric>
-        <Metric>
-          <MetricLabel>게임 공식 티어</MetricLabel>
-          <MetricValue>{officialTier ?? (primaryAccount ? '언랭크' : '연동 필요')}</MetricValue>
-        </Metric>
-      </Metrics>
+      <MmrSummary
+        mmr={currentMmr}
+        delta={history.length === 0 ? null : { value: recentDelta, label: '30일 변동' }}
+        groupTier={{
+          tier: myGroupTier?.tier ?? null,
+          groupName: activeGroup?.name,
+          emptyLabel: activeGroup ? '기록 없음' : '그룹 없음',
+        }}
+        officialTier={officialTier ?? (primaryAccount ? '언랭크' : '연동 필요')}
+      />
       <Columns>
         <StickyTrendColumn>
           <ColumnHeader>
@@ -403,12 +355,11 @@ export function StatsPage() {
                 <BarGroup key={i}>
                   <BarTrack>
                     <Bar
-                      $ratio={activeBar === i ? 1 : ratio}
-                      $active={activeBar === i}
-                      $delay={i * 40}
+                      $ratio={ratio}
+                      $current={i === barRatios.length - 1}
                       title={`${formatDateTime(trendSeries[i].playedAt)} · ${mmrAfterSeries[i]} MMR`}
                       aria-label={`${i + 1}번째 경기 상세 보기 · ${mmrAfterSeries[i]} MMR`}
-                      onClick={() => handleBarClick(i, trendSeries[i].matchId)}
+                      onClick={() => handleBarClick(trendSeries[i].matchId)}
                     />
                   </BarTrack>
                   <BarIndex>{i + 1}</BarIndex>
@@ -420,7 +371,6 @@ export function StatsPage() {
         <ChangesColumn>
           <ChangesHeader>
             <ChangesTitle>변동 내역</ChangesTitle>
-            <ChangesHint>항목별 내역</ChangesHint>
           </ChangesHeader>
           {history.length === 0 ? (
             <EmptyHint>아직 집계된 변동 내역이 없어요</EmptyHint>

@@ -17,18 +17,18 @@ export const theme = {
       4: '#BFC7D6',
       5: '#CC9169',
     },
+    // Flat, slightly blue-black ground (the old top-to-bottom gradient read as
+    // a template default); `raised` is the one elevated plane (bars, dialogs).
+    bg: '#090B12',
     surface: {
       subtle: 'rgba(255,255,255,0.05)',
       row: 'rgba(255,255,255,0.035)',
+      raised: '#121521',
     },
     border: {
       base: 'rgba(255,255,255,0.09)',
       strong: 'rgba(255,255,255,0.14)',
     },
-  },
-  gradient: {
-    app: 'linear-gradient(180deg, #0E111C 0%, #07080E 100%)',
-    card: 'linear-gradient(180deg, rgba(23,28,46,0.94) 0%, rgba(14,17,28,0.94) 100%)',
   },
   radius: { sm: 8, md: 12, lg: 16, xl: 20 },
   // One breakpoint carries the layout switch (side-by-side → stacked); `narrow`

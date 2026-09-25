@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
-import { Metrics as BaseMetrics, Metric, MetricLabel, MetricValue } from '../components/layout/Metrics';
+import { MmrSummary } from '../components/MmrSummary/MmrSummary';
 import { SplitColumns as Columns, SplitPrimary as TrendColumn, SplitSecondary as ChangesColumn } from '../components/layout/Split';
 import { Avatar } from '../components/Avatar/Avatar';
 import { Button } from '../components/Button/Button';
@@ -65,20 +65,22 @@ const EmptyBio = styled.p`
   opacity: 0.6;
 `;
 
-const Metrics = styled(BaseMetrics)`
-  margin-top: ${({ theme }) => theme.space.lg}px;
-  border-top: 1px solid ${({ theme }) => theme.color.border.base};
-`;
-
 const ColumnTitle = styled.p`
   font: ${({ theme }) => theme.font.sub15};
   color: ${({ theme }) => theme.color.text.primary};
   padding-bottom: ${({ theme }) => theme.space.md}px;
 `;
 
-const RiotSection = styled.div`
-  padding-top: ${({ theme }) => theme.space.lg}px;
-  border-top: 1px solid ${({ theme }) => theme.color.border.base};
+// The MMR summary above already closes with a hairline — only sections that
+// follow another section draw their own divider, so rules never double up.
+const RiotSection = styled.section`
+  padding-top: 32px;
+
+  & + & {
+    margin-top: 24px;
+    padding-top: 40px;
+    border-top: 1px solid ${({ theme }) => theme.color.border.base};
+  }
 `;
 
 const SectionHeader = styled.div`
@@ -241,16 +243,7 @@ export function UserProfilePage() {
         <EmptyHint>게임 계정을 연동하지 않았어요.</EmptyHint>
       ) : !isError && account ? (
         <>
-          <Metrics>
-            <Metric>
-              <MetricLabel>현재 MMR</MetricLabel>
-              <MetricValue>{currentMmr ?? '-'}</MetricValue>
-            </Metric>
-            <Metric>
-              <MetricLabel>게임 공식 티어</MetricLabel>
-              <MetricValue>{officialTier ?? '언랭크'}</MetricValue>
-            </Metric>
-          </Metrics>
+          <MmrSummary mmr={currentMmr} officialTier={officialTier ?? '언랭크'} />
 
           <RiotSection>
             <SectionHeader>

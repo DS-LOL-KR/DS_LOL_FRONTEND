@@ -18,7 +18,7 @@ export const GlobalStyle = createGlobalStyle`
   }
 
   body {
-    background: ${({ theme }) => theme.gradient.app};
+    background: ${({ theme }) => theme.color.bg};
     color: ${({ theme }) => theme.color.text.primary};
     font-family: ${({ theme }) => theme.fontFamily.sans};
     -webkit-font-smoothing: antialiased;
