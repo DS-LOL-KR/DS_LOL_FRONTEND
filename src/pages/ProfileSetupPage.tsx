@@ -18,6 +18,7 @@ import {
 import type { Position } from '../features/game-accounts/types';
 import { resolveAssetUrl } from '../utils/assetUrl';
 import { getGameDisplayName } from '../utils/gameDisplayName';
+import { formatDate } from '../utils/formatDateTime';
 
 const POSITIONS: Position[] = ['TOP', 'JUG', 'MID', 'ADC', 'SUP'];
 
@@ -33,11 +34,15 @@ const TopBar = styled.header`
   padding: 0 ${({ theme }) => theme.space.lg}px;
   background: ${({ theme }) => theme.color.surface.subtle};
   border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
+
+  ${({ theme }) => theme.media.mobile} {
+    padding: 0 ${({ theme }) => theme.space.md}px;
+  }
 `;
 
 const Brand = styled.span`
   font: ${({ theme }) => theme.font.sub15};
-  letter-spacing: 0.4px;
+  letter-spacing: -0.01em;
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
@@ -55,16 +60,21 @@ const PageName = styled.span`
 const Body = styled.main`
   display: flex;
   justify-content: center;
-  padding: ${({ theme }) => theme.space.xl * 2}px 0;
+  padding: ${({ theme }) => theme.space.xl * 2}px ${({ theme }) => theme.space.lg}px;
+
+  ${({ theme }) => theme.media.mobile} {
+    padding: ${({ theme }) => theme.space.xl}px ${({ theme }) => theme.space.md}px 48px;
+  }
 `;
 
 const Form = styled.form`
-  width: 620px;
+  width: 100%;
+  max-width: 620px;
 `;
 
-const Heading = styled.p`
+const Heading = styled.h1`
   font: ${({ theme }) => theme.font.title26};
-  letter-spacing: -0.5px;
+  letter-spacing: -0.02em;
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
@@ -99,9 +109,8 @@ const Field = styled.div`
   padding: ${({ theme }) => theme.space.md}px 0;
 `;
 
-const FieldLabel = styled.span`
+const FieldLabel = styled.label`
   font: ${({ theme }) => theme.font.label12m};
-  letter-spacing: 0.3px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -113,7 +122,7 @@ const FieldHint = styled.span`
 const Avatar = styled.div<{ $src?: string }>`
   width: 56px;
   height: 56px;
-  border-radius: ${({ theme }) => theme.radius.sm}px;
+  border-radius: 50%;
   background: ${({ theme, $src }) => ($src ? `url(${$src}) center/cover` : theme.color.surface.subtle)};
   border: 1px solid ${({ theme }) => theme.color.border.base};
   flex-shrink: 0;
@@ -156,6 +165,7 @@ const AccountCard = styled.div<{ $column?: boolean }>`
 
 const AccountCardRow = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: ${({ theme }) => theme.space.md}px;
 `;
@@ -178,8 +188,8 @@ const PositionIconButton = styled.button<{ $active: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 36px;
+  height: 36px;
   border-radius: ${({ theme }) => theme.radius.sm}px;
   border: 1px solid ${({ theme, $active }) => ($active ? theme.color.text.primary : theme.color.border.base)};
   background: ${({ theme, $active }) => ($active ? theme.color.text.primary : 'transparent')};
@@ -192,7 +202,7 @@ const PositionIconButton = styled.button<{ $active: boolean }>`
 `;
 
 const AccountInfo = styled.div`
-  flex: 1;
+  flex: 1 1 220px;
   min-width: 0;
 `;
 
@@ -378,8 +388,9 @@ export function ProfileSetupPage() {
           </Row>
           <Divider />
           <Field>
-            <FieldLabel>이름</FieldLabel>
+            <FieldLabel htmlFor="profile-nickname">이름</FieldLabel>
             <Input
+              id="profile-nickname"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               placeholder="재현"
@@ -388,8 +399,9 @@ export function ProfileSetupPage() {
           </Field>
           <Divider />
           <Field>
-            <FieldLabel>자기소개</FieldLabel>
+            <FieldLabel htmlFor="profile-bio">자기소개</FieldLabel>
             <Textarea
+              id="profile-bio"
               rows={3}
               value={bio}
               onChange={(e) => setBio(e.target.value)}
@@ -417,8 +429,8 @@ export function ProfileSetupPage() {
                         </AccountNameRow>
                         <AccountHint>
                           {isLol
-                            ? `티어는 라이엇 API에서 자동으로 가져와요 · ${account.createdAt.slice(0, 10)} 연동`
-                            : `계정 연동만 지원돼요 · 전적/티어 갱신은 준비 중이에요 · ${account.createdAt.slice(0, 10)} 연동`}
+                            ? `티어는 라이엇 API에서 자동으로 가져와요 · ${formatDate(account.createdAt)} 연동`
+                            : `계정 연동만 지원돼요 · 전적/티어 갱신은 준비 중이에요 · ${formatDate(account.createdAt)} 연동`}
                         </AccountHint>
                       </AccountInfo>
                       {isLol && (
@@ -527,6 +539,8 @@ function PreferredPositionPicker({ accountId, mainPosition }: { accountId: numbe
           key={p}
           type="button"
           title={p}
+          aria-label={`주라인 ${p}`}
+          aria-pressed={mainPosition === p}
           $active={mainPosition === p}
           disabled={updatePosition.isPending}
           onClick={() => updatePosition.mutate({ mainPosition: mainPosition === p ? null : p })}

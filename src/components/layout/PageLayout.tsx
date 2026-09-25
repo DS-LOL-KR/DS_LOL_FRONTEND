@@ -5,7 +5,11 @@ import { Navbar } from './Navbar';
 const Main = styled.main`
   max-width: 1368px;
   margin: 0 auto;
-  padding: ${({ theme }) => theme.space.xl}px 36px;
+  padding: ${({ theme }) => theme.space.xl}px 36px 64px;
+
+  ${({ theme }) => theme.media.mobile} {
+    padding: ${({ theme }) => theme.space.lg}px ${({ theme }) => theme.space.md}px 48px;
+  }
 `;
 
 export interface PageLayoutProps {

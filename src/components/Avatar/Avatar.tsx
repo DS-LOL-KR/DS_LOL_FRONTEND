@@ -19,7 +19,6 @@ const Circle = styled.div<{ $size: number; $color: string }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'IBM Plex Sans KR', sans-serif;
   font-weight: 600;
   font-size: ${({ $size }) => Math.round($size * 0.42)}px;
   color: #121315;

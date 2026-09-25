@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
+import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle } from '../components/layout/PageHeader';
+import { Metrics, Metric, MetricLabel, MetricValue as BaseMetricValue } from '../components/layout/Metrics';
+import { SplitColumns as Columns, SplitPrimary as TrendColumn, SplitSecondary as ChangesColumn } from '../components/layout/Split';
 import { Button } from '../components/Button/Button';
 import { useMyMmrHistory } from '../features/matches/hooks';
 import {
@@ -17,83 +20,23 @@ import { useTierTable } from '../features/tiers/hooks';
 import { useMe } from '../features/auth/hooks';
 import { useActiveGroupId } from '../utils/activeGroup';
 import { formatRelativeTime } from '../utils/formatRelativeTime';
+import { formatDateTime } from '../utils/formatDateTime';
 
-const Header = styled.div`
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  padding-bottom: ${({ theme }) => theme.space.lg}px;
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-`;
-
-const Title = styled.p`
-  font: ${({ theme }) => theme.font.title26};
-  letter-spacing: -0.5px;
-  color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const Subtitle = styled.p`
-  margin-top: 6px;
-  font: ${({ theme }) => theme.font.label12};
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
-
-const Metrics = styled.div`
-  display: flex;
-  padding: ${({ theme }) => theme.space.md}px 0;
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-`;
-
-const Metric = styled.div`
-  flex: 1;
-  padding-left: 28px;
-  border-left: 1px solid ${({ theme }) => theme.color.border.base};
-
-  &:first-child {
-    padding-left: 0;
-    border-left: none;
-  }
-`;
-
-const MetricLabel = styled.p`
-  font: ${({ theme }) => theme.font.label12m};
-  letter-spacing: 0.3px;
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
-
-const MetricValue = styled.p<{ $tone?: 'success' | 'tier2' | 'tier1'; $tier?: 1 | 2 | 3 | 4 | 5 }>`
-  margin-top: 5px;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 32px;
-  font-weight: 600;
-  letter-spacing: -0.6px;
+const MetricValue = styled(BaseMetricValue)<{ $tone?: 'success' | 'danger'; $tier?: 1 | 2 | 3 | 4 | 5 }>`
   color: ${({ theme, $tone, $tier }) => {
     if ($tier) return theme.color.tier[$tier];
     if ($tone === 'success') return theme.color.state.success;
-    if ($tone === 'tier2') return theme.color.tier[2];
-    if ($tone === 'tier1') return theme.color.tier[1];
+    if ($tone === 'danger') return theme.color.state.danger;
     return theme.color.text.primary;
   }};
 `;
 
 const MetricSubLabel = styled.span`
-  margin-left: 6px;
-  font-family: 'IBM Plex Mono', monospace;
+  margin-left: 8px;
   font-size: 16px;
-  font-weight: 400;
+  font-weight: 500;
+  letter-spacing: 0;
   color: ${({ theme }) => theme.color.text.secondary};
-`;
-
-const Columns = styled.div`
-  display: flex;
-  align-items: flex-start;
-  width: 100%;
-`;
-
-const TrendColumn = styled.div`
-  flex: 1;
-  min-width: 0;
-  padding: ${({ theme }) => theme.space.lg}px 40px ${({ theme }) => theme.space.lg}px 0;
 `;
 
 const ColumnHeader = styled.div`
@@ -109,17 +52,30 @@ const ColumnTitle = styled.p`
 `;
 
 const ColumnHint = styled.span`
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 16px;
+  font: ${({ theme }) => theme.font.caption11};
+  font-variant-numeric: tabular-nums;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
-const CHART_HEIGHT = 220;
-const MIN_BAR_HEIGHT = 36;
+// The 변동 내역 list runs far longer than the chart; pinning the chart keeps the
+// two columns reading together instead of leaving a dead block under it.
+const StickyTrendColumn = styled(TrendColumn)`
+  position: sticky;
+  top: 0;
 
+  ${({ theme }) => theme.media.mobile} {
+    position: static;
+  }
+`;
+
+const CHART_HEIGHT = 220;
+const MIN_BAR_RATIO = 0.16;
+
+// Reveal from the baseline with clip-path so the entrance doesn't fight the
+// scaleY that encodes each bar's value.
 const growIn = keyframes`
-  from { transform: scaleY(0); opacity: 0.4; }
-  to { transform: scaleY(1); opacity: 1; }
+  from { clip-path: inset(100% 0 0 0); }
+  to { clip-path: inset(0 0 0 0); }
 `;
 
 const BarChart = styled.div`
@@ -132,44 +88,50 @@ const BarChart = styled.div`
 
 const BarGroup = styled.div`
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   height: 100%;
-  justify-content: flex-end;
 `;
 
-const Bar = styled.button<{ $height: number; $delay: number; $active: boolean }>`
+const BarTrack = styled.div`
+  position: relative;
+  flex: 1;
   width: 100%;
-  height: ${({ $height }) => $height}px;
+`;
+
+const Bar = styled.button<{ $ratio: number; $delay: number; $active: boolean }>`
+  position: absolute;
+  inset: 0;
+  width: 100%;
   border: none;
-  border-radius: 2px;
+  border-radius: 3px 3px 0 0;
   padding: 0;
   cursor: pointer;
   transform-origin: bottom;
-  background: ${({ theme, $active }) => ($active ? theme.color.text.primary : theme.color.border.base)};
+  transform: scaleY(${({ $ratio }) => $ratio});
+  background: ${({ theme, $active }) => ($active ? theme.color.accent.blue : theme.color.accent.blueMuted)};
   animation: ${growIn} 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
   animation-delay: ${({ $delay }) => $delay}ms;
-  transition: height 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), background 0.15s ease;
 
   &:hover,
   &:focus-visible {
-    background: ${({ theme }) => theme.color.text.primary};
+    background: ${({ theme }) => theme.color.accent.blue};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transition: background 0.15s ease;
   }
 `;
 
 const BarIndex = styled.span`
-  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 15px;
   color: ${({ theme }) => theme.color.text.secondary};
-`;
-
-const ChangesColumn = styled.div`
-  flex: 1;
-  min-width: 0;
-  padding: ${({ theme }) => theme.space.lg}px 0 ${({ theme }) => theme.space.lg}px 40px;
-  border-left: 1px solid ${({ theme }) => theme.color.border.base};
 `;
 
 const ChangesHeader = styled.div`
@@ -220,20 +182,20 @@ const ChangeReason = styled.p`
 const ChangeDelta = styled.span<{ $positive: boolean }>`
   width: 62px;
   text-align: right;
-  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 20px;
   font-weight: 600;
   color: ${({ theme, $positive }) => ($positive ? theme.color.state.success : theme.color.state.danger)};
 `;
 
-const RiotSection = styled.div`
-  padding-top: ${({ theme }) => theme.space.lg}px;
+const RiotSection = styled.section`
+  padding-top: ${({ theme }) => theme.space.xl}px;
   border-top: 1px solid ${({ theme }) => theme.color.border.base};
 `;
 
-const SectionTitle = styled.p`
+const SectionTitle = styled.h2`
   font: ${({ theme }) => theme.font.title22};
-  letter-spacing: -0.3px;
+  letter-spacing: -0.02em;
   color: ${({ theme }) => theme.color.text.primary};
   padding-bottom: ${({ theme }) => theme.space.sm}px;
 `;
@@ -273,7 +235,7 @@ const MatchChampion = styled.span`
 const MatchMeta = styled.span`
   width: 85px;
   white-space: nowrap;
-  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 16px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -282,7 +244,7 @@ const MatchKda = styled.span`
   width: 110px;
   text-align: right;
   white-space: nowrap;
-  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 17px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -313,7 +275,7 @@ const ChampMastery = styled.span`
 
 const ChampRecord = styled.span`
   white-space: nowrap;
-  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 17px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -370,7 +332,7 @@ export function StatsPage() {
   const minMmr = mmrAfterSeries.length ? Math.min(...mmrAfterSeries) : 0;
   const maxMmr = mmrAfterSeries.length ? Math.max(...mmrAfterSeries) : 0;
   const mmrRange = maxMmr - minMmr || 1;
-  const barHeights = mmrAfterSeries.map((v) => MIN_BAR_HEIGHT + ((v - minMmr) / mmrRange) * (CHART_HEIGHT - MIN_BAR_HEIGHT));
+  const barRatios = mmrAfterSeries.map((v) => MIN_BAR_RATIO + ((v - minMmr) / mmrRange) * (1 - MIN_BAR_RATIO));
 
   const recentDelta = history.reduce((sum, h) => sum + h.mmrChange, 0);
   const officialTier = primaryAccount?.stats?.officialTier ?? null;
@@ -407,7 +369,7 @@ export function StatsPage() {
         </Metric>
         <Metric>
           <MetricLabel>30일 변동</MetricLabel>
-          <MetricValue $tone={recentDelta >= 0 ? 'success' : undefined}>
+          <MetricValue $tone={history.length === 0 ? undefined : recentDelta >= 0 ? 'success' : 'danger'}>
             {history.length === 0 ? '-' : recentDelta > 0 ? `+${recentDelta}` : recentDelta}
           </MetricValue>
         </Metric>
@@ -424,34 +386,37 @@ export function StatsPage() {
         </Metric>
         <Metric>
           <MetricLabel>게임 공식 티어</MetricLabel>
-          <MetricValue $tone="tier1">{officialTier ?? (primaryAccount ? '언랭크' : '연동 필요')}</MetricValue>
+          <MetricValue>{officialTier ?? (primaryAccount ? '언랭크' : '연동 필요')}</MetricValue>
         </Metric>
       </Metrics>
       <Columns>
-        <TrendColumn>
+        <StickyTrendColumn>
           <ColumnHeader>
             <ColumnTitle>MMR 추이</ColumnTitle>
             <ColumnHint>최근 {trendSeries.length}경기</ColumnHint>
           </ColumnHeader>
-          {barHeights.length === 0 ? (
+          {barRatios.length === 0 ? (
             <EmptyHint>{primaryAccount ? '아직 집계된 내전 기록이 없어요' : '게임 계정을 연동하면 표시돼요'}</EmptyHint>
           ) : (
             <BarChart>
-              {barHeights.map((height, i) => (
+              {barRatios.map((ratio, i) => (
                 <BarGroup key={i}>
-                  <Bar
-                    $height={activeBar === i ? CHART_HEIGHT : height}
-                    $active={activeBar === i}
-                    $delay={i * 40}
-                    title={`${trendSeries[i].playedAt} · ${mmrAfterSeries[i]} MMR`}
-                    onClick={() => handleBarClick(i, trendSeries[i].matchId)}
-                  />
+                  <BarTrack>
+                    <Bar
+                      $ratio={activeBar === i ? 1 : ratio}
+                      $active={activeBar === i}
+                      $delay={i * 40}
+                      title={`${formatDateTime(trendSeries[i].playedAt)} · ${mmrAfterSeries[i]} MMR`}
+                      aria-label={`${i + 1}번째 경기 상세 보기 · ${mmrAfterSeries[i]} MMR`}
+                      onClick={() => handleBarClick(i, trendSeries[i].matchId)}
+                    />
+                  </BarTrack>
                   <BarIndex>{i + 1}</BarIndex>
                 </BarGroup>
               ))}
             </BarChart>
           )}
-        </TrendColumn>
+        </StickyTrendColumn>
         <ChangesColumn>
           <ChangesHeader>
             <ChangesTitle>변동 내역</ChangesTitle>
@@ -463,8 +428,10 @@ export function StatsPage() {
             history.map((c) => (
               <ChangeRow key={c.matchId}>
                 <ChangeInfo>
-                  <ChangeLabel>{c.playedAt}</ChangeLabel>
-                  <ChangeReason>그룹 #{c.groupId} 내전</ChangeReason>
+                  <ChangeLabel>{formatDateTime(c.playedAt)}</ChangeLabel>
+                  <ChangeReason>
+                    {c.groupId === activeGroup?.id ? activeGroup.name : `그룹 #${c.groupId}`} 내전
+                  </ChangeReason>
                 </ChangeInfo>
                 <ChangeDelta $positive={c.mmrChange >= 0}>
                   {c.mmrChange > 0 ? `+${c.mmrChange}` : c.mmrChange}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
+import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle, HeaderActions } from '../components/layout/PageHeader';
 import { Button } from '../components/Button/Button';
 import { Avatar } from '../components/Avatar/Avatar';
 import { LaneIcon } from '../components/LaneIcon/LaneIcon';
@@ -16,35 +17,16 @@ type Tier = 1 | 2 | 3 | 4 | 5;
 const POSITIONS: Position[] = ['TOP', 'JUG', 'MID', 'ADC', 'SUP'];
 const TIERS: Tier[] = [1, 2, 3, 4, 5];
 
-const Header = styled.div`
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  padding-bottom: ${({ theme }) => theme.space.lg}px;
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-`;
-
-const Title = styled.p`
-  font: ${({ theme }) => theme.font.title26};
-  letter-spacing: -0.5px;
-  color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const Subtitle = styled.p`
-  margin-top: 6px;
-  font: ${({ theme }) => theme.font.label12};
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
-
-const HeaderActions = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.space.xs}px;
-`;
-
 const LaneTabs = styled.div`
   display: flex;
   gap: ${({ theme }) => theme.space.md}px;
-  padding: ${({ theme }) => theme.space.md}px 0;
+  padding: ${({ theme }) => theme.space.md}px 0 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 `;
 
 const LaneTab = styled.button<{ $active: boolean }>`
@@ -56,17 +38,28 @@ const LaneTab = styled.button<{ $active: boolean }>`
   background: none;
   border: none;
   cursor: pointer;
+  min-height: 40px;
   padding: 0 0 6px;
   border-bottom: 2px solid ${({ theme, $active }) => ($active ? theme.color.text.primary : 'transparent')};
   font: ${({ theme, $active }) => ($active ? theme.font.small13b : theme.font.small13)};
   color: ${({ theme, $active }) => ($active ? theme.color.text.primary : theme.color.text.secondary)};
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: ${({ theme }) => theme.color.text.primary};
+  }
 `;
 
-const TierSection = styled.div`
+const TierSection = styled.section`
   display: flex;
   align-items: flex-start;
   padding: ${({ theme }) => theme.space.md}px 0;
   border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
+
+  ${({ theme }) => theme.media.mobile} {
+    flex-direction: column;
+    gap: ${({ theme }) => theme.space.xs}px;
+  }
 `;
 
 const TierLabel = styled.div<{ $tier: Tier }>`
@@ -75,6 +68,7 @@ const TierLabel = styled.div<{ $tier: Tier }>`
   gap: 8px;
   width: 140px;
   flex-shrink: 0;
+  padding-top: 6px;
 
   &::before {
     content: '';
@@ -90,14 +84,18 @@ const TierName = styled.span<{ $tier: Tier }>`
 `;
 
 const TierCount = styled.span`
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 18px;
+  font: ${({ theme }) => theme.font.label12};
+  font-variant-numeric: tabular-nums;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
 const MemberList = styled.div`
   flex: 1;
   min-width: 0;
+
+  ${({ theme }) => theme.media.mobile} {
+    width: 100%;
+  }
 `;
 
 const MemberRow = styled.div`
@@ -129,9 +127,14 @@ const NameButton = styled.button`
   padding: 0;
   cursor: pointer;
   text-align: left;
+  overflow: hidden;
 `;
 
 const MemberName = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font: ${({ theme }) => theme.font.body14b};
   color: ${({ theme }) => theme.color.text.primary};
 
@@ -146,16 +149,24 @@ const RecordCell = styled.div`
   gap: 8px;
   width: 150px;
   flex-shrink: 0;
+
+  ${({ theme }) => theme.media.narrow} {
+    width: 46px;
+  }
 `;
 
 const RecordBar = styled(WinRateBar)`
   width: 90px;
+
+  ${({ theme }) => theme.media.narrow} {
+    display: none;
+  }
 `;
 
 const WinRatePct = styled.span`
   width: 46px;
   text-align: right;
-  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 17px;
   font-weight: 600;
   color: ${({ theme }) => theme.color.text.secondary};
@@ -163,8 +174,9 @@ const WinRatePct = styled.span`
 
 const Mmr = styled.span`
   width: 66px;
+  flex-shrink: 0;
   text-align: right;
-  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 20px;
   font-weight: 600;
   color: ${({ theme }) => theme.color.text.primary};
@@ -228,18 +240,20 @@ export function TierTablePage() {
           <Subtitle>전적 · 그룹 티어 · 사용자 평가를 합산해 계산 · {formatRelativeTime(tierTable?.lastUpdatedAt ?? null)}</Subtitle>
         </div>
         <HeaderActions>
-          <Button $size="sm" onClick={() => recalculateTiers.mutate()} disabled={recalculateTiers.isPending}>
-            티어 재선정
+          <Button onClick={() => recalculateTiers.mutate()} disabled={recalculateTiers.isPending}>
+            {recalculateTiers.isPending ? '재선정 중...' : '티어 재선정'}
           </Button>
         </HeaderActions>
       </Header>
       {recalculateTiers.isError && (
         <InlineError>{recalculateTiers.error.message || '티어 재선정에 실패했어요'}</InlineError>
       )}
-      <LaneTabs>
-        <LaneTab $active={position === 'ALL'} onClick={() => setPosition('ALL')}>전체</LaneTab>
+      <LaneTabs role="tablist" aria-label="라인">
+        <LaneTab role="tab" aria-selected={position === 'ALL'} $active={position === 'ALL'} onClick={() => setPosition('ALL')}>
+          전체
+        </LaneTab>
         {POSITIONS.map((p) => (
-          <LaneTab key={p} $active={position === p} onClick={() => setPosition(p)}>
+          <LaneTab key={p} role="tab" aria-selected={position === p} $active={position === p} onClick={() => setPosition(p)}>
             <LaneIcon lane={p} size={13} />
             {p}
           </LaneTab>

@@ -19,8 +19,8 @@ const Panel = styled.div`
 `;
 
 const Title = styled.h1`
-  font: 700 48px/1.2 Inter, sans-serif;
-  letter-spacing: 0.6px;
+  font: 700 48px/1.2 ${({ theme }) => theme.fontFamily.sans};
+  letter-spacing: -0.02em;
   color: ${({ theme }) => theme.color.text.primary};
 `;
 

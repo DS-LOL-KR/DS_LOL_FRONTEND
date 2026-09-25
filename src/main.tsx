@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'styled-components';
+import 'pretendard/dist/web/static/pretendard-dynamic-subset.css';
 import App from './App';
 import { queryClient } from './api/queryClient';
 import { theme } from './styles/theme';

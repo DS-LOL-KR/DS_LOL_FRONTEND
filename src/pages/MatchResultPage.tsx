@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import styled from 'styled-components';
+import styled, { type DefaultTheme } from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
+import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle } from '../components/layout/PageHeader';
 import { Button } from '../components/Button/Button';
 import { Modal } from '../components/Modal/Modal';
 import { Avatar } from '../components/Avatar/Avatar';
@@ -16,6 +17,7 @@ import {
 import type { Position } from '../features/tiers/types';
 import { useMe } from '../features/auth/hooks';
 import { resolveAssetUrl } from '../utils/assetUrl';
+import { formatDateTime } from '../utils/formatDateTime';
 
 type RatingOption = '아쉬웠어요' | '무난했어요' | '좋았어요';
 const RATING_OPTIONS: RatingOption[] = ['아쉬웠어요', '무난했어요', '좋았어요'];
@@ -36,26 +38,6 @@ interface RosterPlayer {
   team: Side;
 }
 
-const Header = styled.div`
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  padding-bottom: ${({ theme }) => theme.space.lg}px;
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-`;
-
-const Title = styled.p`
-  font: ${({ theme }) => theme.font.title26};
-  letter-spacing: -0.5px;
-  color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const Subtitle = styled.p`
-  margin-top: 6px;
-  font: ${({ theme }) => theme.font.label12};
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
-
 const EmptyState = styled.p`
   padding: ${({ theme }) => theme.space.lg}px 0;
   font: ${({ theme }) => theme.font.body14};
@@ -63,35 +45,66 @@ const EmptyState = styled.p`
   opacity: 0.7;
 `;
 
+// TEAM_A = 레드, TEAM_B = 블루 — same identity as the 팀 구성 screen, so the
+// team you were on reads the same color on both pages.
+function teamColor(theme: DefaultTheme, team: Side): string {
+  return team === 'A' ? theme.color.team.red : theme.color.team.blue;
+}
+
 const Roster = styled.div`
   display: flex;
   align-items: flex-start;
   width: 100%;
   padding: ${({ theme }) => theme.space.lg}px 0;
   border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
+
+  ${({ theme }) => theme.media.mobile} {
+    flex-direction: column;
+    align-items: stretch;
+    gap: ${({ theme }) => theme.space.lg}px;
+  }
 `;
 
-const TeamColumn = styled.div<{ $side: 'left' | 'right' }>`
+const TeamColumn = styled.div<{ $side: 'left' | 'right'; $team: Side }>`
   flex: 1;
   min-width: 0;
   padding-left: ${({ $side }) => ($side === 'right' ? '40px' : '0')};
+  border-top: 2px solid ${({ theme, $team }) => teamColor(theme, $team)};
+
+  ${({ theme }) => theme.media.mobile} {
+    padding-left: 0;
+  }
 `;
 
 const TeamHeader = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-bottom: 10px;
+  padding: 14px 0 10px;
 `;
 
-const TeamName = styled.span<{ $won: boolean }>`
+const TeamName = styled.span`
   font: ${({ theme }) => theme.font.sub17};
-  color: ${({ theme, $won }) => ($won ? theme.color.state.success : theme.color.text.primary)};
+  color: ${({ theme }) => theme.color.text.primary};
+`;
+
+const TeamSideTag = styled.span<{ $team: Side }>`
+  font: ${({ theme }) => theme.font.label12m};
+  color: ${({ theme, $team }) => teamColor(theme, $team)};
 `;
 
 const WinTag = styled.span`
-  font: ${({ theme }) => theme.font.label12m};
+  margin-left: auto;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font: ${({ theme }) => theme.font.caption11m};
   color: ${({ theme }) => theme.color.state.success};
+  background: rgba(74, 222, 161, 0.12);
+`;
+
+const LoseTag = styled(WinTag)`
+  color: ${({ theme }) => theme.color.text.secondary};
+  background: ${({ theme }) => theme.color.surface.subtle};
 `;
 
 const PlayerRow = styled.div`
@@ -112,24 +125,28 @@ const PlayerInfo = styled.div`
 
 const PlayerName = styled.span`
   min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font: ${({ theme }) => theme.font.body14b};
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
 const PlayerLane = styled.span`
   width: 44px;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 16px;
+  flex-shrink: 0;
+  font: ${({ theme }) => theme.font.caption11m};
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
-const PlayerDelta = styled.span<{ $positive: boolean }>`
+const PlayerDelta = styled.span<{ $positive: boolean; $pending?: boolean }>`
   width: 52px;
   text-align: right;
-  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 18px;
   font-weight: 600;
-  color: ${({ theme, $positive }) => ($positive ? theme.color.state.success : theme.color.state.danger)};
+  color: ${({ theme, $positive, $pending }) =>
+    $pending ? theme.color.text.secondary : $positive ? theme.color.state.success : theme.color.state.danger};
 `;
 
 const Section = styled.div`
@@ -159,7 +176,7 @@ const ChangeReason = styled.span`
 `;
 
 const ChangeDelta = styled.span<{ $positive: boolean }>`
-  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 19px;
   font-weight: 600;
   color: ${({ theme, $positive }) => ($positive ? theme.color.state.success : theme.color.state.danger)};
@@ -167,13 +184,16 @@ const ChangeDelta = styled.span<{ $positive: boolean }>`
 
 const Footer = styled.div`
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: ${({ theme }) => theme.space.xs}px;
   padding-top: ${({ theme }) => theme.space.lg}px;
 `;
 
 const FooterActions = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: ${({ theme }) => theme.space.xs}px;
 `;
 
@@ -210,13 +230,29 @@ const ModalActions = styled.div`
 
 const WinnerRow = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: ${({ theme }) => theme.space.sm}px;
-  padding-top: 10px;
+  padding-top: 14px;
+`;
+
+const WinnerButton = styled(Button)<{ $team: Side }>`
+  gap: 8px;
+  background: ${({ theme }) => theme.color.surface.subtle};
+  border: 1px solid ${({ theme, $team }) => teamColor(theme, $team)};
+  color: ${({ theme }) => theme.color.text.primary};
+
+  &::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: ${({ theme, $team }) => teamColor(theme, $team)};
+  }
 `;
 
 const EvalPanel = styled.div`
   width: 640px;
-  max-width: 80vw;
+  max-width: 100%;
 `;
 
 const EvalHeader = styled.div`
@@ -260,15 +296,16 @@ const EvalProgressRow = styled.div`
 
 const EvalProgressCount = styled.span`
   white-space: nowrap;
-  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
 const TeammateRow = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: ${({ theme }) => theme.space.md}px;
+  gap: ${({ theme }) => theme.space.sm}px ${({ theme }) => theme.space.md}px;
   padding: 14px 0;
   border-top: 1px solid ${({ theme }) => theme.color.border.base};
 
@@ -297,9 +334,7 @@ const TeammateName = styled.span`
 `;
 
 const TeammateLane = styled.span`
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 16px;
-  letter-spacing: 0.3px;
+  font: ${({ theme }) => theme.font.caption11m};
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -307,7 +342,7 @@ const TeammateKda = styled.span`
   display: block;
   margin-top: 3px;
   white-space: nowrap;
-  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 16px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -331,6 +366,8 @@ const OptionChip = styled.button<{ $selected: boolean }>`
 
 const EvalFooter = styled.div`
   display: flex;
+  flex-wrap: wrap;
+  gap: ${({ theme }) => theme.space.sm}px;
   align-items: center;
   justify-content: space-between;
   padding-top: 16px;
@@ -457,7 +494,7 @@ export function MatchResultPage() {
       <Header>
         <div>
           <Title>내전 결과</Title>
-          <Subtitle>{match ? match.createdAt.slice(0, 16).replace('T', ' ') : '불러오는 중...'}</Subtitle>
+          <Subtitle>{match ? formatDateTime(match.createdAt) : '불러오는 중...'}</Subtitle>
         </div>
         {match?.status === 'FINISHED' && !allTeammatesRated && isParticipant && (
           <Button onClick={() => setEvalOpen(true)}>팀원 평가하기</Button>
@@ -488,10 +525,11 @@ export function MatchResultPage() {
       ) : (
         <Roster>
           {([['A', teamA] as const, ['B', teamB] as const]).map(([team, roster], i) => (
-            <TeamColumn key={team} $side={i === 0 ? 'left' : 'right'}>
+            <TeamColumn key={team} $side={i === 0 ? 'left' : 'right'} $team={team}>
               <TeamHeader>
-                <TeamName $won={team === winningTeam}>팀 {team}</TeamName>
-                {team === winningTeam && <WinTag>승리</WinTag>}
+                <TeamName>팀 {team}</TeamName>
+                <TeamSideTag $team={team}>{team === 'A' ? '레드' : '블루'}</TeamSideTag>
+                {winningTeam && (team === winningTeam ? <WinTag>승리</WinTag> : <LoseTag>패배</LoseTag>)}
               </TeamHeader>
               {roster.map((p) => (
                 <PlayerRow key={p.userId}>
@@ -500,8 +538,9 @@ export function MatchResultPage() {
                     <Avatar name={p.nickname} imageUrl={resolveAssetUrl(p.profileImageUrl)} size={22} />
                     <PlayerName>{p.nickname}</PlayerName>
                   </PlayerInfo>
-                  <PlayerDelta $positive={p.mmrDelta >= 0}>
-                    {p.mmrDelta > 0 ? `+${p.mmrDelta}` : p.mmrDelta}
+                  {/* 결과 확정 전엔 mmrChange가 아직 0이라 초록 "0"이 "변동 없음"처럼 읽혔음. */}
+                  <PlayerDelta $positive={p.mmrDelta >= 0} $pending={match?.status !== 'FINISHED'}>
+                    {match?.status !== 'FINISHED' ? '-' : p.mmrDelta > 0 ? `+${p.mmrDelta}` : p.mmrDelta}
                   </PlayerDelta>
                 </PlayerRow>
               ))}
@@ -515,8 +554,12 @@ export function MatchResultPage() {
           <SectionTitle>어느 팀이 이겼나요?</SectionTitle>
           <WinnerHint>참가자들의 라이엇 전적이 동기화되면 자동으로 반영돼요. 급하면 직접 골라도 돼요.</WinnerHint>
           <WinnerRow>
-            <Button onClick={() => setPendingWinner('TEAM_A')} disabled={finishMatch.isPending}>팀 A 승리</Button>
-            <Button onClick={() => setPendingWinner('TEAM_B')} disabled={finishMatch.isPending}>팀 B 승리</Button>
+            <WinnerButton $team="A" onClick={() => setPendingWinner('TEAM_A')} disabled={finishMatch.isPending}>
+              팀 A 승리
+            </WinnerButton>
+            <WinnerButton $team="B" onClick={() => setPendingWinner('TEAM_B')} disabled={finishMatch.isPending}>
+              팀 B 승리
+            </WinnerButton>
           </WinnerRow>
           {finishMatch.isError && (
             <InlineError>{finishMatch.error.message || '승리팀 확정에 실패했어요'}</InlineError>
@@ -587,6 +630,7 @@ export function MatchResultPage() {
                   <OptionChip
                     key={option}
                     $selected={ratings[mate.id] === option}
+                    aria-pressed={ratings[mate.id] === option}
                     onClick={() => handleSelectRating(mate.id, option)}
                   >
                     {option}

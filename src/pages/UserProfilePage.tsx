@@ -3,6 +3,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
+import { Metrics as BaseMetrics, Metric, MetricLabel, MetricValue } from '../components/layout/Metrics';
+import { SplitColumns as Columns, SplitPrimary as TrendColumn, SplitSecondary as ChangesColumn } from '../components/layout/Split';
 import { Avatar } from '../components/Avatar/Avatar';
 import { Button } from '../components/Button/Button';
 import { useUserProfile } from '../features/profile/hooks';
@@ -15,8 +17,9 @@ import {
   useMatchHistory,
 } from '../features/game-accounts/hooks';
 import { resolveAssetUrl } from '../utils/assetUrl';
+import { formatDate } from '../utils/formatDateTime';
 
-const Header = styled.div`
+const Header = styled.header`
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.space.md}px;
@@ -24,9 +27,9 @@ const Header = styled.div`
   border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
 `;
 
-const Name = styled.p`
+const Name = styled.h1`
   font: ${({ theme }) => theme.font.title26};
-  letter-spacing: -0.5px;
+  letter-spacing: -0.02em;
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
@@ -62,57 +65,9 @@ const EmptyBio = styled.p`
   opacity: 0.6;
 `;
 
-const Metrics = styled.div`
-  display: flex;
+const Metrics = styled(BaseMetrics)`
   margin-top: ${({ theme }) => theme.space.lg}px;
-  padding: ${({ theme }) => theme.space.md}px 0;
   border-top: 1px solid ${({ theme }) => theme.color.border.base};
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-`;
-
-const Metric = styled.div`
-  flex: 1;
-  padding-left: 28px;
-  border-left: 1px solid ${({ theme }) => theme.color.border.base};
-
-  &:first-child {
-    padding-left: 0;
-    border-left: none;
-  }
-`;
-
-const MetricLabel = styled.p`
-  font: ${({ theme }) => theme.font.label12m};
-  letter-spacing: 0.3px;
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
-
-const MetricValue = styled.p`
-  margin-top: 5px;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 32px;
-  font-weight: 600;
-  letter-spacing: -0.6px;
-  color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const Columns = styled.div`
-  display: flex;
-  align-items: flex-start;
-  width: 100%;
-`;
-
-const TrendColumn = styled.div`
-  flex: 1;
-  min-width: 0;
-  padding: ${({ theme }) => theme.space.lg}px 40px ${({ theme }) => theme.space.lg}px 0;
-`;
-
-const ChangesColumn = styled.div`
-  flex: 1;
-  min-width: 0;
-  padding: ${({ theme }) => theme.space.lg}px 0 ${({ theme }) => theme.space.lg}px 40px;
-  border-left: 1px solid ${({ theme }) => theme.color.border.base};
 `;
 
 const ColumnTitle = styled.p`
@@ -128,14 +83,16 @@ const RiotSection = styled.div`
 
 const SectionHeader = styled.div`
   display: flex;
+  flex-wrap: wrap;
+  gap: ${({ theme }) => theme.space.sm}px;
   align-items: center;
   justify-content: space-between;
   padding-bottom: ${({ theme }) => theme.space.sm}px;
 `;
 
-const SectionTitle = styled.p`
+const SectionTitle = styled.h2`
   font: ${({ theme }) => theme.font.title22};
-  letter-spacing: -0.3px;
+  letter-spacing: -0.02em;
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
@@ -180,7 +137,7 @@ const MatchChampion = styled.span`
 const MatchMeta = styled.span`
   width: 85px;
   white-space: nowrap;
-  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 16px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -189,7 +146,7 @@ const MatchKda = styled.span`
   width: 110px;
   text-align: right;
   white-space: nowrap;
-  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 17px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -220,7 +177,7 @@ const ChampMastery = styled.span`
 
 const ChampRecord = styled.span`
   white-space: nowrap;
-  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 17px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -267,7 +224,7 @@ export function UserProfilePage() {
         <Avatar name={user?.nickname ?? '?'} imageUrl={resolveAssetUrl(user?.profileImageUrl)} size={56} />
         <div>
           <Name>{user?.nickname ?? (isLoading ? '불러오는 중...' : '알 수 없는 사용자')}</Name>
-          {user && <JoinedAt>{user.createdAt.slice(0, 10)} 가입</JoinedAt>}
+          {user && <JoinedAt>{formatDate(user.createdAt)} 가입</JoinedAt>}
         </div>
       </Header>
       {isError ? (

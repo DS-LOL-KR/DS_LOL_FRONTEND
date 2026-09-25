@@ -8,8 +8,14 @@ const Overlay = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.55);
+  padding: ${({ theme }) => theme.space.md}px;
+  background: rgba(3, 4, 8, 0.66);
   z-index: 100;
+  animation: modalFade 0.16s ease-out;
+
+  @keyframes modalFade {
+    from { opacity: 0; }
+  }
 `;
 
 const Panel = styled.div`
@@ -17,8 +23,22 @@ const Panel = styled.div`
   border: 1px solid ${({ theme }) => theme.color.border.strong};
   border-radius: ${({ theme }) => theme.radius.lg}px;
   padding: ${({ theme }) => theme.space.lg}px;
-  min-width: 320px;
+  width: min(100%, max-content);
+  min-width: min(360px, 100%);
+  max-width: 100%;
+  max-height: calc(100dvh - ${({ theme }) => theme.space.md * 2}px);
+  overflow-y: auto;
   outline: none;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  animation: modalRise 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+
+  @keyframes modalRise {
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 const FOCUSABLE_SELECTOR =

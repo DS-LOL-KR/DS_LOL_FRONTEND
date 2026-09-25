@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
+import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle } from '../components/layout/PageHeader';
 import { Button } from '../components/Button/Button';
 import { useCreateMatch } from '../features/matches/hooks';
 import { useGroup } from '../features/groups/hooks';
@@ -14,43 +15,39 @@ type Mode = '5v5' | '3v3' | 'custom';
 
 const MODE_TARGET: Record<Mode, number | null> = { '5v5': 10, '3v3': 6, custom: null };
 
-const Header = styled.div`
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  padding-bottom: ${({ theme }) => theme.space.lg}px;
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-`;
-
-const Title = styled.p`
-  font: ${({ theme }) => theme.font.title26};
-  letter-spacing: -0.5px;
-  color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const Subtitle = styled.p`
-  margin-top: 6px;
-  font: ${({ theme }) => theme.font.label12};
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
-
 const Section = styled.div`
   display: flex;
   align-items: flex-start;
   padding: ${({ theme }) => theme.space.lg}px 0;
   border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
+
+  ${({ theme }) => theme.media.mobile} {
+    flex-direction: column;
+    gap: ${({ theme }) => theme.space.sm}px;
+  }
 `;
 
 const SectionLabel = styled.p`
   width: 140px;
   flex-shrink: 0;
+  padding-top: 8px;
   font: ${({ theme }) => theme.font.label12m};
-  letter-spacing: 0.3px;
   color: ${({ theme }) => theme.color.text.secondary};
+
+  ${({ theme }) => theme.media.mobile} {
+    padding-top: 0;
+  }
+`;
+
+const SectionBody = styled.div`
+  flex: 1;
+  min-width: 0;
+  width: 100%;
 `;
 
 const GameRow = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: ${({ theme }) => theme.space.xs}px;
   flex: 1;
 `;
@@ -60,22 +57,29 @@ const GameChip = styled.div<{ $active: boolean; $disabled?: boolean }>`
   align-items: center;
   justify-content: center;
   min-width: 140px;
-  height: 38px;
+  height: 40px;
   padding: 0 14px;
   white-space: nowrap;
   border-radius: 5px;
   font: ${({ theme, $active }) => ($active ? theme.font.body14b : theme.font.body14)};
   background: ${({ theme, $active }) => ($active ? theme.color.surface.subtle : 'transparent')};
-  border: 1px solid ${({ theme, $active }) => ($active ? theme.color.text.secondary : theme.color.border.base)};
+  border: 1px ${({ $disabled }) => ($disabled ? 'dashed' : 'solid')}
+    ${({ theme, $active }) => ($active ? theme.color.text.secondary : theme.color.border.strong)};
   color: ${({ theme, $active }) => ($active ? theme.color.text.primary : theme.color.text.secondary)};
-  opacity: ${({ $disabled }) => ($disabled ? 0.4 : 1)};
+  opacity: ${({ $disabled }) => ($disabled ? 0.6 : 1)};
   cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'default')};
 `;
 
 const OptionGroups = styled.div`
   display: flex;
-  gap: ${({ theme }) => theme.space.xl}px;
+  flex-wrap: wrap;
+  gap: ${({ theme }) => theme.space.lg}px ${({ theme }) => theme.space.xl}px;
   flex: 1;
+`;
+
+const GameSoon = styled.span`
+  margin-left: 6px;
+  font: ${({ theme }) => theme.font.caption11};
 `;
 
 const OptionGroup = styled.div`
@@ -95,8 +99,13 @@ const ChipRow = styled.div`
 `;
 
 const Chip = styled.button<{ $active: boolean }>`
-  padding: 7px 12px;
+  min-height: 40px;
+  padding: 0 14px;
   border-radius: 4px;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
   cursor: pointer;
   white-space: nowrap;
   font: ${({ theme, $active }) => ($active ? theme.font.small13b : theme.font.small13)};
@@ -124,45 +133,74 @@ const NoticeLabel = styled.p`
 `;
 
 const MemberList = styled.div`
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: ${({ theme }) => theme.space.xs}px;
   margin-top: ${({ theme }) => theme.space.sm}px;
 `;
 
+// Selection reads from the border + check mark, not from opacity alone — a
+// faded chip used to be the only cue, which vanished against the dark ground.
 const MemberCell = styled.button<{ $selected: boolean }>`
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  flex: 1 0 76px;
-  padding: 12px 8px;
-  border: none;
-  border-left: 1px solid ${({ theme }) => theme.color.border.base};
-  background: none;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: ${({ theme }) => theme.radius.sm}px;
+  border: 1px solid ${({ theme, $selected }) => ($selected ? theme.color.text.secondary : theme.color.border.base)};
+  background: ${({ theme, $selected }) => ($selected ? theme.color.surface.subtle : 'transparent')};
   cursor: pointer;
-  white-space: nowrap;
-  opacity: ${({ $selected }) => ($selected ? 1 : 0.4)};
+  text-align: left;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    opacity 0.15s ease;
+  opacity: ${({ $selected }) => ($selected ? 1 : 0.55)};
 
-  &:first-child {
-    border-left: none;
+  &:hover {
+    border-color: ${({ theme }) => theme.color.text.secondary};
+    opacity: 1;
   }
 `;
 
+const CheckMark = styled.span<{ $selected: boolean }>`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1.5px solid ${({ theme, $selected }) => ($selected ? theme.color.text.primary : theme.color.border.strong)};
+  background: ${({ theme, $selected }) => ($selected ? theme.color.text.primary : 'transparent')};
+  color: #121315;
+`;
+
 const MemberName = styled.span`
-  font: ${({ theme }) => theme.font.label12m};
+  max-width: calc(100% - 24px);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: ${({ theme }) => theme.font.body14b};
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
+const MemberMeta = styled.span`
+  display: flex;
+  gap: 8px;
+  font: ${({ theme }) => theme.font.caption11m};
+`;
+
 const MemberLane = styled.span`
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px;
-  letter-spacing: 0.3px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
 const MemberTier = styled.span<{ $tier: 1 | 2 | 3 | 4 | 5 | null }>`
-  font-size: 14px;
-  font-weight: 500;
   color: ${({ theme, $tier }) => ($tier ? theme.color.tier[$tier] : theme.color.text.secondary)};
 `;
 
@@ -270,8 +308,14 @@ export function MatchCreatePage() {
             // 그룹의 게임 종목은 생성 시 이미 고정돼있어 여기서 바꿀 수 없음 — 다른
             // 게임(예: 발로란트)도 존재한다는 걸 보여주되 클릭은 안 되게 흐리게 표시.
             gameList.map((game) => (
-              <GameChip key={game.id} $active={game.id === currentGame?.id} $disabled={game.id !== currentGame?.id}>
+              <GameChip
+                key={game.id}
+                $active={game.id === currentGame?.id}
+                $disabled={game.id !== currentGame?.id}
+                aria-disabled={game.id !== currentGame?.id}
+              >
                 {getGameDisplayName(game)}
+                {game.id !== currentGame?.id && game.code === 'VALORANT' && <GameSoon>준비 중</GameSoon>}
               </GameChip>
             ))
           )}
@@ -285,7 +329,7 @@ export function MatchCreatePage() {
             <OptionLabel>인원</OptionLabel>
             <ChipRow>
               {(['5v5', '3v3', 'custom'] as Mode[]).map((m) => (
-                <Chip key={m} $active={mode === m} onClick={() => setMode(m)}>
+                <Chip key={m} type="button" aria-pressed={mode === m} $active={mode === m} onClick={() => setMode(m)}>
                   {m === 'custom' ? '커스텀' : m}
                 </Chip>
               ))}
@@ -302,7 +346,7 @@ export function MatchCreatePage() {
 
       <Section>
         <SectionLabel>참여자</SectionLabel>
-        <div style={{ flex: 1 }}>
+        <SectionBody>
           <ParticipantSummary>
             <ParticipantHint $match={target !== null && selectedUserIds.size === target}>
               {selectedUserIds.size}명 선택됨{target !== null ? ` · ${mode}는 ${target}명이 필요해요` : ''}
@@ -318,11 +362,21 @@ export function MatchCreatePage() {
                       key={m.userId}
                       type="button"
                       $selected={selectedUserIds.has(m.userId)}
+                      aria-pressed={selectedUserIds.has(m.userId)}
                       onClick={() => toggleParticipant(m.userId)}
                     >
+                      <CheckMark $selected={selectedUserIds.has(m.userId)} aria-hidden="true">
+                        {selectedUserIds.has(m.userId) && (
+                          <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                            <path d="M2.5 6.2 5 8.5l4.5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </CheckMark>
                       <MemberName>{m.user.nickname}</MemberName>
-                      <MemberLane>{info?.lane ?? '-'}</MemberLane>
-                      <MemberTier $tier={info?.tier ?? null}>{info?.tier ? `${info.tier}티어` : '미확인'}</MemberTier>
+                      <MemberMeta>
+                        <MemberTier $tier={info?.tier ?? null}>{info?.tier ? `${info.tier}티어` : '미확인'}</MemberTier>
+                        <MemberLane>{info?.lane ?? '-'}</MemberLane>
+                      </MemberMeta>
                     </MemberCell>
                   );
                 })}
@@ -333,7 +387,7 @@ export function MatchCreatePage() {
           ) : (
             <NoticeLabel>그룹원 불러오는 중...</NoticeLabel>
           )}
-        </div>
+        </SectionBody>
       </Section>
     </PageLayout>
   );

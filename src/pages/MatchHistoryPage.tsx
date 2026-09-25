@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
+import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle, HeaderActions } from '../components/layout/PageHeader';
+import { Metrics, Metric, MetricLabel, MetricValue as BaseMetricValue, MetricUnit } from '../components/layout/Metrics';
 import { Button } from '../components/Button/Button';
 import { Modal } from '../components/Modal/Modal';
 import { Table } from '../components/Table/Table';
@@ -11,6 +13,8 @@ import { useDeleteMatch, useMatches } from '../features/matches/hooks';
 import { useGames } from '../features/game-accounts/hooks';
 import { useMe } from '../features/auth/hooks';
 import { setActiveGroupId } from '../utils/activeGroup';
+import { formatDateTime } from '../utils/formatDateTime';
+import { getGameDisplayName } from '../utils/gameDisplayName';
 
 interface MatchRow {
   id: number;
@@ -25,68 +29,9 @@ interface MatchRow {
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
-const Header = styled.div`
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  padding-bottom: ${({ theme }) => theme.space.lg}px;
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-`;
-
-const Title = styled.p`
-  font: ${({ theme }) => theme.font.title26};
-  letter-spacing: -0.5px;
-  color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const Subtitle = styled.p`
-  margin-top: 6px;
-  font: ${({ theme }) => theme.font.label12};
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
-
-const HeaderActions = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.space.xs}px;
-`;
-
-const Metrics = styled.div`
-  display: flex;
-  padding: ${({ theme }) => theme.space.md}px 0;
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-`;
-
-const Metric = styled.div`
-  flex: 1;
-  padding-left: 28px;
-  border-left: 1px solid ${({ theme }) => theme.color.border.base};
-
-  &:first-child {
-    padding-left: 0;
-    border-left: none;
-  }
-`;
-
-const MetricLabel = styled.p`
-  font: ${({ theme }) => theme.font.label12m};
-  letter-spacing: 0.3px;
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
-
-const MetricValue = styled.p<{ $tone?: 'success' }>`
-  margin-top: 5px;
-  white-space: nowrap;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 32px;
-  font-weight: 600;
-  letter-spacing: -0.6px;
-  color: ${({ theme, $tone }) => ($tone === 'success' ? theme.color.state.success : theme.color.text.primary)};
-`;
-
-const MetricUnit = styled.span`
-  font-size: 18px;
-  font-weight: 400;
-  color: ${({ theme }) => theme.color.text.secondary};
+const MetricValue = styled(BaseMetricValue)<{ $tone?: 'success' | 'danger' }>`
+  color: ${({ theme, $tone }) =>
+    $tone === 'success' ? theme.color.state.success : $tone === 'danger' ? theme.color.state.danger : theme.color.text.primary};
 `;
 
 const TableWrap = styled.div`
@@ -126,14 +71,14 @@ const ResultCell = styled.span<{ $result: MatchRow['result'] }>`
 `;
 
 const MutedCell = styled.span`
-  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 17px;
   color: ${({ theme }) => theme.color.text.secondary};
   opacity: 0.6;
 `;
 
 const MmrCell = styled.span<{ $positive: boolean }>`
-  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 18px;
   font-weight: 600;
   color: ${({ theme, $positive }) => ($positive ? theme.color.state.success : theme.color.state.danger)};
@@ -197,8 +142,11 @@ export function MatchHistoryPage() {
     return {
       id: m.id,
       createdAt: m.createdAt,
-      playedAt: m.createdAt.slice(0, 16).replace('T', ' '),
-      game: gameList.find((g) => g.id === m.gameId)?.name ?? `게임 #${m.gameId}`,
+      playedAt: formatDateTime(m.createdAt),
+      game: (() => {
+        const game = gameList.find((g) => g.id === m.gameId);
+        return game ? getGameDisplayName(game) : `게임 #${m.gameId}`;
+      })(),
       team,
       result,
       mmrDelta: mine?.mmrChange ?? 0,
@@ -233,7 +181,7 @@ export function MatchHistoryPage() {
   });
 
   const columns: Column<MatchRow>[] = [
-    { key: 'playedAt', header: '일시', width: 145 },
+    { key: 'playedAt', header: '일시', width: 200 },
     { key: 'game', header: '게임' },
     {
       key: 'team',
@@ -287,6 +235,7 @@ export function MatchHistoryPage() {
           <Button
             $variant={dateFilter === '30D' ? 'primary' : 'ghost'}
             $size="sm"
+            aria-pressed={dateFilter === '30D'}
             onClick={() => setDateFilter(dateFilter === '30D' ? 'ALL' : '30D')}
           >
             최근 30일
@@ -294,6 +243,7 @@ export function MatchHistoryPage() {
           <Button
             $variant={resultFilter === 'WIN' ? 'primary' : 'ghost'}
             $size="sm"
+            aria-pressed={resultFilter === 'WIN'}
             onClick={() => setResultFilter(resultFilter === 'WIN' ? 'ALL' : 'WIN')}
           >
             승
@@ -301,6 +251,7 @@ export function MatchHistoryPage() {
           <Button
             $variant={resultFilter === 'LOSS' ? 'primary' : 'ghost'}
             $size="sm"
+            aria-pressed={resultFilter === 'LOSS'}
             onClick={() => setResultFilter(resultFilter === 'LOSS' ? 'ALL' : 'LOSS')}
           >
             패
@@ -321,14 +272,14 @@ export function MatchHistoryPage() {
         </Metric>
         <Metric>
           <MetricLabel>승률</MetricLabel>
-          <MetricValue $tone="success">
+          <MetricValue>
             {winRate}
             <MetricUnit>%</MetricUnit>
           </MetricValue>
         </Metric>
         <Metric>
           <MetricLabel>평균 MMR 변동</MetricLabel>
-          <MetricValue $tone="success">
+          <MetricValue $tone={finished.length === 0 ? undefined : Number(avgMmrDelta) >= 0 ? 'success' : 'danger'}>
             {Number(avgMmrDelta) > 0 ? `+${avgMmrDelta}` : avgMmrDelta}
           </MetricValue>
         </Metric>
@@ -339,7 +290,7 @@ export function MatchHistoryPage() {
         ) : displayedRows.length === 0 ? (
           <EmptyLabel>조건에 맞는 내전이 없어요</EmptyLabel>
         ) : (
-          <Table columns={columns} data={displayedRows} />
+          <Table columns={columns} data={displayedRows} minWidth={820} />
         )}
       </TableWrap>
 

@@ -1,15 +1,27 @@
 import type { ReactNode } from 'react';
 import styled from 'styled-components';
 
-const StyledTable = styled.table`
+// Dense rows don't reflow well into a phone width — below `minWidth` the table
+// scrolls sideways inside its own box instead of pushing the whole page wider.
+const Scroller = styled.div`
   width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+`;
+
+const StyledTable = styled.table<{ $minWidth?: number }>`
+  width: 100%;
+  min-width: ${({ $minWidth }) => ($minWidth ? `${$minWidth}px` : 'auto')};
   table-layout: fixed;
   border-collapse: collapse;
 
-  th, td {
+  th,
+  td {
     padding: ${({ theme }) => theme.space.sm}px;
     text-align: left;
     font: ${({ theme }) => theme.font.body14};
+    font-variant-numeric: tabular-nums;
+    vertical-align: middle;
     border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
     overflow: hidden;
     white-space: nowrap;
@@ -18,7 +30,7 @@ const StyledTable = styled.table`
 
   th {
     color: ${({ theme }) => theme.color.text.secondary};
-    font: ${({ theme }) => theme.font.small13b};
+    font: ${({ theme }) => theme.font.label12m};
   }
 
   tr:nth-child(even) td {
@@ -39,37 +51,41 @@ export interface Column<T> {
 export interface TableProps<T> {
   columns: Column<T>[];
   data: T[];
+  /** Width (px) below which the table scrolls horizontally instead of squeezing. */
+  minWidth?: number;
 }
 
 // TODO: sorting, pagination, empty/loading states.
-export function Table<T extends object>({ columns, data }: TableProps<T>) {
+export function Table<T extends object>({ columns, data, minWidth }: TableProps<T>) {
   return (
-    <StyledTable>
-      <colgroup>
-        {columns.map((col) => (
-          <col key={col.key} style={col.width ? { width: col.width } : undefined} />
-        ))}
-      </colgroup>
-      <thead>
-        <tr>
+    <Scroller>
+      <StyledTable $minWidth={minWidth}>
+        <colgroup>
           {columns.map((col) => (
-            <th key={col.key} style={{ textAlign: col.align ?? 'left' }}>{col.header}</th>
+            <col key={col.key} style={col.width ? { width: col.width } : undefined} />
           ))}
-        </tr>
-      </thead>
-      <tbody>
-        {data.map((row, i) => (
-          <tr key={i}>
+        </colgroup>
+        <thead>
+          <tr>
             {columns.map((col) => (
-              <td key={col.key} style={{ textAlign: col.align ?? 'left' }}>
-                {col.render
-                  ? col.render(row)
-                  : String((row as Record<string, unknown>)[col.key] ?? '')}
-              </td>
+              <th key={col.key} style={{ textAlign: col.align ?? 'left' }}>
+                {col.header}
+              </th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </StyledTable>
+        </thead>
+        <tbody>
+          {data.map((row, i) => (
+            <tr key={i}>
+              {columns.map((col) => (
+                <td key={col.key} style={{ textAlign: col.align ?? 'left' }}>
+                  {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? '')}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </StyledTable>
+    </Scroller>
   );
 }

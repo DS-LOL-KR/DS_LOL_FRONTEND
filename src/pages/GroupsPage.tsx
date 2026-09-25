@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
+import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle, HeaderActions } from '../components/layout/PageHeader';
 import { Button } from '../components/Button/Button';
 import { Input } from '../components/Input/Input';
 import { Modal } from '../components/Modal/Modal';
@@ -14,58 +15,45 @@ import { useMe } from '../features/auth/hooks';
 import { setActiveGroupId } from '../utils/activeGroup';
 import { getGameDisplayName } from '../utils/gameDisplayName';
 
-const Header = styled.div`
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  padding-bottom: ${({ theme }) => theme.space.lg}px;
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-`;
-
-const Title = styled.p`
-  font: ${({ theme }) => theme.font.title26};
-  letter-spacing: -0.5px;
-  color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const Subtitle = styled.p`
-  margin-top: 6px;
-  font: ${({ theme }) => theme.font.label12};
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
-
-const HeaderActions = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.space.xs}px;
-`;
-
 const JoinRow = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: ${({ theme }) => theme.space.sm}px;
   padding: ${({ theme }) => theme.space.md}px 0;
   border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
 `;
 
-const JoinLabel = styled.span`
+const JoinLabel = styled.label`
   width: 130px;
+  flex-shrink: 0;
   font: ${({ theme }) => theme.font.label12m};
-  letter-spacing: 0.3px;
   color: ${({ theme }) => theme.color.text.secondary};
+
+  ${({ theme }) => theme.media.mobile} {
+    width: 100%;
+  }
 `;
 
 const JoinInput = styled(Input)`
   width: 240px;
-  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.04em;
+
+  ${({ theme }) => theme.media.mobile} {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
 `;
 
 const JoinHint = styled.span`
-  flex: 1;
+  flex: 1 1 240px;
   font: ${({ theme }) => theme.font.caption11};
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
 const JoinError = styled.span`
+  flex: 1 1 240px;
   font: ${({ theme }) => theme.font.caption11};
   color: ${({ theme }) => theme.color.state.danger};
 `;
@@ -176,12 +164,13 @@ export function GroupsPage() {
           <Subtitle>참여 중인 그룹 {rows.length}개</Subtitle>
         </div>
         <HeaderActions>
-          <Button $size="sm" onClick={() => setCreateOpen(true)}>그룹 만들기</Button>
+          <Button onClick={() => setCreateOpen(true)}>그룹 만들기</Button>
         </HeaderActions>
       </Header>
       <JoinRow>
-        <JoinLabel>그룹 키로 참여</JoinLabel>
+        <JoinLabel htmlFor="join-key">그룹 키로 참여</JoinLabel>
         <JoinInput
+          id="join-key"
           value={joinKey}
           onChange={(e) => setJoinKey(e.target.value)}
           onKeyDown={(e) => {
@@ -206,7 +195,7 @@ export function GroupsPage() {
         ) : rows.length === 0 ? (
           <EmptyLabel>참여 중인 그룹이 없어요. 그룹을 만들거나 초대 코드로 참여해보세요</EmptyLabel>
         ) : (
-          <Table columns={columns} data={rows} />
+          <Table columns={columns} data={rows} minWidth={520} />
         )}
       </TableWrap>
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
+import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle, HeaderActions } from '../components/layout/PageHeader';
 import { Button } from '../components/Button/Button';
 import { Modal } from '../components/Modal/Modal';
 import { Table } from '../components/Table/Table';
@@ -23,34 +24,11 @@ import { useTierTable } from '../features/tiers/hooks';
 import { useMe } from '../features/auth/hooks';
 import { setActiveGroupId } from '../utils/activeGroup';
 import { resolveAssetUrl } from '../utils/assetUrl';
-
-const Header = styled.div`
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  padding-bottom: ${({ theme }) => theme.space.lg}px;
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-`;
-
-const HeaderActions = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.space.xs}px;
-`;
-
-const Title = styled.p`
-  font: ${({ theme }) => theme.font.title26};
-  letter-spacing: -0.5px;
-  color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const Subtitle = styled.p`
-  margin-top: 6px;
-  font: ${({ theme }) => theme.font.label12};
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
+import { formatDate } from '../utils/formatDateTime';
 
 const InviteRow = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: ${({ theme }) => theme.space.sm}px;
   padding: ${({ theme }) => theme.space.md}px 0;
@@ -58,34 +36,51 @@ const InviteRow = styled.div`
 `;
 
 const InviteLabel = styled.span`
-  width: 100px;
+  width: 130px;
+  flex-shrink: 0;
   font: ${({ theme }) => theme.font.label12m};
-  letter-spacing: 0.3px;
   color: ${({ theme }) => theme.color.text.secondary};
+
+  ${({ theme }) => theme.media.mobile} {
+    width: 100%;
+  }
 `;
 
 const InviteLinkBox = styled.div`
   width: 320px;
-  height: 38px;
+  height: 40px;
+  letter-spacing: 0.04em;
   display: flex;
   align-items: center;
   padding: 0 ${({ theme }) => theme.space.sm}px;
   border-radius: ${({ theme }) => theme.radius.sm}px;
   border: 1px solid ${({ theme }) => theme.color.border.base};
   background: ${({ theme }) => theme.color.surface.subtle};
-  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 18px;
   color: ${({ theme }) => theme.color.text.primary};
+
+  ${({ theme }) => theme.media.mobile} {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
 `;
 
 const InviteHint = styled.span`
-  flex: 1;
+  flex: 1 1 240px;
   font: ${({ theme }) => theme.font.caption11};
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
 const WebhookInputWrap = styled.div`
   width: 320px;
+
+  ${({ theme }) => theme.media.mobile} {
+    flex: 1 1 100%;
+    width: auto;
+    min-width: 0;
+  }
 `;
 
 const TableWrap = styled.div`
@@ -205,6 +200,7 @@ export function GroupManagePage() {
   const [copied, setCopied] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [kickTarget, setKickTarget] = useState<GroupMember | null>(null);
+  const [transferTarget, setTransferTarget] = useState<GroupMember | null>(null);
   const [webhookInput, setWebhookInput] = useState('');
 
   useEffect(() => {
@@ -263,8 +259,11 @@ export function GroupManagePage() {
     });
   };
 
-  const handleTransferOwner = (userId: number) => {
-    transferOwner.mutate({ newOwnerId: userId });
+  // 위임하는 순간 내 관리 권한이 사라지는데 한 번 클릭으로 바로 실행되던 걸
+  // 추방/삭제와 같은 확인 모달로 맞춤.
+  const handleTransferConfirmed = () => {
+    if (!transferTarget) return;
+    transferOwner.mutate({ newOwnerId: transferTarget.userId }, { onSuccess: () => setTransferTarget(null) });
   };
 
   const handleSaveDiscordWebhook = () => {
@@ -315,7 +314,7 @@ export function GroupManagePage() {
     },
     { key: 'mainLane', header: '주 라인', width: 90, render: (m) => m.mainLane ?? '-' },
     { key: 'mmr', header: 'MMR', width: 80, align: 'right', render: (m) => m.mmr ?? '-' },
-    { key: 'joinedAt', header: '가입일', width: 115, align: 'right', render: (m) => m.joinedAt.slice(2, 10) },
+    { key: 'joinedAt', header: '가입일', width: 115, align: 'right', render: (m) => formatDate(m.joinedAt).slice(2) },
     {
       key: 'action',
       header: '관리',
@@ -324,7 +323,7 @@ export function GroupManagePage() {
       render: (m) =>
         isViewerOwner && !m.isOwner ? (
           <ActionCell>
-            <Button $variant="ghost" $size="sm" onClick={() => handleTransferOwner(m.userId)}>
+            <Button $variant="ghost" $size="sm" onClick={() => setTransferTarget(m)}>
               그룹장 위임
             </Button>
             <Button $variant="dangerGhost" $size="sm" onClick={() => setKickTarget(m)}>
@@ -347,15 +346,15 @@ export function GroupManagePage() {
           </Subtitle>
         </div>
         <HeaderActions>
-          <Button $size="sm" onClick={() => navigate(`/groups/${groupId}/matches/new`)}>
+          <Button onClick={() => navigate(`/groups/${groupId}/matches/new`)}>
             새 내전 만들기
           </Button>
           {isViewerOwner ? (
-            <Button $variant="dangerGhost" $size="sm" onClick={() => setDeleteOpen(true)}>
+            <Button $variant="dangerGhost" onClick={() => setDeleteOpen(true)}>
               그룹 삭제
             </Button>
           ) : (
-            <Button $variant="dangerGhost" $size="sm" onClick={handleLeaveGroup} disabled={leaveGroup.isPending}>
+            <Button $variant="dangerGhost" onClick={handleLeaveGroup} disabled={leaveGroup.isPending}>
               그룹 나가기
             </Button>
           )}
@@ -428,7 +427,7 @@ export function GroupManagePage() {
       {discordInviteUrl.isError && (
         <InlineError>{discordInviteUrl.error.message || '초대 링크를 만들지 못했어요'}</InlineError>
       )}
-      {discordLinked && <InlineSuccess>✅ 디스코드 서버가 이 그룹에 연동됐어요.</InlineSuccess>}
+      {discordLinked && <InlineSuccess>디스코드 서버가 이 그룹에 연동됐어요.</InlineSuccess>}
       {discordLinkError && (
         <InlineError>디스코드 연동에 실패했어요. 서버 선택을 취소했거나 권한이 없을 수 있어요 — 다시 시도해주세요.</InlineError>
       )}
@@ -438,7 +437,7 @@ export function GroupManagePage() {
         ) : members.length === 0 ? (
           <EmptyLabel>그룹원이 없어요</EmptyLabel>
         ) : (
-          <Table columns={columns} data={members} />
+          <Table columns={columns} data={members} minWidth={820} />
         )}
       </TableWrap>
 
@@ -448,6 +447,16 @@ export function GroupManagePage() {
         <ModalActions>
           <Button $variant="ghost" $size="sm" onClick={() => setDeleteOpen(false)}>취소</Button>
           <Button $variant="danger" $size="sm" onClick={handleDeleteGroup} disabled={deleteGroup.isPending}>삭제</Button>
+        </ModalActions>
+      </Modal>
+
+      <Modal open={Boolean(transferTarget)} onClose={() => setTransferTarget(null)}>
+        <ModalTitle>{transferTarget?.nickname}님에게 그룹장을 넘길까요?</ModalTitle>
+        <ModalBody>넘기면 초대 키·디스코드 연동·그룹원 관리 권한이 바로 넘어가요.</ModalBody>
+        {transferOwner.isError && <InlineError>{transferOwner.error.message || '그룹장 위임에 실패했어요'}</InlineError>}
+        <ModalActions>
+          <Button $variant="ghost" $size="sm" onClick={() => setTransferTarget(null)}>취소</Button>
+          <Button $size="sm" onClick={handleTransferConfirmed} disabled={transferOwner.isPending}>그룹장 위임</Button>
         </ModalActions>
       </Modal>
 

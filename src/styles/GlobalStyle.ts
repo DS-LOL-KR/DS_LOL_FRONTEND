@@ -7,6 +7,12 @@ export const GlobalStyle = createGlobalStyle`
     padding: 0;
   }
 
+  html {
+    /* Dark native scrollbars, form controls and autofill to match the app. */
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+  }
+
   html, body, #root {
     min-height: 100%;
   }
@@ -14,8 +20,18 @@ export const GlobalStyle = createGlobalStyle`
   body {
     background: ${({ theme }) => theme.gradient.app};
     color: ${({ theme }) => theme.color.text.primary};
-    font-family: 'Pretendard', Inter, sans-serif;
+    font-family: ${({ theme }) => theme.fontFamily.sans};
     -webkit-font-smoothing: antialiased;
+    /* Hangul breaks between syllables by default, which splits words like
+       "선호" across lines — keep words whole and only break when a single
+       token (a long nickname, a URL) can't fit at all. */
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+
+  ::selection {
+    background: ${({ theme }) => theme.color.accent.blueMuted};
+    color: ${({ theme }) => theme.color.text.primary};
   }
 
   a {
@@ -25,5 +41,10 @@ export const GlobalStyle = createGlobalStyle`
 
   button {
     font-family: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid ${({ theme }) => theme.color.accent.blue};
+    outline-offset: 2px;
   }
 `;

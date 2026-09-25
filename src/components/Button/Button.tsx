@@ -11,13 +11,15 @@ export const Button = styled.button<{ $variant?: Variant; $size?: Size }>`
   white-space: nowrap;
   border: none;
   cursor: pointer;
-  transition: filter 0.15s ease;
+  transition:
+    filter 0.15s ease,
+    transform 0.16s cubic-bezier(0.22, 1, 0.36, 1);
 
   ${({ $size = 'md', theme }) =>
     $size === 'sm'
       ? css`
-          height: 32px;
-          padding: 0 12px;
+          height: 36px;
+          padding: 0 14px;
           /* Figma spec buttons are 4-5px, not the 8-12px theme.radius scale —
              kept literal here since that scale is shared with unrelated things
              (cards, tier badges) that weren't part of this ask. */
@@ -55,6 +57,7 @@ export const Button = styled.button<{ $variant?: Variant; $size?: Size }>`
     `;
   }}
 
-  &:hover:not(:disabled) { filter: brightness(1.08); }
+  &:hover:not(:disabled) { filter: brightness(1.12); }
+  &:active:not(:disabled) { transform: scale(0.97); }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;

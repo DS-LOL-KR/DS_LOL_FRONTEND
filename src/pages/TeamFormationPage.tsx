@@ -2,6 +2,8 @@ import { useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import styled, { type DefaultTheme } from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
+import { PageHeader as Header, PageTitle as Title, HeaderActions } from '../components/layout/PageHeader';
+import { Metrics, Metric, MetricLabel, MetricValue, MetricUnit } from '../components/layout/Metrics';
 import { Button } from '../components/Button/Button';
 import { Avatar } from '../components/Avatar/Avatar';
 import { useGenerateTeams, useMatch, useUpdateTeams } from '../features/matches/hooks';
@@ -12,70 +14,13 @@ import { resolveAssetUrl } from '../utils/assetUrl';
 
 type Side = 'A' | 'B';
 
-const Header = styled.div`
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  padding-bottom: ${({ theme }) => theme.space.lg}px;
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-`;
-
-const Title = styled.p`
-  font: ${({ theme }) => theme.font.title26};
-  letter-spacing: -0.5px;
-  color: ${({ theme }) => theme.color.text.primary};
-`;
-
 const SubtitleRow = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 4px 10px;
   margin-top: 6px;
   font: ${({ theme }) => theme.font.label12};
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
-
-const HeaderActions = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.space.xs}px;
-`;
-
-const Metrics = styled.div`
-  display: flex;
-  padding: ${({ theme }) => theme.space.md}px 0;
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-`;
-
-const Metric = styled.div`
-  flex: 1;
-  padding-left: 28px;
-  border-left: 1px solid ${({ theme }) => theme.color.border.base};
-
-  &:first-child {
-    padding-left: 0;
-    border-left: none;
-  }
-`;
-
-const MetricLabel = styled.p`
-  font: ${({ theme }) => theme.font.label12m};
-  letter-spacing: 0.3px;
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
-
-const MetricValue = styled.p`
-  margin-top: 5px;
-  white-space: nowrap;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 32px;
-  font-weight: 600;
-  letter-spacing: -0.6px;
-  color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const MetricUnit = styled.span`
-  font-size: 19px;
-  font-weight: 400;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -99,7 +44,7 @@ const BalanceLabel = styled.div<{ $team: Side }>`
   color: ${({ theme }) => theme.color.text.secondary};
 
   strong {
-    font-family: 'IBM Plex Mono', monospace;
+    font-variant-numeric: tabular-nums;
     font-weight: 600;
     color: ${({ theme, $team }) => ($team === 'A' ? theme.color.team.red : theme.color.team.blue)};
   }
@@ -111,23 +56,36 @@ const Gauge = styled.div`
   width: 100%;
 `;
 
-const GaugeSegment = styled.div<{ $team: Side }>`
-  flex: 1;
+// Each side's width is its expected win rate, so a lopsided draw is visible at
+// a glance instead of every match drawing the same 50:50 bar.
+const GaugeSegment = styled.div<{ $team: Side; $share: number }>`
+  flex: ${({ $share }) => $share} 1 0;
   height: 6px;
   border-radius: 1px;
   background: ${({ theme, $team }) => teamColor(theme, $team)};
+  transition: flex-grow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 `;
 
 const Roster = styled.div`
   display: flex;
   align-items: flex-start;
   width: 100%;
+
+  ${({ theme }) => theme.media.mobile} {
+    flex-direction: column;
+    align-items: stretch;
+    gap: ${({ theme }) => theme.space.lg}px;
+  }
 `;
 
 const TeamColumn = styled.div<{ $side: 'left' | 'right' }>`
   flex: 1;
   min-width: 0;
   padding-left: ${({ $side }) => ($side === 'right' ? '40px' : '0')};
+
+  ${({ theme }) => theme.media.mobile} {
+    padding-left: 0;
+  }
 `;
 
 const TeamColorBar = styled.div<{ $team: Side }>`
@@ -161,7 +119,7 @@ const TeamSideTag = styled.span<{ $team: Side }>`
 `;
 
 const TeamMmrSum = styled.span`
-  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 16px;
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -170,9 +128,7 @@ const RosterHeaderRow = styled.div`
   display: flex;
   gap: 12px;
   padding-bottom: 8px;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 15px;
-  letter-spacing: 0.5px;
+  font: ${({ theme }) => theme.font.caption11m};
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -190,7 +146,8 @@ const PlayerRow = styled.div`
 
 const PosCell = styled.span`
   width: 44px;
-  font-family: 'IBM Plex Mono', monospace;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
   font-size: 16px;
   letter-spacing: 0.3px;
   color: ${({ theme }) => theme.color.text.secondary};
@@ -202,20 +159,34 @@ const NameCell = styled.span`
   gap: 8px;
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font: ${({ theme }) => theme.font.body14b};
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
+// Riot tier is secondary to MMR here; on a phone it's the column that gives
+// way so nicknames keep room.
 const TierCell = styled.span`
   width: 115px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  ${({ theme }) => theme.media.narrow} {
+    display: none;
+  }
   font: ${({ theme }) => theme.font.label12};
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
 const MmrCell = styled.span`
   width: 56px;
+  flex-shrink: 0;
   text-align: right;
-  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 18px;
   font-weight: 600;
   color: ${({ theme }) => theme.color.text.primary};
@@ -223,8 +194,8 @@ const MmrCell = styled.span`
 
 const MoveButton = styled.button`
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -233,18 +204,49 @@ const MoveButton = styled.button`
   background: transparent;
   color: ${({ theme }) => theme.color.text.secondary};
   cursor: pointer;
-  font-size: 13px;
-  transition: filter 0.15s ease;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.16s cubic-bezier(0.22, 1, 0.36, 1);
 
   &:hover:not(:disabled) {
     color: ${({ theme }) => theme.color.text.primary};
     border-color: ${({ theme }) => theme.color.text.primary};
+  }
+  &:active:not(:disabled) {
+    transform: scale(0.94);
   }
   &:disabled {
     opacity: 0.35;
     cursor: not-allowed;
   }
 `;
+
+const HeaderCell = styled.span<{ $width?: number; $align?: 'right' }>`
+  flex: ${({ $width }) => ($width ? `0 0 ${$width}px` : '1')};
+  min-width: 0;
+  text-align: ${({ $align }) => $align ?? 'left'};
+`;
+
+const TierHeaderCell = styled(HeaderCell)`
+  ${({ theme }) => theme.media.narrow} {
+    display: none;
+  }
+`;
+
+function SwapIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M2.5 5h10m0 0L10 2.5M12.5 5 10 7.5M13.5 11h-10m0 0L6 8.5M3.5 11 6 13.5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 const RationaleSection = styled.div`
   width: 100%;
@@ -371,10 +373,11 @@ export function TeamFormationPage() {
       <MoveButton
         type="button"
         title={p.assignedTeam === 'TEAM_A' ? '블루팀으로 이동' : '레드팀으로 이동'}
+        aria-label={`${p.nickname} ${p.assignedTeam === 'TEAM_A' ? '블루팀으로 이동' : '레드팀으로 이동'}`}
         onClick={() => handleMoveToOtherTeam(p)}
         disabled={updateTeams.isPending || match?.status === 'FINISHED'}
       >
-        ⇄
+        <SwapIcon />
       </MoveButton>
     </PlayerRow>
   );
@@ -445,8 +448,8 @@ export function TeamFormationPage() {
               <BalanceLabel $team="B"><strong>{analysis.teamB.averageMmr}</strong> 팀 B 평균</BalanceLabel>
             </BalanceLabels>
             <Gauge>
-              <GaugeSegment $team="A" />
-              <GaugeSegment $team="B" />
+              <GaugeSegment $team="A" $share={analysis.teamA.expectedWinRate} />
+              <GaugeSegment $team="B" $share={analysis.teamB.expectedWinRate} />
             </Gauge>
           </BalanceSection>
         </>
@@ -465,11 +468,11 @@ export function TeamFormationPage() {
                 <TeamMmrSum>MMR 합계 {roster.reduce((sum, p) => sum + p.mmr, 0)}</TeamMmrSum>
               </TeamHeader>
               <RosterHeaderRow>
-                <span style={{ width: 44 }}>POS</span>
-                <span style={{ flex: 1 }}>소환사</span>
-                <span style={{ width: 115 }}>티어</span>
-                <span style={{ width: 56, textAlign: 'right' }}>MMR</span>
-                <span style={{ width: 26 }} />
+                <HeaderCell $width={44}>라인</HeaderCell>
+                <HeaderCell>소환사</HeaderCell>
+                <TierHeaderCell $width={115}>티어</TierHeaderCell>
+                <HeaderCell $width={56} $align="right">MMR</HeaderCell>
+                <HeaderCell $width={32} />
               </RosterHeaderRow>
               {roster.map(renderTeamPlayer)}
             </TeamColumn>
