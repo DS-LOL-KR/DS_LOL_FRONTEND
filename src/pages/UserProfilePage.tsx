@@ -16,6 +16,7 @@ import {
   useGames,
   useMatchHistory,
 } from '../features/game-accounts/hooks';
+import { useChampionName } from '../features/champions/hooks';
 import { resolveAssetUrl } from '../utils/assetUrl';
 import { formatDate } from '../utils/formatDateTime';
 
@@ -189,6 +190,7 @@ export function UserProfilePage() {
   const userId = Number(id);
   const { data: user, isLoading, isError } = useUserProfile(userId);
   const { data: games } = useGames();
+  const championName = useChampionName();
 
   // game-accounts/:id/... 쪽 API는 로그인만 하면 누구든 조회 가능하게 이미
   // 열려있어서(그룹 티어표 기능 특성상), GET /users/:id가 내려주는
@@ -269,7 +271,7 @@ export function UserProfilePage() {
                   recentMatches.map((m) => (
                     <MatchRow key={m.matchId}>
                       <MatchResultTag $win={m.win}>{m.win ? '승' : '패'}</MatchResultTag>
-                      <MatchChampion>{m.championName ?? `챔피언 #${m.championId}`}</MatchChampion>
+                      <MatchChampion>{championName(m.championId, m.championName)}</MatchChampion>
                       <MatchMeta>{m.position}</MatchMeta>
                       <MatchKda>{m.kills} / {m.deaths} / {m.assists}</MatchKda>
                     </MatchRow>
@@ -285,7 +287,7 @@ export function UserProfilePage() {
                     const mastery = masteryByChampion.get(c.championId);
                     return (
                       <ChampRow key={c.championId}>
-                        <ChampName>{c.championName ?? `챔피언 #${c.championId}`}</ChampName>
+                        <ChampName>{championName(c.championId, c.championName)}</ChampName>
                         {mastery && <ChampMastery>숙련도 {mastery.masteryLevel}</ChampMastery>}
                         <ChampRecord>
                           {c.wins}승 {c.losses}패 · {Math.round(c.winRate * 100)}%

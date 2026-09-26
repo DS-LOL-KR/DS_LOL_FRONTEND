@@ -18,6 +18,7 @@ import { useGroup } from '../features/groups/hooks';
 import { useTierTable } from '../features/tiers/hooks';
 import { useMe } from '../features/auth/hooks';
 import { useActiveGroupId } from '../utils/activeGroup';
+import { useChampionName } from '../features/champions/hooks';
 import { formatRelativeTime } from '../utils/formatRelativeTime';
 import { formatDateTime } from '../utils/formatDateTime';
 
@@ -256,6 +257,7 @@ const ChampRecord = styled.span`
 export function StatsPage() {
   const navigate = useNavigate();
   const { data: gameAccounts } = useMyGameAccounts();
+  const championName = useChampionName();
   const { data: me } = useMe();
   const activeGroupId = useActiveGroupId();
   const activeGroupIdNum = Number(activeGroupId);
@@ -408,7 +410,7 @@ export function StatsPage() {
               recentMatches.map((m) => (
                 <MatchRow key={m.matchId}>
                   <MatchResultTag $win={m.win}>{m.win ? '승' : '패'}</MatchResultTag>
-                  <MatchChampion>{m.championName ?? `챔피언 #${m.championId}`}</MatchChampion>
+                  <MatchChampion>{championName(m.championId, m.championName)}</MatchChampion>
                   <MatchMeta>{m.position}</MatchMeta>
                   <MatchKda>{m.kills} / {m.deaths} / {m.assists}</MatchKda>
                 </MatchRow>
@@ -427,7 +429,7 @@ export function StatsPage() {
                 const mastery = masteryByChampion.get(c.championId);
                 return (
                   <ChampRow key={c.championId}>
-                    <ChampName>{c.championName ?? `챔피언 #${c.championId}`}</ChampName>
+                    <ChampName>{championName(c.championId, c.championName)}</ChampName>
                     {mastery && <ChampMastery>숙련도 {mastery.masteryLevel}</ChampMastery>}
                     <ChampRecord>
                       {c.wins}승 {c.losses}패 · {Math.round(c.winRate * 100)}%
