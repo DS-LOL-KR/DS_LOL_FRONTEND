@@ -477,7 +477,7 @@ export function TeamFormationPage() {
         </div>
         <HeaderActions>
           <Button
-            $variant="ghost"
+            $variant="secondary"
             $size="sm"
             onClick={handleReshuffle}
             disabled={isGenerating || participants.length === 0}

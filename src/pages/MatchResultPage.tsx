@@ -507,10 +507,10 @@ export function MatchResultPage() {
       </Header>
 
       <Footer>
-        <Button $variant="ghost" $size="sm" onClick={() => navigate(-1)}>목록으로</Button>
+        <Button $variant="secondary" $size="sm" onClick={() => navigate(-1)}>목록으로</Button>
         <FooterActions>
           {match?.status === 'FINISHED' && (
-            <Button $variant="ghost" $size="sm" onClick={handleDuplicateTeams} disabled={duplicateTeams.isPending}>
+            <Button $variant="secondary" $size="sm" onClick={handleDuplicateTeams} disabled={duplicateTeams.isPending}>
               이 팀 그대로 다음 판 만들기
             </Button>
           )}
@@ -518,7 +518,7 @@ export function MatchResultPage() {
             <InlineError>{duplicateTeams.error.message || '다음 판 생성에 실패했어요'}</InlineError>
           )}
           {match && match.status !== 'WAITING' && (
-            <Button $variant="ghost" $size="sm" onClick={() => navigate(`/matches/${id}/teams`)}>
+            <Button $variant="secondary" $size="sm" onClick={() => navigate(`/matches/${id}/teams`)}>
               팀 구성 보기
             </Button>
           )}
@@ -582,7 +582,7 @@ export function MatchResultPage() {
           <InlineError>{finishMatch.error.message || '승리팀 확정에 실패했어요'}</InlineError>
         )}
         <ModalActions>
-          <Button $variant="ghost" $size="sm" onClick={() => setPendingWinner(null)}>취소</Button>
+          <Button $variant="secondary" $size="sm" onClick={() => setPendingWinner(null)}>취소</Button>
           <Button $size="sm" onClick={handleFinish} disabled={finishMatch.isPending}>확정</Button>
         </ModalActions>
       </Modal>
@@ -651,7 +651,7 @@ export function MatchResultPage() {
           <EvalFooter>
             <AnonymousHint>평가는 익명으로 반영돼요</AnonymousHint>
             <EvalFooterActions>
-              <Button $variant="ghost" $size="sm" onClick={() => setEvalOpen(false)}>나중에</Button>
+              <Button $variant="secondary" $size="sm" onClick={() => setEvalOpen(false)}>나중에</Button>
               <Button
                 $size="sm"
                 onClick={handleSubmitEvaluation}

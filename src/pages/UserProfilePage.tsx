@@ -251,7 +251,7 @@ export function UserProfilePage() {
             <SectionHeader>
               <SectionTitle>라이엇 전적</SectionTitle>
               <Button
-                $variant="ghost"
+                $variant="secondary"
                 $size="sm"
                 onClick={handleFullSync}
                 disabled={fullSyncGameAccount.isPending || !account}

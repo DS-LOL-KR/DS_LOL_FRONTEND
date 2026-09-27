@@ -321,7 +321,7 @@ export function MatchHistoryPage() {
       align: 'right',
       render: (m) => (
         <ActionCell>
-          <Button $variant="ghost" $size="sm" onClick={() => navigate(`/matches/${m.id}`)}>
+          <Button $variant="secondary" $size="sm" onClick={() => navigate(`/matches/${m.id}`)}>
             상세
           </Button>
           {m.canDelete && (
@@ -419,7 +419,7 @@ export function MatchHistoryPage() {
         <ModalTitle>이 내전을 삭제할까요?</ModalTitle>
         <ModalBody>팀 구성·평가 기록이 함께 삭제되며 되돌릴 수 없어요.</ModalBody>
         <ModalActions>
-          <Button $variant="ghost" $size="sm" onClick={() => setDeleteTarget(null)}>취소</Button>
+          <Button $variant="secondary" $size="sm" onClick={() => setDeleteTarget(null)}>취소</Button>
           <Button $variant="danger" $size="sm" onClick={handleDeleteConfirmed} disabled={deleteMatch.isPending}>삭제</Button>
         </ModalActions>
       </Modal>

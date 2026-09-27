@@ -358,7 +358,7 @@ export function ProfileSetupPage() {
         <Wordmark size={21} />
         <TopBarRight>
           <PageName>프로필 설정</PageName>
-          <Button $variant="ghost" $size="sm" onClick={handleLogout} disabled={logout.isPending}>
+          <Button $variant="secondary" $size="sm" onClick={handleLogout} disabled={logout.isPending}>
             로그아웃
           </Button>
         </TopBarRight>
@@ -375,7 +375,7 @@ export function ProfileSetupPage() {
               <AvatarName>프로필 이미지</AvatarName>
               <AvatarHint>JPG, PNG · 5MB 이하</AvatarHint>
             </AvatarInfo>
-            <Button as="label" $variant="ghost" $size="sm">
+            <Button as="label" $variant="secondary" $size="sm">
               {uploadProfileImage.isPending ? '업로드 중...' : '파일 선택'}
               <FileInput type="file" accept="image/png,image/jpeg" onChange={handleAvatarChange} />
             </Button>
@@ -453,7 +453,7 @@ export function ProfileSetupPage() {
                       <AccountName>{getGameDisplayName(game)}</AccountName>
                       <AccountHint>연동하면 티어와 전적을 자동으로 불러와요</AccountHint>
                     </AccountInfo>
-                    <Button type="button" $variant="ghost" $size="sm" onClick={() => setLinkingGameId(game.id)}>
+                    <Button type="button" $variant="secondary" $size="sm" onClick={() => setLinkingGameId(game.id)}>
                       계정 연동
                     </Button>
                   </AccountCard>
@@ -486,7 +486,7 @@ export function ProfileSetupPage() {
         />
         {linkError && <ModalError>{linkError}</ModalError>}
         <ModalActions>
-          <Button $variant="ghost" $size="sm" onClick={closeLinkModal}>취소</Button>
+          <Button $variant="secondary" $size="sm" onClick={closeLinkModal}>취소</Button>
           <Button $size="sm" onClick={handleLinkGameAccount} disabled={linkGameAccount.isPending}>
             {linkGameAccount.isPending ? '연동하고 전적 가져오는 중...' : '연동'}
           </Button>
@@ -497,7 +497,7 @@ export function ProfileSetupPage() {
         <ModalTitle>{unlinkTarget?.gameNickname} 연동을 해제할까요?</ModalTitle>
         <ModalBody>동기화된 전적·숙련도·라인 기록이 모두 삭제되며 되돌릴 수 없어요.</ModalBody>
         <ModalActions>
-          <Button $variant="ghost" $size="sm" onClick={() => setUnlinkTarget(null)}>취소</Button>
+          <Button $variant="secondary" $size="sm" onClick={() => setUnlinkTarget(null)}>취소</Button>
           <Button $variant="danger" $size="sm" onClick={handleUnlinkConfirmed} disabled={unlinkGameAccount.isPending}>
             {unlinkGameAccount.isPending ? '해제 중...' : '연동 해제'}
           </Button>
@@ -512,7 +512,7 @@ function RefreshAccountButton({ accountId }: { accountId: number }) {
   // "지금 갱신"/"전적 동기화"와 동일한 동작으로 맞춤.
   const fullSync = useFullSyncGameAccount(accountId);
   return (
-    <Button type="button" $variant="ghost" $size="sm" onClick={() => fullSync.mutate(undefined)} disabled={fullSync.isPending}>
+    <Button type="button" $variant="secondary" $size="sm" onClick={() => fullSync.mutate(undefined)} disabled={fullSync.isPending}>
       {fullSync.isPending ? '동기화 중...' : '동기화'}
     </Button>
   );

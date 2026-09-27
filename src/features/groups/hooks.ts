@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createGroup,
@@ -12,7 +13,14 @@ import {
   transferOwner,
   updateDiscordWebhook,
 } from './api';
-import type { CreateGroupRequest, JoinGroupRequest, TransferOwnerRequest, UpdateDiscordWebhookRequest } from './types';
+import type {
+  CreateGroupRequest,
+  GroupMember,
+  JoinGroupRequest,
+  TransferOwnerRequest,
+  UpdateDiscordWebhookRequest,
+} from './types';
+import { useTierTable } from '../tiers/hooks';
 import { clearActiveGroupIdIfMatches } from '../../utils/activeGroup';
 
 export function useGroups() {
@@ -110,4 +118,40 @@ export function useDiscordInviteUrl(groupId: number) {
       window.location.href = url;
     },
   });
+}
+
+// GET /groups/:id gives role/joinedAt/nickname/profile image; GET /groups/:id/tiers
+// gives per-line tier/MMR. Neither alone has everything a roster wants, so merge
+// by userId — picking each member's most-played line as their "주 라인" row
+// (tier/mmr은 라인 무관 계정 전체 값이라 어느 행에서 가져와도 동일함).
+// 유저가 프로필에서 주라인을 직접 지정했으면 그걸 최우선으로 쓰고, 없으면 판수(승+패)가
+// 가장 많은 라인으로 자동 추론(2026-09-12).
+export function useGroupMembers(groupId: number) {
+  const groupQuery = useGroup(groupId);
+  const tierQuery = useTierTable(groupId);
+  const group = groupQuery.data;
+  const tierRows = tierQuery.data;
+
+  const members: GroupMember[] = useMemo(() => {
+    if (!group) return [];
+    return group.members.map((membership) => {
+      const rows = (tierRows?.tiers ?? []).filter((row) => row.userId === membership.userId);
+      const mainRow = rows.length
+        ? rows.reduce((best, row) => (row.wins + row.losses > best.wins + best.losses ? row : best))
+        : null;
+      const mainLane = rows[0]?.mainPosition ?? mainRow?.position ?? null;
+      return {
+        userId: membership.userId,
+        nickname: membership.user.nickname,
+        profileImageUrl: membership.user.profileImageUrl,
+        isOwner: membership.role === 'OWNER',
+        internalTier: mainRow?.tier ?? null,
+        mainLane,
+        mmr: mainRow?.internalMmr ?? null,
+        joinedAt: membership.joinedAt,
+      };
+    });
+  }, [group, tierRows]);
+
+  return { group, members, tierTable: tierRows, isLoading: groupQuery.isLoading || tierQuery.isLoading, groupQuery, tierQuery };
 }

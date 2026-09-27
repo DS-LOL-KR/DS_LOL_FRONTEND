@@ -127,7 +127,7 @@ export function GroupsPage() {
       width: 90,
       align: 'right',
       render: (row) => (
-        <Button $variant="ghost" $size="sm" onClick={() => enterGroup(row.id)}>
+        <Button $variant="secondary" $size="sm" onClick={() => enterGroup(row.id)}>
           입장
         </Button>
       ),
@@ -178,7 +178,7 @@ export function GroupsPage() {
           }}
           placeholder="A7K2-9QMD"
         />
-        <Button $variant="ghost" $size="sm" onClick={handleJoinGroup} disabled={joinGroup.isPending}>
+        <Button $variant="secondary" $size="sm" onClick={handleJoinGroup} disabled={joinGroup.isPending}>
           참여
         </Button>
         {joinGroup.isError ? (
@@ -212,7 +212,7 @@ export function GroupsPage() {
         />
         {createGroup.isError && <ModalError>{createGroup.error.message || '그룹 생성에 실패했어요'}</ModalError>}
         <ModalActions>
-          <Button $variant="ghost" $size="sm" onClick={() => setCreateOpen(false)}>취소</Button>
+          <Button $variant="secondary" $size="sm" onClick={() => setCreateOpen(false)}>취소</Button>
           <Button $size="sm" onClick={handleCreateGroup} disabled={createGroup.isPending}>만들기</Button>
         </ModalActions>
       </Modal>

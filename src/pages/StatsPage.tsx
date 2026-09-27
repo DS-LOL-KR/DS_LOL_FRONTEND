@@ -400,7 +400,7 @@ export function StatsPage() {
           <TrendColumn>
             <ColumnHeader>
               <ColumnTitle>최근 매치</ColumnTitle>
-              <Button $variant="ghost" $size="sm" onClick={handleFullSync} disabled={fullSyncGameAccount.isPending || !primaryAccount}>
+              <Button $variant="secondary" $size="sm" onClick={handleFullSync} disabled={fullSyncGameAccount.isPending || !primaryAccount}>
                 {fullSyncGameAccount.isPending ? '동기화 중...' : '전적 동기화'}
               </Button>
             </ColumnHeader>

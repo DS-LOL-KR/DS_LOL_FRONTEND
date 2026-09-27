@@ -2,44 +2,76 @@ import styled from 'styled-components';
 
 export type Lane = 'TOP' | 'JUG' | 'MID' | 'ADC' | 'SUP';
 
+// docs/design-system.md → Position Icon: an abstract minimap. All three lanes
+// are drawn faint and the player's lane at full strength — no official Riot
+// lane art. (A closed frame with a filled corner read as a checkbox in tables.)
 const Svg = styled.svg`
   flex-shrink: 0;
   color: currentColor;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 `;
 
-const PATHS: Record<Lane, string> = {
-  // Shield — top laner holds the front line.
-  TOP: 'M8 1.5 3 3.5v4c0 3.5 2.2 5.7 5 6.5 2.8-.8 5-3 5-6.5v-4L8 1.5Z',
-  // Four-leaf shape — jungle.
-  JUG: 'M8 8c0-2.5-2-4.5-4.5-4.5C3.5 6 5.5 8 8 8Zm0 0c0-2.5 2-4.5 4.5-4.5C12.5 6 10.5 8 8 8Zm0 0c2.5 0 4.5 2 4.5 4.5C10.5 12.5 8.5 10.5 8 8Zm0 0c-2.5 0-4.5 2-4.5 4.5C5.5 12.5 7.5 10.5 8 8Z',
-  // Diamond — mid lane, center of the map.
-  MID: 'M8 1.5 14.5 8 8 14.5 1.5 8 8 1.5Z',
-  // Crosshair — attack damage carry.
-  ADC: 'M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M8 5.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6Z',
-  // Heart-shield hybrid — support.
-  SUP: 'M8 13.5S2.5 10 2.5 6a3 3 0 0 1 5.5-1.7A3 3 0 0 1 13.5 6c0 4-5.5 7.5-5.5 7.5Z',
-};
+const TOP_LANE = 'M2.5 13.5V2.5h11';
+const BOT_LANE = 'M2.5 13.5h11v-11';
+const MID_LANE = 'M3.5 12.5l9-9';
 
-const FILLED: Record<Lane, boolean> = { TOP: false, JUG: true, MID: false, ADC: false, SUP: true };
+function Highlight({ lane }: { lane: Lane }) {
+  switch (lane) {
+    case 'TOP':
+      return <path d={TOP_LANE} />;
+    case 'MID':
+      return <path d={MID_LANE} />;
+    case 'ADC':
+      return <path d={BOT_LANE} />;
+    case 'JUG':
+      return (
+        <g fill="currentColor" stroke="none">
+          <circle cx="6" cy="6.5" r="1.4" />
+          <circle cx="10" cy="9.5" r="1.4" />
+        </g>
+      );
+    case 'SUP':
+      return (
+        <>
+          <path d="M7 13.5h6.5V7" />
+          <circle cx="13.5" cy="13.5" r="1.8" fill="currentColor" stroke="none" />
+        </>
+      );
+  }
+}
 
-export function LaneIcon({ lane, size = 14 }: { lane: Lane; size?: number }) {
+export function LaneIcon({ lane, size = 16 }: { lane: Lane; size?: number }) {
   return (
-    <Svg
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-label={lane}
-    >
-      <path
-        d={PATHS[lane]}
-        stroke="currentColor"
-        strokeWidth={1.3}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-        fill={FILLED[lane] ? 'currentColor' : 'none'}
-      />
+    <Svg width={size} height={size} viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" role="img" aria-label={lane}>
+      <g opacity={0.25}>
+        <path d={TOP_LANE} />
+        <path d={BOT_LANE} />
+        <path d={MID_LANE} />
+      </g>
+      <Highlight lane={lane} />
     </Svg>
+  );
+}
+
+const LabelRow = styled.span<{ $main?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 500 12px/1 ${({ theme }) => theme.fontFamily.sans};
+  letter-spacing: 0.02em;
+  color: ${({ theme, $main }) => ($main ? theme.color.text.primary : theme.color.text.secondary)};
+`;
+
+// Icon + abbreviation. `iconOnly` for tight spots (side-by-side rosters, phones).
+export function LaneLabel({ lane, main, iconOnly }: { lane: Lane; main?: boolean; iconOnly?: boolean }) {
+  return (
+    <LabelRow $main={main} title={iconOnly ? lane : undefined}>
+      <LaneIcon lane={lane} />
+      {!iconOnly && lane}
+    </LabelRow>
   );
 }

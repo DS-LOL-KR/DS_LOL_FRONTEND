@@ -323,7 +323,7 @@ export function GroupManagePage() {
       render: (m) =>
         isViewerOwner && !m.isOwner ? (
           <ActionCell>
-            <Button $variant="ghost" $size="sm" onClick={() => setTransferTarget(m)}>
+            <Button $variant="secondary" $size="sm" onClick={() => setTransferTarget(m)}>
               그룹장 위임
             </Button>
             <Button $variant="dangerGhost" $size="sm" onClick={() => setKickTarget(m)}>
@@ -363,10 +363,10 @@ export function GroupManagePage() {
       <InviteRow>
         <InviteLabel>초대 키</InviteLabel>
         <InviteLinkBox>{inviteCode ?? '-'}</InviteLinkBox>
-        <Button $variant="ghost" $size="sm" onClick={handleCopyKey} disabled={!inviteCode}>
+        <Button $variant="secondary" $size="sm" onClick={handleCopyKey} disabled={!inviteCode}>
           {copied ? '복사됨' : '복사'}
         </Button>
-        <Button $variant="ghost" $size="sm" onClick={handleRefreshInviteCode} disabled={refreshInviteCode.isPending}>
+        <Button $variant="secondary" $size="sm" onClick={handleRefreshInviteCode} disabled={refreshInviteCode.isPending}>
           키 재발급
         </Button>
         <InviteHint>키가 유출됐다면 재발급하세요. 기존 키는 즉시 만료됩니다</InviteHint>
@@ -390,7 +390,7 @@ export function GroupManagePage() {
               placeholder="https://discord.com/api/webhooks/..."
             />
           </WebhookInputWrap>
-          <Button $variant="ghost" $size="sm" onClick={handleSaveDiscordWebhook} disabled={updateDiscordWebhook.isPending}>
+          <Button $variant="secondary" $size="sm" onClick={handleSaveDiscordWebhook} disabled={updateDiscordWebhook.isPending}>
             저장
           </Button>
           {group?.discordWebhookUrl && (
@@ -412,7 +412,7 @@ export function GroupManagePage() {
           ) : (
             <>
               <Button
-                $variant="ghost"
+                $variant="secondary"
                 $size="sm"
                 onClick={() => discordInviteUrl.mutate()}
                 disabled={discordInviteUrl.isPending}
@@ -445,7 +445,7 @@ export function GroupManagePage() {
         <ModalTitle>그룹을 삭제할까요?</ModalTitle>
         <ModalBody>그룹과 관련된 모든 내전 기록이 함께 삭제되며 되돌릴 수 없어요.</ModalBody>
         <ModalActions>
-          <Button $variant="ghost" $size="sm" onClick={() => setDeleteOpen(false)}>취소</Button>
+          <Button $variant="secondary" $size="sm" onClick={() => setDeleteOpen(false)}>취소</Button>
           <Button $variant="danger" $size="sm" onClick={handleDeleteGroup} disabled={deleteGroup.isPending}>삭제</Button>
         </ModalActions>
       </Modal>
@@ -455,7 +455,7 @@ export function GroupManagePage() {
         <ModalBody>넘기면 초대 키·디스코드 연동·그룹원 관리 권한이 바로 넘어가요.</ModalBody>
         {transferOwner.isError && <InlineError>{transferOwner.error.message || '그룹장 위임에 실패했어요'}</InlineError>}
         <ModalActions>
-          <Button $variant="ghost" $size="sm" onClick={() => setTransferTarget(null)}>취소</Button>
+          <Button $variant="secondary" $size="sm" onClick={() => setTransferTarget(null)}>취소</Button>
           <Button $size="sm" onClick={handleTransferConfirmed} disabled={transferOwner.isPending}>그룹장 위임</Button>
         </ModalActions>
       </Modal>
@@ -465,7 +465,7 @@ export function GroupManagePage() {
         <ModalBody>추방된 그룹원은 초대 링크로 다시 참여할 수 있어요.</ModalBody>
         {kickMember.isError && <InlineError>{kickMember.error.message || '추방에 실패했어요'}</InlineError>}
         <ModalActions>
-          <Button $variant="ghost" $size="sm" onClick={() => setKickTarget(null)}>취소</Button>
+          <Button $variant="secondary" $size="sm" onClick={() => setKickTarget(null)}>취소</Button>
           <Button $variant="danger" $size="sm" onClick={handleKickConfirmed} disabled={kickMember.isPending}>추방</Button>
         </ModalActions>
       </Modal>

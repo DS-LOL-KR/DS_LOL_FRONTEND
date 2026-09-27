@@ -13,8 +13,10 @@ const Row = styled.section`
   align-items: flex-end;
   justify-content: space-between;
   gap: ${({ theme }) => theme.space.md}px 40px;
-  padding: 28px 0 24px;
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
+  padding: var(--card-padding);
+  background: ${({ theme }) => theme.color.surface.card};
+  border: 1px solid ${({ theme }) => theme.color.border.base};
+  border-radius: ${({ theme }) => theme.radius.card}px;
 `;
 
 const Primary = styled.div`
@@ -25,16 +27,11 @@ const Primary = styled.div`
 `;
 
 const Mmr = styled.span`
-  font-size: 56px;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.04em;
+  font: ${({ theme }) => theme.type.hero};
+  letter-spacing: var(--type-hero-tracking);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
   color: ${({ theme }) => theme.color.text.primary};
-
-  ${({ theme }) => theme.media.mobile} {
-    font-size: 44px;
-  }
 `;
 
 const MmrUnit = styled.span`
@@ -43,15 +40,14 @@ const MmrUnit = styled.span`
 `;
 
 const Delta = styled.span<{ $positive: boolean }>`
-  font-size: 22px;
-  font-weight: 700;
+  font: ${({ theme }) => theme.type.bodyStrong};
   font-variant-numeric: tabular-nums;
   color: ${({ theme, $positive }) => ($positive ? theme.color.state.success : theme.color.state.danger)};
 
   small {
     margin-left: 6px;
     font: ${({ theme }) => theme.font.caption11};
-    color: ${({ theme }) => theme.color.text.secondary};
+    color: ${({ theme }) => theme.color.text.muted};
   }
 `;
 
@@ -63,8 +59,8 @@ const Tags = styled.dl`
 `;
 
 const TagLabel = styled.dt`
-  font: ${({ theme }) => theme.font.caption11};
-  color: ${({ theme }) => theme.color.text.secondary};
+  font: ${({ theme }) => theme.type.caption};
+  color: ${({ theme }) => theme.color.text.muted};
 `;
 
 const TagValue = styled.dd`
@@ -76,11 +72,14 @@ const TagValue = styled.dd`
 `;
 
 const TierChip = styled.span<{ $tier: Tier }>`
-  padding: 1px 10px;
-  border-radius: 4px;
-  font: ${({ theme }) => theme.font.small13b};
-  color: #0B0D14;
-  background: ${({ theme, $tier }) => theme.color.tier[$tier]};
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: ${({ theme }) => theme.radius.badge}px;
+  font: ${({ theme }) => theme.type.badge};
+  color: ${({ theme, $tier }) => theme.color.tier[$tier]};
+  background: ${({ theme, $tier }) => theme.color.tierSoft[$tier]};
 `;
 
 const Muted = styled.span`
@@ -99,11 +98,11 @@ export function MmrSummary({ mmr, delta, groupTier, officialTier }: MmrSummaryPr
   return (
     <Row aria-label="MMR 요약">
       <Primary>
-        <Mmr>{mmr ?? '-'}</Mmr>
+        <Mmr>{mmr !== null ? mmr.toLocaleString() : '—'}</Mmr>
         <MmrUnit>MMR</MmrUnit>
         {delta && (
           <Delta $positive={delta.value >= 0}>
-            {delta.value > 0 ? `+${delta.value}` : delta.value}
+            {delta.value > 0 ? `↑ +${delta.value}` : delta.value < 0 ? `↓ −${Math.abs(delta.value)}` : '— 0'}
             <small>{delta.label}</small>
           </Delta>
         )}

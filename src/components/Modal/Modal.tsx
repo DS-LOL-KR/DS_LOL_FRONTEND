@@ -9,7 +9,7 @@ const Overlay = styled.div`
   align-items: center;
   justify-content: center;
   padding: ${({ theme }) => theme.space.md}px;
-  background: rgba(3, 4, 8, 0.66);
+  background: ${({ theme }) => theme.color.overlay};
   z-index: 100;
   animation: modalFade 0.16s ease-out;
 
@@ -19,21 +19,20 @@ const Overlay = styled.div`
 `;
 
 const Panel = styled.div`
-  background: ${({ theme }) => theme.color.surface.raised};
+  background: ${({ theme }) => theme.color.surface.card};
   border: 1px solid ${({ theme }) => theme.color.border.strong};
-  border-radius: ${({ theme }) => theme.radius.md}px;
-  padding: ${({ theme }) => theme.space.lg}px;
+  border-radius: ${({ theme }) => theme.radius.card}px;
+  padding: ${({ theme }) => theme.space.lg + 4}px;
   width: min(100%, max-content);
   min-width: min(360px, 100%);
-  max-width: 100%;
+  max-width: min(100%, 480px);
   max-height: calc(100dvh - ${({ theme }) => theme.space.md * 2}px);
   overflow-y: auto;
   outline: none;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
   animation: modalRise 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 
   @keyframes modalRise {
-    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    from { opacity: 0; transform: translateY(4px); }
   }
 
   @media (prefers-reduced-motion: reduce) {

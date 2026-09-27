@@ -18,9 +18,9 @@ export const GlobalStyle = createGlobalStyle`
   }
 
   body {
-    background: ${({ theme }) => theme.color.bg};
+    background: ${({ theme }) => theme.color.canvas};
     color: ${({ theme }) => theme.color.text.primary};
-    font-family: ${({ theme }) => theme.fontFamily.sans};
+    font: ${({ theme }) => theme.type.body};
     -webkit-font-smoothing: antialiased;
     /* Hangul breaks between syllables by default, which splits words like
        "선호" across lines — keep words whole and only break when a single
@@ -30,7 +30,7 @@ export const GlobalStyle = createGlobalStyle`
   }
 
   ::selection {
-    background: ${({ theme }) => theme.color.accent.blueMuted};
+    background: ${({ theme }) => theme.color.surface.hover};
     color: ${({ theme }) => theme.color.text.primary};
   }
 
@@ -43,8 +43,21 @@ export const GlobalStyle = createGlobalStyle`
     font-family: inherit;
   }
 
+  /* Neutral ring — blue would read as team blue (docs/design-system.md). */
   :focus-visible {
-    outline: 2px solid ${({ theme }) => theme.color.accent.blue};
+    outline: 2px solid ${({ theme }) => theme.color.text.secondary};
     outline-offset: 2px;
+  }
+
+  /* Every number in this product is compared against another one. */
+  table, input, time {
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 `;
