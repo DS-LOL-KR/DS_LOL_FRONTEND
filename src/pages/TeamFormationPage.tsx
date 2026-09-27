@@ -2,10 +2,13 @@ import { useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import styled, { type DefaultTheme } from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
-import { PageHeader as Header, PageTitle as Title, HeaderActions } from '../components/layout/PageHeader';
+import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle, HeaderActions } from '../components/layout/PageHeader';
+import { Grid, Col } from '../components/layout/Grid';
 import { Button } from '../components/Button/Button';
+import { Card, SectionHeader } from '../components/Card/Card';
 import { Avatar } from '../components/Avatar/Avatar';
-import { LaneIcon } from '../components/LaneIcon/LaneIcon';
+import { Icon } from '../components/Icon/Icon';
+import { LaneLabel } from '../components/LaneIcon/LaneIcon';
 import { useGenerateTeams, useMatch, useUpdateTeams } from '../features/matches/hooks';
 import type { TeamParticipant } from '../features/matches/types';
 import { useGroup } from '../features/groups/hooks';
@@ -14,349 +17,280 @@ import { resolveAssetUrl } from '../utils/assetUrl';
 
 type Side = 'A' | 'B';
 
-const SubtitleRow = styled.div`
+// --- Team Balance Bar (docs/design-system.md §3.5) ------------------------
+// Red segment width = red expected win rate; the white marker is fixed at 50%
+// so the distance of the split from it reads as imbalance.
+const Balance = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+`;
+
+const BalanceMeta = styled.div`
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 10px;
-  margin-top: 6px;
-  font: ${({ theme }) => theme.font.label12};
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
-
-// One broadcast-style scoreboard instead of four equal stat tiles plus a
-// separate gauge that repeated the same averages: the two sides face each other,
-// the balance verdict sits between them, and the bar underneath is the split.
-const Matchup = styled.section`
-  padding: 28px 0 24px;
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-`;
-
-const MatchupRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: end;
-  gap: ${({ theme }) => theme.space.md}px;
-`;
-
-const SideBlock = styled.div<{ $team: Side }>`
-  display: flex;
-  flex-direction: column;
-  align-items: ${({ $team }) => ($team === 'A' ? 'flex-start' : 'flex-end')};
-  gap: 2px;
-  min-width: 0;
-`;
-
-const SideName = styled.span<{ $team: Side }>`
-  font: ${({ theme }) => theme.font.small13b};
-  color: ${({ theme, $team }) => teamColor(theme, $team)};
-`;
-
-const SideMmr = styled.span`
-  font-size: 44px;
-  font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
-  color: ${({ theme }) => theme.color.text.primary};
-
-  ${({ theme }) => theme.media.mobile} {
-    font-size: 30px;
-  }
-`;
-
-const SideCaption = styled.span`
-  font: ${({ theme }) => theme.font.caption11};
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
-
-const Verdict = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-bottom: 4px;
-  text-align: center;
-`;
-
-const VerdictValue = styled.span`
-  font-size: 28px;
-  font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  color: ${({ theme }) => theme.color.text.primary};
-
-  ${({ theme }) => theme.media.mobile} {
-    font-size: 22px;
-  }
-`;
-
-const VerdictLabel = styled.span`
-  font: ${({ theme }) => theme.font.caption11};
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
-
-const Gauge = styled.div`
-  position: relative;
-  display: flex;
-  gap: 3px;
-  width: 100%;
-  margin-top: 18px;
-`;
-
-// Each side's width is its expected win rate, so a lopsided draw is visible at
-// a glance; the notch marks dead center to measure it against.
-const GaugeSegment = styled.div<{ $team: Side; $share: number }>`
-  flex: ${({ $share }) => $share} 1 0;
-  height: 10px;
-  background: ${({ theme, $team }) => teamColor(theme, $team)};
-  transition: flex-grow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
-`;
-
-const CenterNotch = styled.span`
-  position: absolute;
-  left: 50%;
-  top: -4px;
-  bottom: -4px;
-  width: 2px;
-  transform: translateX(-50%);
-  background: ${({ theme }) => theme.color.text.primary};
-`;
-
-const MatchupFootnote = styled.p`
-  display: flex;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-  margin-top: 10px;
-  font: ${({ theme }) => theme.font.label12};
-  font-variant-numeric: tabular-nums;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-4);
+`;
+
+const BalanceScore = styled.span`
+  font: ${({ theme }) => theme.type.body};
   color: ${({ theme }) => theme.color.text.secondary};
 
-  strong {
+  b {
     font-weight: 600;
+    font-variant-numeric: tabular-nums;
     color: ${({ theme }) => theme.color.text.primary};
   }
 `;
 
-const Roster = styled.div`
-  display: flex;
-  align-items: flex-start;
-  width: 100%;
+const WinRateLabel = styled.span`
+  font: ${({ theme }) => theme.type.label};
+  color: ${({ theme }) => theme.color.text.secondary};
 
-  ${({ theme }) => theme.media.mobile} {
-    flex-direction: column;
-    align-items: stretch;
-    gap: ${({ theme }) => theme.space.lg}px;
+  b {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
   }
 `;
 
-const TeamColumn = styled.div<{ $side: 'left' | 'right' }>`
-  flex: 1;
-  min-width: 0;
-  padding-left: ${({ $side }) => ($side === 'right' ? '40px' : '0')};
-
-  ${({ theme }) => theme.media.mobile} {
-    padding-left: 0;
-  }
-`;
-
-const TeamColorBar = styled.div<{ $team: Side }>`
-  height: 2px;
-  width: 100%;
-  background: ${({ theme, $team }) => teamColor(theme, $team)};
-`;
-
-const TeamHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 0;
-`;
-
-const TeamNameRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const TeamName = styled.span`
-  font: ${({ theme }) => theme.font.sub17};
-  color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const TeamSideTag = styled.span<{ $team: Side }>`
-  font: ${({ theme }) => theme.font.label12m};
-  letter-spacing: 0.6px;
+const TeamText = styled.b<{ $team: Side }>`
   color: ${({ theme, $team }) => teamColor(theme, $team)};
 `;
 
-const TeamMmrSum = styled.span`
-  font-variant-numeric: tabular-nums;
-  font-size: 16px;
-  color: ${({ theme }) => theme.color.text.secondary};
+const BalanceTrack = styled.div`
+  position: relative;
+  display: flex;
+  gap: 2px;
+  height: 6px;
 `;
 
-const RosterHeaderRow = styled.div`
-  display: flex;
-  gap: 12px;
-  padding-bottom: 8px;
-  font: ${({ theme }) => theme.font.caption11m};
-  color: ${({ theme }) => theme.color.text.secondary};
+const BalanceRed = styled.span<{ $pct: number }>`
+  width: calc(${({ $pct }) => $pct}% - 1px);
+  background: ${({ theme }) => theme.color.team.red};
+  border-radius: var(--radius-full);
+  transition: width 0.3s var(--ease-out);
 `;
 
-const PlayerRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 11px 0;
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
+const BalanceBlue = styled.span`
+  flex: 1;
+  background: ${({ theme }) => theme.color.team.blue};
+  border-radius: var(--radius-full);
+`;
 
-  &:last-child {
-    border-bottom: none;
+const BalanceMarker = styled.span`
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  width: 2px;
+  height: 12px;
+  transform: translateX(-50%);
+  background: ${({ theme }) => theme.color.text.primary};
+  border-radius: 1px;
+  /* knockout that separates the marker from the bar — not an elevation shadow */
+  box-shadow: 0 0 0 2px ${({ theme }) => theme.color.surface.card};
+`;
+
+const StatGrid = styled.dl`
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+
+  ${({ theme }) => theme.media.mobile} {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 `;
 
-const PosCell = styled.span`
+const Stat = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3);
+  background: ${({ theme }) => theme.color.surface.subtle};
+  border-radius: ${({ theme }) => theme.radius.control}px;
+  min-width: 0;
+`;
+
+const StatLabel = styled.dt`
+  font: ${({ theme }) => theme.type.caption};
+  color: ${({ theme }) => theme.color.text.secondary};
+`;
+
+const StatValue = styled.dd<{ $team?: Side }>`
+  font: ${({ theme }) => theme.type.bodyStrong};
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: ${({ theme, $team }) => ($team ? teamColor(theme, $team) : theme.color.text.primary)};
+
+  small {
+    font: ${({ theme }) => theme.type.caption};
+    color: ${({ theme }) => theme.color.text.secondary};
+  }
+`;
+
+// --- Team cards -----------------------------------------------------------
+
+const TeamHead = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-5);
+`;
+
+const TeamTag = styled.span<{ $team: Side }>`
+  font: ${({ theme }) => theme.type.labelStrong};
+  color: ${({ theme, $team }) => teamColor(theme, $team)};
+`;
+
+const HeroNumber = styled.p<{ $team: Side }>`
+  font: ${({ theme }) => theme.type.hero};
+  letter-spacing: var(--type-hero-tracking);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: ${({ theme, $team }) => teamColor(theme, $team)};
+`;
+
+const TeamCaption = styled.p`
+  font: ${({ theme }) => theme.type.caption};
+  font-variant-numeric: tabular-nums;
+  color: ${({ theme }) => theme.color.text.muted};
+`;
+
+const RosterList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+`;
+
+// Lane: icon-only while the two rosters sit side by side (and on ≤480px);
+// the full "TOP" label only once the cards stack on a phone — with both,
+// nicknames broke letter-by-letter (docs/design-system.md §3.8).
+const LaneFull = styled.span`
+  display: none;
+
+  ${({ theme }) => theme.media.mobile} {
+    display: inline-flex;
+    width: 44px;
+  }
+
+  ${({ theme }) => theme.media.narrow} {
+    display: none;
+  }
+`;
+
+const LaneCompact = styled.span`
+  display: inline-flex;
+
+  ${({ theme }) => theme.media.mobile} {
+    display: none;
+  }
+
+  ${({ theme }) => theme.media.narrow} {
+    display: inline-flex;
+  }
+`;
+
+// Riot tier is secondary to MMR here; it gives way whenever the row is tight
+// (side-by-side on mid widths, and phones) so nicknames keep room.
+const TierCell = styled.span`
+  width: 104px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: ${({ theme }) => theme.type.label};
+  color: ${({ theme }) => theme.color.text.secondary};
+
+  ${({ theme }) => theme.media.wide} {
+    display: none;
+  }
+
+  ${({ theme }) => theme.media.mobile} {
+    display: block;
+  }
+
+  ${({ theme }) => theme.media.narrow} {
+    display: none;
+  }
+`;
+
+const PlayerRow = styled.div<{ $team: Side }>`
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
-  width: 64px;
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-  font-size: 16px;
-  letter-spacing: 0.3px;
-  color: ${({ theme }) => theme.color.text.secondary};
+  gap: var(--space-3);
+  min-height: 48px;
+  padding: var(--space-2) var(--space-3) var(--space-2) calc(var(--space-3) + 3px);
+  background: ${({ theme }) => theme.color.surface.subtle};
+  border-radius: ${({ theme }) => theme.radius.control}px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20%;
+    bottom: 20%;
+    width: 3px;
+    border-radius: 0 2px 2px 0;
+    background: ${({ theme, $team }) => teamColor(theme, $team)};
+  }
 `;
 
 const NameCell = styled.span`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font: ${({ theme }) => theme.font.body14b};
+  font: ${({ theme }) => theme.type.bodyStrong};
   color: ${({ theme }) => theme.color.text.primary};
-`;
 
-// Riot tier is secondary to MMR here; on a phone it's the column that gives
-// way so nicknames keep room.
-const TierCell = styled.span`
-  width: 115px;
-  flex-shrink: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  ${({ theme }) => theme.media.narrow} {
-    display: none;
+  span {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
-  font: ${({ theme }) => theme.font.label12};
-  color: ${({ theme }) => theme.color.text.secondary};
 `;
 
-const MmrCell = styled.span`
-  width: 56px;
+// 계정 미연동 인원은 서버가 기본 MMR로 채워서 보내요 — 합계에는 들어가니 숫자는
+// 남기되, 실제 실력 값처럼 읽히지 않게 흐리게 표시.
+const MmrCell = styled.span<{ $estimated?: boolean }>`
+  width: 52px;
   flex-shrink: 0;
   text-align: right;
+  font: ${({ theme, $estimated }) => ($estimated ? theme.type.body : theme.type.bodyStrong)};
   font-variant-numeric: tabular-nums;
-  font-size: 18px;
-  font-weight: 600;
-  color: ${({ theme }) => theme.color.text.primary};
+  color: ${({ theme, $estimated }) => ($estimated ? theme.color.text.muted : theme.color.text.primary)};
 `;
 
-const MoveButton = styled.button`
-  flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+const MoveButton = styled(Button)`
+  width: var(--control-height-sm);
+  padding: 0;
+`;
+
+// --- Misc -----------------------------------------------------------------
+
+const ReasonList = styled.ol`
   display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: ${({ theme }) => theme.radius.sm}px;
-  border: 1px solid ${({ theme }) => theme.color.border.base};
-  background: transparent;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+`;
+
+const ReasonRow = styled.li`
+  padding: var(--space-3);
+  background: ${({ theme }) => theme.color.surface.subtle};
+  border-radius: ${({ theme }) => theme.radius.control}px;
+  font: ${({ theme }) => theme.type.body};
   color: ${({ theme }) => theme.color.text.secondary};
-  cursor: pointer;
-  transition:
-    color 0.15s ease,
-    border-color 0.15s ease,
-    transform 0.16s cubic-bezier(0.22, 1, 0.36, 1);
-
-  &:hover:not(:disabled) {
-    color: ${({ theme }) => theme.color.text.primary};
-    border-color: ${({ theme }) => theme.color.text.primary};
-  }
-  &:active:not(:disabled) {
-    transform: scale(0.94);
-  }
-  &:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-  }
 `;
 
-const HeaderCell = styled.span<{ $width?: number; $align?: 'right' }>`
-  flex: ${({ $width }) => ($width ? `0 0 ${$width}px` : '1')};
-  min-width: 0;
-  text-align: ${({ $align }) => $align ?? 'left'};
-`;
-
-const TierHeaderCell = styled(HeaderCell)`
-  ${({ theme }) => theme.media.narrow} {
-    display: none;
-  }
-`;
-
-function SwapIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path
-        d="M2.5 5h10m0 0L10 2.5M12.5 5 10 7.5M13.5 11h-10m0 0L6 8.5M3.5 11 6 13.5"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-const RationaleSection = styled.div`
-  width: 100%;
-  padding-top: 48px;
-`;
-
-const RationaleHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 12px;
-`;
-
-const RationaleTitle = styled.p`
-  font: ${({ theme }) => theme.font.sub15};
-  color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const RationaleRow = styled.div`
-  padding: 13px 0;
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-  font: ${({ theme }) => theme.font.body14};
+const Notice = styled.p`
+  font: ${({ theme }) => theme.type.body};
   color: ${({ theme }) => theme.color.text.secondary};
-
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const NoticeLabel = styled.p`
-  padding: ${({ theme }) => theme.space.lg}px 0;
-  font: ${({ theme }) => theme.font.body14};
-  color: ${({ theme }) => theme.color.text.secondary};
-  opacity: 0.7;
 `;
 
 // TEAM_A = 레드, TEAM_B = 블루 (2026-09-12부터 — 그 전엔 반대였음)
@@ -437,140 +371,177 @@ export function TeamFormationPage() {
     });
   };
 
-  const renderTeamPlayer = (p: TeamParticipant) => (
-    <PlayerRow key={p.userId}>
-      <PosCell>
-        {p.assignedPosition && <LaneIcon lane={p.assignedPosition} size={14} />}
-        {p.assignedPosition ?? '-'}
-      </PosCell>
-      <NameCell>
-        <Avatar name={p.nickname} imageUrl={resolveAssetUrl(p.profileImageUrl)} size={20} />
-        {p.nickname}
-      </NameCell>
-      <TierCell>{p.tier ?? (p.hasLinkedAccount ? '언랭크' : '미연동')}</TierCell>
-      <MmrCell>{p.mmr}</MmrCell>
-      <MoveButton
-        type="button"
-        title={p.assignedTeam === 'TEAM_A' ? '블루팀으로 이동' : '레드팀으로 이동'}
-        aria-label={`${p.nickname} ${p.assignedTeam === 'TEAM_A' ? '블루팀으로 이동' : '레드팀으로 이동'}`}
-        onClick={() => handleMoveToOtherTeam(p)}
-        disabled={updateTeams.isPending || match?.status === 'FINISHED'}
-      >
-        <SwapIcon />
-      </MoveButton>
-    </PlayerRow>
-  );
+  const renderTeamPlayer = (p: TeamParticipant, team: Side) => {
+    const moveLabel = p.assignedTeam === 'TEAM_A' ? '블루팀으로 이동' : '레드팀으로 이동';
+    return (
+      <PlayerRow key={p.userId} $team={team}>
+        {p.assignedPosition ? (
+          <>
+            <LaneCompact aria-label={p.assignedPosition}>
+              <LaneLabel lane={p.assignedPosition} iconOnly />
+            </LaneCompact>
+            <LaneFull>
+              <LaneLabel lane={p.assignedPosition} />
+            </LaneFull>
+          </>
+        ) : (
+          <TeamCaption aria-label="라인 미배정">—</TeamCaption>
+        )}
+        <NameCell>
+          <Avatar name={p.nickname} imageUrl={resolveAssetUrl(p.profileImageUrl)} size={24} />
+          <span>{p.nickname}</span>
+        </NameCell>
+        <TierCell>{p.tier ?? (p.hasLinkedAccount ? '언랭크' : '미연동')}</TierCell>
+        <MmrCell
+          $estimated={!p.hasLinkedAccount}
+          title={p.hasLinkedAccount ? undefined : '계정 미연동 — 기본 MMR로 계산했어요'}
+        >
+          {p.mmr.toLocaleString()}
+        </MmrCell>
+        <MoveButton
+          type="button"
+          $size="sm"
+          title={moveLabel}
+          aria-label={`${p.nickname} ${moveLabel}`}
+          onClick={() => handleMoveToOtherTeam(p)}
+          disabled={updateTeams.isPending || match?.status === 'FINISHED'}
+        >
+          <Icon name="swap" size={14} />
+        </MoveButton>
+      </PlayerRow>
+    );
+  };
 
   const isGenerating = generateTeams.isPending;
   const notEnoughMembers = group !== undefined && group.members.length < 2;
+
+  const redPct = analysis ? Math.round(analysis.teamA.expectedWinRate * 100) : 50;
+  const bluePct = analysis ? Math.round(analysis.teamB.expectedWinRate * 100) : 50;
+
+  const notice = matchError
+    ? '내전 정보를 불러올 수 없어요.'
+    : notEnoughMembers
+      ? '그룹원이 2명 이상이어야 팀을 구성할 수 있어요.'
+      : (matchLoading || isGenerating) && participants.length === 0
+        ? isGenerating
+          ? 'AI가 팀을 구성하고 있어요...'
+          : '불러오는 중...'
+        : null;
 
   return (
     <PageLayout>
       <Header>
         <div>
           <Title>내전 팀 구성</Title>
-          <SubtitleRow>
-            <span>{group?.name ?? '그룹 불러오는 중...'}</span>
-            <span>·</span>
-            <span>{participants.length}명 참여</span>
-          </SubtitleRow>
+          <Subtitle>
+            {group?.name ?? '그룹 불러오는 중...'} · {participants.length.toLocaleString()}명 참여
+          </Subtitle>
         </div>
         <HeaderActions>
-          <Button
-            $variant="ghost"
-            $size="sm"
-            onClick={handleReshuffle}
-            disabled={isGenerating || participants.length === 0}
-          >
+          <Button onClick={handleReshuffle} disabled={isGenerating || participants.length === 0}>
+            <Icon name="refresh" />
             다시 추첨
           </Button>
-          <Button $size="sm" onClick={handleConfirm} disabled={updateTeams.isPending || participants.length === 0}>
+          <Button
+            $variant="primary"
+            onClick={handleConfirm}
+            disabled={updateTeams.isPending || participants.length === 0}
+          >
             구성 확정
           </Button>
         </HeaderActions>
       </Header>
 
-      {matchError && <NoticeLabel>내전 정보를 불러올 수 없어요.</NoticeLabel>}
-      {notEnoughMembers && (
-        <NoticeLabel>그룹원이 2명 이상이어야 팀을 구성할 수 있어요.</NoticeLabel>
-      )}
-      {!matchError && !notEnoughMembers && (matchLoading || isGenerating) && participants.length === 0 && (
-        <NoticeLabel>{isGenerating ? 'AI가 팀을 구성하고 있어요...' : '불러오는 중...'}</NoticeLabel>
-      )}
+      <Grid>
+        {notice && (
+          <Col $span={12}>
+            <Card>
+              <Notice role="status">{notice}</Notice>
+            </Card>
+          </Col>
+        )}
 
-      {analysis && (
-        <>
-          <Matchup aria-label="팀 밸런스">
-            <MatchupRow>
-              <SideBlock $team="A">
-                <SideName $team="A">레드 · 팀 A</SideName>
-                <SideMmr>{analysis.teamA.averageMmr}</SideMmr>
-                <SideCaption>평균 MMR</SideCaption>
-              </SideBlock>
-              <Verdict>
-                <VerdictValue>밸런스 {analysis.balancePercent}%</VerdictValue>
-                <VerdictLabel>
-                  예상 승률 {Math.round(analysis.teamA.expectedWinRate * 100)} : {Math.round(analysis.teamB.expectedWinRate * 100)}
-                </VerdictLabel>
-              </Verdict>
-              <SideBlock $team="B">
-                <SideName $team="B">블루 · 팀 B</SideName>
-                <SideMmr>{analysis.teamB.averageMmr}</SideMmr>
-                <SideCaption>평균 MMR</SideCaption>
-              </SideBlock>
-            </MatchupRow>
-            <Gauge>
-              <GaugeSegment $team="A" $share={analysis.teamA.expectedWinRate} />
-              <GaugeSegment $team="B" $share={analysis.teamB.expectedWinRate} />
-              <CenterNotch aria-hidden="true" />
-            </Gauge>
-            <MatchupFootnote>
-              <span>
-                평균 MMR 차이 <strong>{Math.abs(analysis.teamA.averageMmr - analysis.teamB.averageMmr)}</strong>
-              </span>
-              <span>
-                주 라인 배정 <strong>{onPreferredLane}</strong> / {participants.length}명
-              </span>
-            </MatchupFootnote>
-          </Matchup>
-        </>
-      )}
+        {analysis && (
+          <Col $span={12}>
+            <Card>
+              <SectionHeader icon={<Icon name="stats" />} title="팀 밸런스" description="팀을 옮기면 바로 다시 계산돼요" />
+              <Balance
+                role="img"
+                aria-label={`밸런스 ${analysis.balancePercent}%, 예상 승률 레드 ${redPct} 대 블루 ${bluePct}`}
+              >
+                <BalanceMeta aria-hidden="true">
+                  <BalanceScore>
+                    밸런스 <b>{analysis.balancePercent}%</b>
+                  </BalanceScore>
+                  <WinRateLabel>
+                    예상 승률 <TeamText $team="A">{redPct}</TeamText> : <TeamText $team="B">{bluePct}</TeamText>
+                  </WinRateLabel>
+                </BalanceMeta>
+                <BalanceTrack aria-hidden="true">
+                  <BalanceRed $pct={redPct} />
+                  <BalanceBlue />
+                  <BalanceMarker />
+                </BalanceTrack>
+              </Balance>
+              <StatGrid>
+                <Stat>
+                  <StatLabel>레드 평균 MMR</StatLabel>
+                  <StatValue $team="A">{analysis.teamA.averageMmr.toLocaleString()}</StatValue>
+                </Stat>
+                <Stat>
+                  <StatLabel>블루 평균 MMR</StatLabel>
+                  <StatValue $team="B">{analysis.teamB.averageMmr.toLocaleString()}</StatValue>
+                </Stat>
+                <Stat>
+                  <StatLabel>평균 MMR 차이</StatLabel>
+                  <StatValue>
+                    {Math.abs(analysis.teamA.averageMmr - analysis.teamB.averageMmr).toLocaleString()}
+                  </StatValue>
+                </Stat>
+                <Stat>
+                  <StatLabel>주 라인 배정</StatLabel>
+                  <StatValue>
+                    {onPreferredLane} <small>/ {participants.length}명</small>
+                  </StatValue>
+                </Stat>
+              </StatGrid>
+            </Card>
+          </Col>
+        )}
 
-      {participants.length > 0 && (
-        <Roster>
-          {([['A', teamA, 'left'], ['B', teamB, 'right']] as const).map(([team, roster, side]) => (
-            <TeamColumn key={team} $side={side}>
-              <TeamColorBar $team={team} />
-              <TeamHeader>
-                <TeamNameRow>
-                  <TeamName>팀 {team}</TeamName>
-                  <TeamSideTag $team={team}>{team === 'A' ? '레드' : '블루'}</TeamSideTag>
-                </TeamNameRow>
-                <TeamMmrSum>MMR 합계 {roster.reduce((sum, p) => sum + p.mmr, 0)}</TeamMmrSum>
-              </TeamHeader>
-              <RosterHeaderRow>
-                <HeaderCell $width={64}>라인</HeaderCell>
-                <HeaderCell>소환사</HeaderCell>
-                <TierHeaderCell $width={115}>티어</TierHeaderCell>
-                <HeaderCell $width={56} $align="right">MMR</HeaderCell>
-                <HeaderCell $width={32} />
-              </RosterHeaderRow>
-              {roster.map(renderTeamPlayer)}
-            </TeamColumn>
-          ))}
-        </Roster>
-      )}
+        {participants.length > 0 &&
+          ([['A', teamA], ['B', teamB]] as const).map(([team, roster]) => {
+            const total = roster.reduce((sum, p) => sum + p.mmr, 0);
+            return (
+              <Col key={team} $span={6}>
+                <Card>
+                  <TeamHead>
+                    <TeamTag $team={team}>{team === 'A' ? '레드' : '블루'} · 팀 {team}</TeamTag>
+                    <HeroNumber $team={team}>{total.toLocaleString()}</HeroNumber>
+                    <TeamCaption>
+                      MMR 합계 · 평균 {roster.length ? Math.round(total / roster.length).toLocaleString() : '—'} ·{' '}
+                      {roster.length}명
+                    </TeamCaption>
+                  </TeamHead>
+                  <RosterList>{roster.map((p) => renderTeamPlayer(p, team))}</RosterList>
+                </Card>
+              </Col>
+            );
+          })}
 
-      {analysis && analysis.reasoning.length > 0 && (
-        <RationaleSection>
-          <RationaleHeader>
-            <RationaleTitle>구성 근거</RationaleTitle>
-          </RationaleHeader>
-          {analysis.reasoning.map((line, i) => (
-            <RationaleRow key={i}>{line}</RationaleRow>
-          ))}
-        </RationaleSection>
-      )}
+        {analysis && analysis.reasoning.length > 0 && (
+          <Col $span={12}>
+            <Card>
+              <SectionHeader icon={<Icon name="chat" />} title="구성 근거" description="AI가 이렇게 나눈 이유예요" />
+              <ReasonList>
+                {analysis.reasoning.map((line, i) => (
+                  <ReasonRow key={i}>{line}</ReasonRow>
+                ))}
+              </ReasonList>
+            </Card>
+          </Col>
+        )}
+      </Grid>
     </PageLayout>
   );
 }

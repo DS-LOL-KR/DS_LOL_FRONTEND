@@ -4,8 +4,12 @@ import styled from 'styled-components';
 import { Input, Textarea } from '../components/Input/Input';
 import { Button } from '../components/Button/Button';
 import { Modal } from '../components/Modal/Modal';
-import { LaneIcon } from '../components/LaneIcon/LaneIcon';
+import { LaneLabel } from '../components/LaneIcon/LaneIcon';
 import { Wordmark } from '../components/Wordmark/Wordmark';
+import { Avatar } from '../components/Avatar/Avatar';
+import { CardBox, SectionHeader } from '../components/Card/Card';
+import { Icon } from '../components/Icon/Icon';
+import { PageHeader, PageTitle, PageSubtitle } from '../components/layout/PageHeader';
 import { useProfile, useUpdateProfile, useUploadProfileImage } from '../features/profile/hooks';
 import { useLogout } from '../features/auth/hooks';
 import {
@@ -23,105 +27,86 @@ import { formatDate } from '../utils/formatDateTime';
 
 const POSITIONS: Position[] = ['TOP', 'JUG', 'MID', 'ADC', 'SUP'];
 
+// Standalone (no sidebar shell): /onboarding runs before the user has a group,
+// and the same screen doubles as "내 프로필" edit.
 const Screen = styled.div`
   min-height: 100vh;
+  background: ${({ theme }) => theme.color.canvas};
 `;
 
 const TopBar = styled.header`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-4);
   height: 56px;
-  padding: 0 ${({ theme }) => theme.space.lg}px;
-  background: ${({ theme }) => theme.color.surface.raised};
+  padding: 0 var(--space-6);
+  background: ${({ theme }) => theme.color.sidebar};
   border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
 
   ${({ theme }) => theme.media.mobile} {
-    padding: 0 ${({ theme }) => theme.space.md}px;
+    padding: 0 var(--space-4);
   }
-`;
-
-
-const TopBarRight = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.space.md}px;
-`;
-
-const PageName = styled.span`
-  font: ${({ theme }) => theme.font.label12};
-  color: ${({ theme }) => theme.color.text.secondary};
 `;
 
 const Body = styled.main`
   display: flex;
   justify-content: center;
-  padding: ${({ theme }) => theme.space.xl * 2}px ${({ theme }) => theme.space.lg}px;
+  padding: var(--space-12) var(--space-6);
 
   ${({ theme }) => theme.media.mobile} {
-    padding: ${({ theme }) => theme.space.xl}px ${({ theme }) => theme.space.md}px 48px;
+    padding: var(--space-6) var(--space-4) var(--space-12);
   }
 `;
 
 const Form = styled.form`
-  width: 100%;
-  max-width: 620px;
-`;
-
-const Heading = styled.h1`
-  font: ${({ theme }) => theme.font.title26};
-  letter-spacing: -0.02em;
-  color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const HeadingSub = styled.p`
-  margin-top: ${({ theme }) => theme.space.xs}px;
-  font: ${({ theme }) => theme.font.small13};
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
-
-const Spacer = styled.div<{ $size: number }>`
-  height: ${({ $size }) => $size}px;
-`;
-
-const Divider = styled.hr`
-  border: none;
-  height: 1px;
-  background: ${({ theme }) => theme.color.border.base};
-  width: 100%;
-`;
-
-const Row = styled.div`
   display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.space.md}px;
-  padding: ${({ theme }) => theme.space.md}px 0;
+  flex-direction: column;
+  gap: var(--card-gap);
+  width: 100%;
+  max-width: 720px;
+  min-width: 0;
+`;
+
+const Header = styled(PageHeader)`
+  margin-bottom: var(--space-3);
 `;
 
 const Field = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.space.xs}px;
-  padding: ${({ theme }) => theme.space.md}px 0;
+  gap: var(--space-2);
+
+  & + & {
+    margin-top: var(--space-5);
+  }
 `;
 
 const FieldLabel = styled.label`
-  font: ${({ theme }) => theme.font.label12m};
-  color: ${({ theme }) => theme.color.text.secondary};
+  font: ${({ theme }) => theme.type.labelStrong};
+  color: ${({ theme }) => theme.color.text.primary};
 `;
 
 const FieldHint = styled.span`
-  font: ${({ theme }) => theme.font.caption11};
-  color: ${({ theme }) => theme.color.text.secondary};
+  font: ${({ theme }) => theme.type.caption};
+  color: ${({ theme }) => theme.color.text.muted};
 `;
 
-const Avatar = styled.div<{ $src?: string }>`
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: ${({ theme, $src }) => ($src ? `url(${$src}) center/cover` : theme.color.surface.subtle)};
-  border: 1px solid ${({ theme }) => theme.color.border.base};
-  flex-shrink: 0;
+// Raised row inside the card (no card-in-card).
+const RaisedRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: ${({ theme }) => theme.color.surface.subtle};
+  border: 1px solid ${({ theme }) => theme.color.border.strong};
+  border-radius: ${({ theme }) => theme.radius.control}px;
+`;
+
+const AvatarRow = styled(RaisedRow)`
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: var(--space-5);
 `;
 
 const AvatarInfo = styled.div`
@@ -130,12 +115,12 @@ const AvatarInfo = styled.div`
 `;
 
 const AvatarName = styled.p`
-  font: ${({ theme }) => theme.font.body14b};
+  font: ${({ theme }) => theme.type.bodyStrong};
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
 const AvatarHint = styled.p`
-  font: ${({ theme }) => theme.font.caption11};
+  font: ${({ theme }) => theme.type.caption};
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
@@ -143,56 +128,17 @@ const FileInput = styled.input`
   display: none;
 `;
 
-// Linked accounts are rows in the form, not boxed cards stacked inside it —
-// the rest of the form already separates groups with hairlines.
 const GameAccounts = styled.div`
   display: flex;
   flex-direction: column;
-  border-top: 1px solid ${({ theme }) => theme.color.border.base};
+  gap: var(--space-2);
 `;
 
-const AccountCard = styled.div<{ $column?: boolean }>`
-  display: flex;
-  ${({ $column }) => ($column ? 'flex-direction: column; align-items: stretch;' : 'align-items: center;')}
-  gap: ${({ theme }) => theme.space.md}px;
-  padding: ${({ theme }) => theme.space.md}px 0;
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-`;
-
-const AccountCardRow = styled.div`
+const AccountTop = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: ${({ theme }) => theme.space.md}px;
-`;
-
-const PositionRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-`;
-
-const PositionRowLabel = styled.span`
-  font: ${({ theme }) => theme.font.caption11m};
-  color: ${({ theme }) => theme.color.text.secondary};
-  margin-right: 2px;
-`;
-
-const PositionIconButton = styled.button<{ $active: boolean }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: ${({ theme }) => theme.radius.sm}px;
-  border: 1px solid ${({ theme, $active }) => ($active ? theme.color.text.primary : theme.color.border.base)};
-  background: ${({ theme, $active }) => ($active ? theme.color.text.primary : 'transparent')};
-  color: ${({ theme, $active }) => ($active ? '#121315' : theme.color.text.secondary)};
-  cursor: pointer;
-  transition: filter 0.15s ease;
-
-  &:hover:not(:disabled) { filter: brightness(1.1); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  gap: var(--space-3) var(--space-4);
 `;
 
 const AccountInfo = styled.div`
@@ -203,70 +149,180 @@ const AccountInfo = styled.div`
 const AccountNameRow = styled.div`
   display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.space.xs}px;
+  gap: var(--space-2);
+  min-width: 0;
 `;
 
 const AccountName = styled.span<{ $linked?: boolean }>`
-  font: ${({ theme }) => theme.font.body14b};
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: ${({ theme }) => theme.type.bodyStrong};
   color: ${({ theme, $linked }) => ($linked ? theme.color.text.primary : theme.color.text.secondary)};
 `;
 
+// Connection state = 6px dot + text (same pattern as the sidebar Discord card).
 const LinkedTag = styled.span`
-  font: ${({ theme }) => theme.font.caption11};
-  color: ${({ theme }) => theme.color.state.success};
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font: ${({ theme }) => theme.type.caption};
+  color: ${({ theme }) => theme.color.text.secondary};
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-full);
+    background: ${({ theme }) => theme.color.state.success};
+  }
 `;
 
 const AccountHint = styled.p`
-  font: ${({ theme }) => theme.font.caption11};
+  margin-top: 2px;
+  font: ${({ theme }) => theme.type.caption};
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
+// Riot official tier — uncolored text; only group tiers (1~5) get tier colors.
 const TierBlock = styled.div`
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
+
+  ${({ theme }) => theme.media.mobile} {
+    align-items: flex-start;
+  }
 `;
 
 const TierLabel = styled.span`
-  font: ${({ theme }) => theme.font.caption11m};
-  letter-spacing: 0.5px;
-  color: ${({ theme }) => theme.color.text.secondary};
+  font: ${({ theme }) => theme.type.caption};
+  color: ${({ theme }) => theme.color.text.muted};
 `;
 
 const TierValue = styled.span`
-  font: ${({ theme }) => theme.font.body14b};
-  color: ${({ theme }) => theme.color.text.primary};
+  font: ${({ theme }) => theme.type.label};
+  color: ${({ theme }) => theme.color.text.secondary};
+`;
+
+const AccountActions = styled.div`
+  display: flex;
+  gap: var(--space-2);
+
+  ${({ theme }) => theme.media.mobile} {
+    flex: 1 1 100%;
+
+    & > * {
+      flex: 1;
+    }
+  }
+`;
+
+const PositionRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid ${({ theme }) => theme.color.border.strong};
+`;
+
+const PositionRowLabel = styled.span`
+  font: ${({ theme }) => theme.type.caption};
+  color: ${({ theme }) => theme.color.text.secondary};
+`;
+
+// Segmented-style toggle track (docs/design-system.md → Segmented Control):
+// selected = hover fill + primary text, never a white fill.
+const PositionTrack = styled.div`
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 2px;
+  padding: 2px;
+  background: ${({ theme }) => theme.color.surface.card};
+  border: 1px solid ${({ theme }) => theme.color.border.base};
+  border-radius: ${({ theme }) => theme.radius.control}px;
+`;
+
+const PositionButton = styled.button<{ $active: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 32px;
+  border: 0;
+  border-radius: ${({ theme }) => theme.radius.badge}px;
+  background: ${({ theme, $active }) => ($active ? theme.color.surface.hover : 'transparent')};
+  color: ${({ theme, $active }) => ($active ? theme.color.text.primary : theme.color.text.secondary)};
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+
+  &:hover:not(:disabled) {
+    color: ${({ theme }) => theme.color.text.primary};
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  ${({ theme }) => theme.media.mobile} {
+    height: 40px;
+  }
+
+  /* Icon only on phones — the abbreviation stays in aria-label/title. */
+  ${({ theme }) => theme.media.narrow} {
+    & > span {
+      gap: 0;
+      font-size: 0;
+    }
+  }
+`;
+
+const CardFootnote = styled.p`
+  margin-top: var(--space-3);
+  font: ${({ theme }) => theme.type.caption};
+  color: ${({ theme }) => theme.color.text.muted};
 `;
 
 const Footer = styled.div`
   display: flex;
   justify-content: flex-end;
-  padding-top: ${({ theme }) => theme.space.lg}px;
+  padding-top: var(--space-3);
+
+  ${({ theme }) => theme.media.mobile} {
+    & > * {
+      flex: 1;
+    }
+  }
 `;
 
-const ModalTitle = styled.p`
-  font: ${({ theme }) => theme.font.sub17};
+const ModalTitle = styled.h2`
+  font: ${({ theme }) => theme.type.heading};
   color: ${({ theme }) => theme.color.text.primary};
-  margin-bottom: ${({ theme }) => theme.space.md}px;
+  margin-bottom: var(--space-4);
 `;
 
 const ModalError = styled.p`
-  margin-top: ${({ theme }) => theme.space.xs}px;
-  font: ${({ theme }) => theme.font.caption11};
+  margin-top: var(--space-2);
+  font: ${({ theme }) => theme.type.caption};
   color: ${({ theme }) => theme.color.state.danger};
 `;
 
 const ModalBody = styled.p`
-  font: ${({ theme }) => theme.font.body14};
+  font: ${({ theme }) => theme.type.body};
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
 const ModalActions = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: ${({ theme }) => theme.space.xs}px;
-  margin-top: ${({ theme }) => theme.space.md}px;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
 `;
 
 export function ProfileSetupPage() {
@@ -355,57 +411,66 @@ export function ProfileSetupPage() {
   return (
     <Screen>
       <TopBar>
-        <Wordmark size={21} />
-        <TopBarRight>
-          <PageName>프로필 설정</PageName>
-          <Button $variant="ghost" $size="sm" onClick={handleLogout} disabled={logout.isPending}>
-            로그아웃
-          </Button>
-        </TopBarRight>
+        <Wordmark size={18} />
+        <Button $variant="ghost" onClick={handleLogout} disabled={logout.isPending}>
+          로그아웃
+        </Button>
       </TopBar>
       <Body>
         <Form onSubmit={handleSave}>
-          <Heading>프로필 설정</Heading>
-          <HeadingSub>그룹원들에게 보여질 정보예요</HeadingSub>
-          <Spacer $size={24} />
-          <Divider />
-          <Row>
-            <Avatar $src={resolveAssetUrl(profile?.profileImageUrl)} />
-            <AvatarInfo>
-              <AvatarName>프로필 이미지</AvatarName>
-              <AvatarHint>JPG, PNG · 5MB 이하</AvatarHint>
-            </AvatarInfo>
-            <Button as="label" $variant="ghost" $size="sm">
-              {uploadProfileImage.isPending ? '업로드 중...' : '파일 선택'}
-              <FileInput type="file" accept="image/png,image/jpeg" onChange={handleAvatarChange} />
-            </Button>
-          </Row>
-          <Divider />
-          <Field>
-            <FieldLabel htmlFor="profile-nickname">이름</FieldLabel>
-            <Input
-              id="profile-nickname"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder="재현"
+          <Header>
+            <div>
+              <PageTitle>프로필 설정</PageTitle>
+              <PageSubtitle>그룹원들에게 보여질 정보예요</PageSubtitle>
+            </div>
+          </Header>
+
+          <CardBox>
+            <SectionHeader icon={<Icon name="user" />} title="프로필" description="이름과 사진은 그룹 안에서 보여요" />
+            <AvatarRow>
+              <Avatar
+                name={nickname || profile?.nickname || '?'}
+                imageUrl={resolveAssetUrl(profile?.profileImageUrl)}
+                size={48}
+              />
+              <AvatarInfo>
+                <AvatarName>프로필 이미지</AvatarName>
+                <AvatarHint>JPG, PNG · 5MB 이하</AvatarHint>
+              </AvatarInfo>
+              <Button as="label">
+                {uploadProfileImage.isPending ? '업로드 중...' : '파일 선택'}
+                <FileInput type="file" accept="image/png,image/jpeg" onChange={handleAvatarChange} />
+              </Button>
+            </AvatarRow>
+            <Field>
+              <FieldLabel htmlFor="profile-nickname">이름</FieldLabel>
+              <Input
+                id="profile-nickname"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="재현"
+              />
+              <FieldHint>그룹 안에서 표시되는 이름이에요</FieldHint>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="profile-bio">자기소개</FieldLabel>
+              <Textarea
+                id="profile-bio"
+                rows={3}
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder={'미드 주력 / 정글 서브\n야간 내전만 참여합니다'}
+              />
+              <FieldHint>마크다운 지원 · **굵게**, *기울임*, - 목록</FieldHint>
+            </Field>
+          </CardBox>
+
+          <CardBox>
+            <SectionHeader
+              icon={<Icon name="link" />}
+              title="게임 계정 연동"
+              description="연동하면 티어와 전적을 자동으로 불러와요"
             />
-            <FieldHint>그룹 안에서 표시되는 이름이에요</FieldHint>
-          </Field>
-          <Divider />
-          <Field>
-            <FieldLabel htmlFor="profile-bio">자기소개</FieldLabel>
-            <Textarea
-              id="profile-bio"
-              rows={3}
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder={'미드 주력 / 정글 서브\n야간 내전만 참여합니다'}
-            />
-            <FieldHint>마크다운 지원 · **굵게**, *기울임*, - 목록</FieldHint>
-          </Field>
-          <Divider />
-          <Field>
-            <FieldLabel>게임 계정 연동</FieldLabel>
             <GameAccounts>
               {(!games || games.length === 0) && <AccountHint>연동 가능한 게임을 불러오는 중이에요</AccountHint>}
               {(games ?? []).map((game) => {
@@ -414,8 +479,8 @@ export function ProfileSetupPage() {
                 // (발로란트는 계정 연동까지만, 2026-09-13) 게임별로 분기함.
                 const isLol = game.code === 'LOL';
                 return account ? (
-                  <AccountCard key={game.id} $column>
-                    <AccountCardRow>
+                  <RaisedRow key={game.id}>
+                    <AccountTop>
                       <AccountInfo>
                         <AccountNameRow>
                           <AccountName $linked>{account.gameNickname}</AccountName>
@@ -433,40 +498,45 @@ export function ProfileSetupPage() {
                           <TierValue>{account.stats?.officialTier ?? '미확인'}</TierValue>
                         </TierBlock>
                       )}
-                      {isLol && <RefreshAccountButton accountId={account.id} />}
-                      <Button
-                        type="button"
-                        $variant="dangerGhost"
-                        $size="sm"
-                        onClick={() => setUnlinkTarget({ id: account.id, gameNickname: account.gameNickname })}
-                      >
-                        연동 해제
-                      </Button>
-                    </AccountCardRow>
+                      <AccountActions>
+                        {isLol && <RefreshAccountButton accountId={account.id} />}
+                        <Button
+                          type="button"
+                          $variant="danger"
+                          onClick={() => setUnlinkTarget({ id: account.id, gameNickname: account.gameNickname })}
+                        >
+                          연동 해제
+                        </Button>
+                      </AccountActions>
+                    </AccountTop>
                     {isLol && (
                       <PreferredPositionPicker accountId={account.id} mainPosition={account.stats?.mainPosition ?? null} />
                     )}
-                  </AccountCard>
+                  </RaisedRow>
                 ) : (
-                  <AccountCard key={game.id}>
-                    <AccountInfo>
-                      <AccountName>{getGameDisplayName(game)}</AccountName>
-                      <AccountHint>연동하면 티어와 전적을 자동으로 불러와요</AccountHint>
-                    </AccountInfo>
-                    <Button type="button" $variant="ghost" $size="sm" onClick={() => setLinkingGameId(game.id)}>
-                      계정 연동
-                    </Button>
-                  </AccountCard>
+                  <RaisedRow key={game.id}>
+                    <AccountTop>
+                      <AccountInfo>
+                        <AccountName>{getGameDisplayName(game)}</AccountName>
+                        <AccountHint>연동하면 티어와 전적을 자동으로 불러와요</AccountHint>
+                      </AccountInfo>
+                      <AccountActions>
+                        <Button type="button" onClick={() => setLinkingGameId(game.id)}>
+                          계정 연동
+                        </Button>
+                      </AccountActions>
+                    </AccountTop>
+                  </RaisedRow>
                 );
               })}
             </GameAccounts>
-            <FieldHint>
+            <CardFootnote>
               티어는 직접 고칠 수 없어요. 그룹 내부 티어는 전적·평가를 합산해 따로 계산돼요
-            </FieldHint>
-          </Field>
-          <Divider />
+            </CardFootnote>
+          </CardBox>
+
           <Footer>
-            <Button type="submit" disabled={updateProfile.isPending}>
+            <Button type="submit" $variant="primary" disabled={updateProfile.isPending}>
               저장하고 시작하기
             </Button>
           </Footer>
@@ -482,12 +552,14 @@ export function ProfileSetupPage() {
             if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleLinkGameAccount();
           }}
           placeholder="Hide on bush#KR1"
+          aria-label="라이엇 ID (이름#태그)"
+          aria-invalid={linkError ? true : undefined}
           autoFocus
         />
         {linkError && <ModalError>{linkError}</ModalError>}
         <ModalActions>
-          <Button $variant="ghost" $size="sm" onClick={closeLinkModal}>취소</Button>
-          <Button $size="sm" onClick={handleLinkGameAccount} disabled={linkGameAccount.isPending}>
+          <Button $variant="ghost" onClick={closeLinkModal}>취소</Button>
+          <Button $variant="primary" onClick={handleLinkGameAccount} disabled={linkGameAccount.isPending}>
             {linkGameAccount.isPending ? '연동하고 전적 가져오는 중...' : '연동'}
           </Button>
         </ModalActions>
@@ -497,8 +569,8 @@ export function ProfileSetupPage() {
         <ModalTitle>{unlinkTarget?.gameNickname} 연동을 해제할까요?</ModalTitle>
         <ModalBody>동기화된 전적·숙련도·라인 기록이 모두 삭제되며 되돌릴 수 없어요.</ModalBody>
         <ModalActions>
-          <Button $variant="ghost" $size="sm" onClick={() => setUnlinkTarget(null)}>취소</Button>
-          <Button $variant="danger" $size="sm" onClick={handleUnlinkConfirmed} disabled={unlinkGameAccount.isPending}>
+          <Button $variant="ghost" onClick={() => setUnlinkTarget(null)}>취소</Button>
+          <Button $variant="danger" onClick={handleUnlinkConfirmed} disabled={unlinkGameAccount.isPending}>
             {unlinkGameAccount.isPending ? '해제 중...' : '연동 해제'}
           </Button>
         </ModalActions>
@@ -512,7 +584,7 @@ function RefreshAccountButton({ accountId }: { accountId: number }) {
   // "지금 갱신"/"전적 동기화"와 동일한 동작으로 맞춤.
   const fullSync = useFullSyncGameAccount(accountId);
   return (
-    <Button type="button" $variant="ghost" $size="sm" onClick={() => fullSync.mutate(undefined)} disabled={fullSync.isPending}>
+    <Button type="button" onClick={() => fullSync.mutate(undefined)} disabled={fullSync.isPending}>
       {fullSync.isPending ? '동기화 중...' : '동기화'}
     </Button>
   );
@@ -528,20 +600,22 @@ function PreferredPositionPicker({ accountId, mainPosition }: { accountId: numbe
   return (
     <PositionRow>
       <PositionRowLabel>주라인{mainPosition ? '' : ' (자동)'}</PositionRowLabel>
-      {POSITIONS.map((p) => (
-        <PositionIconButton
-          key={p}
-          type="button"
-          title={p}
-          aria-label={`주라인 ${p}`}
-          aria-pressed={mainPosition === p}
-          $active={mainPosition === p}
-          disabled={updatePosition.isPending}
-          onClick={() => updatePosition.mutate({ mainPosition: mainPosition === p ? null : p })}
-        >
-          <LaneIcon lane={p} size={13} />
-        </PositionIconButton>
-      ))}
+      <PositionTrack>
+        {POSITIONS.map((p) => (
+          <PositionButton
+            key={p}
+            type="button"
+            title={p}
+            aria-label={`주라인 ${p}`}
+            aria-pressed={mainPosition === p}
+            $active={mainPosition === p}
+            disabled={updatePosition.isPending}
+            onClick={() => updatePosition.mutate({ mainPosition: mainPosition === p ? null : p })}
+          >
+            <LaneLabel lane={p} main={mainPosition === p} />
+          </PositionButton>
+        ))}
+      </PositionTrack>
     </PositionRow>
   );
 }
