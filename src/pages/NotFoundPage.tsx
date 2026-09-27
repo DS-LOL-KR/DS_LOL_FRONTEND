@@ -1,53 +1,67 @@
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
+import { CardBox, IconBox } from '../components/Card/Card';
+import { Button } from '../components/Button/Button';
+import { Icon } from '../components/Icon/Icon';
 
-const Screen = styled.div`
+// Standalone (no sidebar shell) — the route may not exist for a signed-out visitor either.
+// docs/design-system.md → Empty state: 32px icon box + heading + label + one button.
+const Screen = styled.main`
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: 20px;
+  padding: var(--space-8) var(--space-4);
+  background: ${({ theme }) => theme.color.canvas};
+`;
+
+const Panel = styled(CardBox)`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 400px;
+  padding: var(--space-8) var(--space-6);
   text-align: center;
 `;
 
 const Code = styled.p`
-  font: ${({ theme }) => theme.font.title22};
-  color: ${({ theme }) => theme.color.text.secondary};
+  margin-top: var(--space-4);
+  font: ${({ theme }) => theme.type.captionStrong};
+  font-variant-numeric: tabular-nums;
+  color: ${({ theme }) => theme.color.text.muted};
 `;
 
 const Title = styled.h1`
-  margin-top: ${({ theme }) => theme.space.xs}px;
-  font: ${({ theme }) => theme.font.title26};
+  margin-top: var(--space-1);
+  font: ${({ theme }) => theme.type.heading};
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
 const Body = styled.p`
-  margin-top: ${({ theme }) => theme.space.sm}px;
-  font: ${({ theme }) => theme.font.body14};
+  margin-top: var(--space-1);
+  font: ${({ theme }) => theme.type.label};
   color: ${({ theme }) => theme.color.text.secondary};
 `;
 
-const HomeLink = styled(Link)`
-  margin-top: ${({ theme }) => theme.space.xl}px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 44px;
-  padding: 0 22px;
-  border-radius: 6px;
-  background: ${({ theme }) => theme.color.text.primary};
-  color: #121315;
-  font: ${({ theme }) => theme.font.body14b};
+const HomeButton = styled(Button)`
+  margin-top: var(--space-6);
 `;
 
 export function NotFoundPage() {
   return (
     <Screen>
-      <Code>404</Code>
-      <Title>페이지를 찾을 수 없어요</Title>
-      <Body>주소가 잘못되었거나 삭제된 페이지예요.</Body>
-      <HomeLink to="/">DS_LOL 홈으로 돌아가기</HomeLink>
+      <Panel>
+        <IconBox aria-hidden="true">
+          <Icon name="close" />
+        </IconBox>
+        <Code>404</Code>
+        <Title>페이지를 찾을 수 없어요</Title>
+        <Body>주소가 잘못되었거나 삭제된 페이지예요.</Body>
+        <HomeButton as={Link} to="/" $variant="primary">
+          DS_LOL 홈으로 돌아가기
+        </HomeButton>
+      </Panel>
     </Screen>
   );
 }

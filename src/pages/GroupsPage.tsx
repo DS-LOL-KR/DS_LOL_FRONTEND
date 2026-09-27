@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle, HeaderActions } from '../components/layout/PageHeader';
+import { Col, Grid } from '../components/layout/Grid';
+import { Card, SectionHeader, IconBox, CardTitle } from '../components/Card/Card';
+import { Badge } from '../components/Badge/Badge';
 import { Button } from '../components/Button/Button';
+import { Icon } from '../components/Icon/Icon';
 import { Input } from '../components/Input/Input';
 import { Modal } from '../components/Modal/Modal';
 import { Table } from '../components/Table/Table';
@@ -15,77 +19,74 @@ import { useMe } from '../features/auth/hooks';
 import { setActiveGroupId } from '../utils/activeGroup';
 import { getGameDisplayName } from '../utils/gameDisplayName';
 
-const JoinRow = styled.div`
+const JoinForm = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: ${({ theme }) => theme.space.sm}px;
-  padding: ${({ theme }) => theme.space.md}px 0;
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-`;
-
-const JoinLabel = styled.label`
-  width: 130px;
-  flex-shrink: 0;
-  font: ${({ theme }) => theme.font.label12m};
-  color: ${({ theme }) => theme.color.text.secondary};
-
-  ${({ theme }) => theme.media.mobile} {
-    width: 100%;
-  }
+  gap: var(--space-2) var(--space-3);
 `;
 
 const JoinInput = styled(Input)`
-  width: 240px;
+  flex: 1;
+  width: auto;
+  min-width: 0;
   letter-spacing: 0.04em;
-
-  ${({ theme }) => theme.media.mobile} {
-    flex: 1;
-    width: auto;
-    min-width: 0;
-  }
 `;
 
+// Input + button share the first line; the hint/error takes the next one.
 const JoinHint = styled.span`
-  flex: 1 1 240px;
-  font: ${({ theme }) => theme.font.caption11};
-  color: ${({ theme }) => theme.color.text.secondary};
+  flex-basis: 100%;
+  font: ${({ theme }) => theme.type.caption};
+  color: ${({ theme }) => theme.color.text.muted};
 `;
 
 const JoinError = styled.span`
-  flex: 1 1 240px;
-  font: ${({ theme }) => theme.font.caption11};
+  flex-basis: 100%;
+  font: ${({ theme }) => theme.type.caption};
   color: ${({ theme }) => theme.color.state.danger};
 `;
 
-const TableWrap = styled.div`
-  margin-top: ${({ theme }) => theme.space.xs}px;
+const GroupName = styled.span`
+  font: ${({ theme }) => theme.type.bodyStrong};
+  color: ${({ theme }) => theme.color.text.primary};
 `;
 
-const ModalTitle = styled.p`
-  font: ${({ theme }) => theme.font.sub17};
+const Secondary = styled.span`
+  font: ${({ theme }) => theme.type.label};
+  color: ${({ theme }) => theme.color.text.secondary};
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--card-padding);
+  text-align: center;
+`;
+
+const EmptyText = styled.p`
+  font: ${({ theme }) => theme.type.label};
+  color: ${({ theme }) => theme.color.text.secondary};
+`;
+
+const ModalTitle = styled.h2`
+  font: ${({ theme }) => theme.type.heading};
   color: ${({ theme }) => theme.color.text.primary};
-  margin-bottom: ${({ theme }) => theme.space.md}px;
+  margin-bottom: var(--space-4);
 `;
 
 const ModalActions = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: ${({ theme }) => theme.space.xs}px;
-  margin-top: ${({ theme }) => theme.space.md}px;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
 `;
 
 const ModalError = styled.p`
-  margin-top: ${({ theme }) => theme.space.xs}px;
-  font: ${({ theme }) => theme.font.caption11};
+  margin-top: var(--space-2);
+  font: ${({ theme }) => theme.type.caption};
   color: ${({ theme }) => theme.color.state.danger};
-`;
-
-const EmptyLabel = styled.p`
-  padding: ${({ theme }) => theme.space.lg}px 0;
-  font: ${({ theme }) => theme.font.body14};
-  color: ${({ theme }) => theme.color.text.secondary};
-  opacity: 0.7;
 `;
 
 export function GroupsPage() {
@@ -112,23 +113,29 @@ export function GroupsPage() {
   };
 
   const columns: Column<Group>[] = [
-    { key: 'name', header: '그룹', render: (row) => row.name },
-    { key: 'game', header: '게임', width: 180, render: (row) => gameName(row.gameId) },
+    { key: 'name', header: '그룹', render: (row) => <GroupName>{row.name}</GroupName> },
+    { key: 'game', header: '게임', width: 180, render: (row) => <Secondary>{gameName(row.gameId)}</Secondary> },
     {
       key: 'role',
       header: '역할',
-      width: 90,
-      align: 'right',
-      render: (row) => (row.ownerId === me?.id ? '그룹장' : '멤버'),
+      width: 96,
+      render: (row) => (row.ownerId === me?.id ? <Badge>그룹장</Badge> : <Secondary>멤버</Secondary>),
     },
     {
       key: 'action',
       header: '',
-      width: 90,
+      width: 96,
       align: 'right',
       render: (row) => (
-        <Button $variant="secondary" $size="sm" onClick={() => enterGroup(row.id)}>
+        <Button
+          $size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            enterGroup(row.id);
+          }}
+        >
           입장
+          <Icon name="chevronRight" size={14} />
         </Button>
       ),
     },
@@ -161,43 +168,82 @@ export function GroupsPage() {
       <Header>
         <div>
           <Title>내 그룹</Title>
-          <Subtitle>참여 중인 그룹 {rows.length}개</Subtitle>
+          <Subtitle>참여 중인 그룹 {rows.length.toLocaleString()}개</Subtitle>
         </div>
         <HeaderActions>
-          <Button onClick={() => setCreateOpen(true)}>그룹 만들기</Button>
+          <Button $variant="primary" onClick={() => setCreateOpen(true)}>
+            <Icon name="plus" size={14} />
+            그룹 만들기
+          </Button>
         </HeaderActions>
       </Header>
-      <JoinRow>
-        <JoinLabel htmlFor="join-key">그룹 키로 참여</JoinLabel>
-        <JoinInput
-          id="join-key"
-          value={joinKey}
-          onChange={(e) => setJoinKey(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleJoinGroup();
-          }}
-          placeholder="A7K2-9QMD"
-        />
-        <Button $variant="secondary" $size="sm" onClick={handleJoinGroup} disabled={joinGroup.isPending}>
-          참여
-        </Button>
-        {joinGroup.isError ? (
-          <JoinError>키를 확인해주세요</JoinError>
-        ) : (
-          <JoinHint>친구에게 받은 8자리 코드를 입력하면 바로 참여돼요</JoinHint>
-        )}
-      </JoinRow>
-      <TableWrap>
-        {groupsLoading ? (
-          <EmptyLabel>불러오는 중...</EmptyLabel>
-        ) : groupsError ? (
-          <EmptyLabel>그룹 목록을 불러오지 못했어요</EmptyLabel>
-        ) : rows.length === 0 ? (
-          <EmptyLabel>참여 중인 그룹이 없어요. 그룹을 만들거나 초대 코드로 참여해보세요</EmptyLabel>
-        ) : (
-          <Table columns={columns} data={rows} minWidth={520} />
-        )}
-      </TableWrap>
+
+      <Grid>
+        <Col $span={8}>
+        <Card flush>
+          <SectionHeader
+            inset
+            icon={<Icon name="groups" />}
+            title="참여 중인 그룹"
+            description="그룹을 누르면 그룹 설정으로 이동해요"
+          />
+          {groupsLoading ? (
+            <EmptyState>
+              <EmptyText>불러오는 중...</EmptyText>
+            </EmptyState>
+          ) : groupsError ? (
+            <EmptyState>
+              <EmptyText>그룹 목록을 불러오지 못했어요</EmptyText>
+            </EmptyState>
+          ) : rows.length === 0 ? (
+            <EmptyState>
+              <IconBox aria-hidden="true">
+                <Icon name="groups" />
+              </IconBox>
+              <CardTitle as="h3">아직 그룹이 없어요</CardTitle>
+              <EmptyText>참여 중인 그룹이 없어요. 그룹을 만들거나 초대 코드로 참여해보세요</EmptyText>
+            </EmptyState>
+          ) : (
+            <Table
+              columns={columns}
+              data={rows}
+              minWidth={520}
+              rowKey={(row) => row.id}
+              onRowClick={(row) => enterGroup(row.id)}
+            />
+          )}
+        </Card>
+        </Col>
+        <Col $span={4}>
+        <Card>
+          <SectionHeader
+            icon={<Icon name="link" />}
+            title={<label htmlFor="join-key">그룹 키로 참여</label>}
+            description="친구에게 받은 초대 코드로 기존 그룹에 들어가요"
+          />
+          <JoinForm>
+            <JoinInput
+              id="join-key"
+              value={joinKey}
+              onChange={(e) => setJoinKey(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleJoinGroup();
+              }}
+              placeholder="A7K2-9QMD"
+              aria-invalid={joinGroup.isError || undefined}
+            />
+            <Button onClick={handleJoinGroup} disabled={joinGroup.isPending}>
+              참여
+            </Button>
+            {joinGroup.isError ? (
+              <JoinError>키를 확인해주세요</JoinError>
+            ) : (
+              <JoinHint>친구에게 받은 8자리 코드를 입력하면 바로 참여돼요</JoinHint>
+            )}
+          </JoinForm>
+        </Card>
+        </Col>
+      </Grid>
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)}>
         <ModalTitle>그룹 만들기</ModalTitle>
@@ -212,8 +258,12 @@ export function GroupsPage() {
         />
         {createGroup.isError && <ModalError>{createGroup.error.message || '그룹 생성에 실패했어요'}</ModalError>}
         <ModalActions>
-          <Button $variant="secondary" $size="sm" onClick={() => setCreateOpen(false)}>취소</Button>
-          <Button $size="sm" onClick={handleCreateGroup} disabled={createGroup.isPending}>만들기</Button>
+          <Button $variant="ghost" onClick={() => setCreateOpen(false)}>
+            취소
+          </Button>
+          <Button $variant="primary" onClick={handleCreateGroup} disabled={createGroup.isPending}>
+            만들기
+          </Button>
         </ModalActions>
       </Modal>
     </PageLayout>

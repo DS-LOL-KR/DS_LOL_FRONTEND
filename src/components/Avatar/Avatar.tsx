@@ -16,6 +16,8 @@ const Circle = styled.div<{ $size: number }>`
   line-height: 1;
   color: ${({ theme }) => theme.color.text.secondary};
   background: ${({ theme }) => theme.color.surface.hover};
+  /* Hairline ring so the circle survives on hover/selected rows, which share its fill. */
+  box-shadow: inset 0 0 0 1px ${({ theme }) => theme.color.border.strong};
 `;
 
 const Image = styled.img<{ $size: number }>`

@@ -63,6 +63,8 @@ const LabelRow = styled.span<{ $main?: boolean }>`
   gap: 6px;
   font: 500 12px/1 ${({ theme }) => theme.fontFamily.sans};
   letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex-shrink: 0;
   color: ${({ theme, $main }) => ($main ? theme.color.text.primary : theme.color.text.secondary)};
 `;
 

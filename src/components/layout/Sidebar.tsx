@@ -31,9 +31,33 @@ const Top = styled.div`
   padding: 4px 8px 4px;
 `;
 
+const TopActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
 const ProfileLink = styled(Link)`
   display: flex;
   border-radius: var(--radius-full);
+`;
+
+const CloseButton = styled.button`
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-right: -8px;
+  border: 0;
+  border-radius: ${({ theme }) => theme.radius.control}px;
+  background: transparent;
+  color: ${({ theme }) => theme.color.text.secondary};
+  cursor: pointer;
+
+  &:hover {
+    background: ${({ theme }) => theme.color.surface.hover};
+    color: ${({ theme }) => theme.color.text.primary};
+  }
 `;
 
 const SwitcherWrap = styled.div`
@@ -312,7 +336,7 @@ function GroupSwitcher({ activeGroupId, groupName, memberCount }: {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ onClose }: { onClose?: () => void }) {
   const { pathname } = useLocation();
   const { data: me } = useMe();
   const activeGroupId = useActiveGroupId();
@@ -362,9 +386,16 @@ export function Sidebar() {
         <Link to="/groups" aria-label="DS_LOL 홈">
           <Wordmark size={18} />
         </Link>
-        <ProfileLink to="/onboarding" title="내 프로필" aria-label="내 프로필 설정">
-          <Avatar name={me?.nickname ?? '?'} imageUrl={resolveAssetUrl(me?.profileImageUrl)} size={24} />
-        </ProfileLink>
+        <TopActions>
+          <ProfileLink to="/onboarding" title="내 프로필" aria-label="내 프로필 설정">
+            <Avatar name={me?.nickname ?? '?'} imageUrl={resolveAssetUrl(me?.profileImageUrl)} size={24} />
+          </ProfileLink>
+          {onClose && (
+            <CloseButton type="button" aria-label="메뉴 닫기" onClick={onClose}>
+              <Icon name="close" size={18} />
+            </CloseButton>
+          )}
+        </TopActions>
       </Top>
 
       <GroupSwitcher

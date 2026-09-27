@@ -644,6 +644,8 @@ body {
 - 상태: hover = 한 단계 밝게(secondary → hover, primary → `#FFFFFF`), active = `transform: translateY(1px)`, disabled = opacity .4 + `cursor: not-allowed`, loading = 라벨 유지 + 좌측 14px 스피너(폭 변화 없음).
 - 모달 안의 primary는 모달이 떠 있는 동안 "그 화면"의 primary로 친다(뒤 페이지 primary는 딤 처리로 가려짐).
 - danger에 솔리드 빨강 배경을 쓰지 않는다. 확인 모달의 최종 삭제 버튼도 danger(outline).
+- **테이블 행마다 반복되는 액션**(추방, 위임, 편집)은 ghost sm으로 둔다. danger는 확인 모달의 최종 버튼에서만 쓴다 — 행마다 빨간 아웃라인이 반복되면 표 전체가 빨갛게 보인다(실제 그룹 설정 화면에서 확인).
+- 모바일(≤720px)에서 md 버튼과 인풋은 터치 대상 확보를 위해 40px로 커진다.
 
 ```html
 <button class="btn btn-primary">팀 구성하기</button>
@@ -791,6 +793,7 @@ body {
 - **Empty state:** 카드 안 중앙, 32px 아이콘 박스 + heading + label 한 줄 + (필요하면) secondary 버튼 1개. 일러스트 없음.
 - **Loading:** 스켈레톤 = raised 배경 블록, radius는 대상과 동일. shimmer 애니메이션 대신 opacity .6↔1 펄스(1.4s), reduced-motion이면 정지.
 - **Null 데이터:** 미연동·미동기화는 `—` + caption 안내("라이엇 계정을 연동하면 표시돼요"). 0이나 가짜 값으로 채우지 않는다.
+- **서버가 채운 기본값:** 팀 구성처럼 계산에 필요해서 서버가 기본 MMR(예: 1,500)을 넣어 보내는 경우, 합계와 맞춰 볼 수 있게 숫자는 남기되 `--text-muted` + 일반 굵기로 낮추고 `title`/caption으로 "기본값"임을 밝힌다.
 
 ---
 

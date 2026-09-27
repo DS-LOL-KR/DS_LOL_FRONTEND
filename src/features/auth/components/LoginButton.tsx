@@ -1,22 +1,33 @@
 import styled from 'styled-components';
 import { googleLoginUrl } from '../api';
 
+// The screen's one primary action (docs/design-system.md → Button): white fill,
+// dark text, radius 8. 44px tall — a notch above the 36px control height since
+// it's the only action on the login screen and a thumb target on phones.
 const StyledLink = styled.a`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: var(--space-2);
   width: 100%;
-  height: 48px;
-  border-radius: ${({ theme }) => theme.radius.sm}px;
+  height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: ${({ theme }) => theme.radius.control}px;
   background: ${({ theme }) => theme.color.text.primary};
-  color: #121315;
-  font: ${({ theme }) => theme.font.body14b};
+  color: ${({ theme }) => theme.color.text.onPrimary};
+  font: ${({ theme }) => theme.type.bodyStrong};
   white-space: nowrap;
-  transition: filter 0.15s ease;
+  text-decoration: none;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
 
   &:hover {
-    filter: brightness(0.95);
+    background: #ffffff; /* spec: primary hover = pure white (same as Button) */
+  }
+
+  &:active {
+    transform: translateY(1px);
   }
 `;
 

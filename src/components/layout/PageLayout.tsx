@@ -112,13 +112,6 @@ const Drawer = styled.div`
   }
 `;
 
-const DrawerClose = styled(IconButton)`
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  z-index: 1;
-`;
-
 export interface PageLayoutProps {
   children?: ReactNode;
 }
@@ -155,10 +148,7 @@ export function PageLayout({ children }: PageLayoutProps) {
         <>
           <Scrim onClick={() => setDrawerOpen(false)} />
           <Drawer role="dialog" aria-modal="true" aria-label="메뉴">
-            <DrawerClose type="button" aria-label="메뉴 닫기" onClick={() => setDrawerOpen(false)}>
-              <Icon name="close" size={18} />
-            </DrawerClose>
-            <Sidebar />
+            <Sidebar onClose={() => setDrawerOpen(false)} />
           </Drawer>
         </>
       )}
