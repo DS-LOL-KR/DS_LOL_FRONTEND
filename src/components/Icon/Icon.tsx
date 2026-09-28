@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 
 // 16px, 1.5px stroke, currentColor — abstract shapes only (no game/brand art).
 export type IconName =
@@ -93,8 +93,18 @@ const PATHS: Record<IconName, JSX.Element> = {
   star: <path d="M8 2.5l1.7 3.5 3.8.5-2.8 2.6.7 3.8L8 11.1l-3.4 1.8.7-3.8-2.8-2.6 3.8-.5z" />,
 };
 
-const Svg = styled.svg`
+const rotate = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+// `$spin` — 오래 걸리는 요청(그룹 전체 갱신, 다시 추첨) 동안 refresh 아이콘을 돌림.
+const Svg = styled.svg<{ $spin?: boolean }>`
   flex-shrink: 0;
+  ${({ $spin }) =>
+    $spin &&
+    css`
+      animation: ${rotate} 0.8s linear infinite;
+    `}
   fill: none;
   stroke: currentColor;
   stroke-width: 1.5;
@@ -102,7 +112,7 @@ const Svg = styled.svg`
   stroke-linejoin: round;
 `;
 
-export function Icon({ name, size = 16, label }: { name: IconName; size?: number; label?: string }) {
+export function Icon({ name, size = 16, label, spin }: { name: IconName; size?: number; label?: string; spin?: boolean }) {
   return (
     <Svg
       width={size}
@@ -112,6 +122,7 @@ export function Icon({ name, size = 16, label }: { name: IconName; size?: number
       aria-hidden={label ? undefined : true}
       aria-label={label}
       role={label ? 'img' : undefined}
+      $spin={spin}
     >
       {PATHS[name]}
     </Svg>
