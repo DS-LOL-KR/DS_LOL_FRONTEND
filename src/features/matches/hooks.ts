@@ -53,7 +53,15 @@ export function useGenerateTeams(matchId: number) {
     mutationFn: (payload: GenerateTeamsRequest) => generateTeams(matchId, payload),
     // The response is the same enriched shape as GET /matches/:id — write it
     // straight into that cache instead of refetching.
-    onSuccess: (match) => queryClient.setQueryData(['matches', 'detail', matchId], match),
+    // 팀 구성 전에 백엔드가 6시간 넘게 갱신 안 된 참가자의 티어를 Riot에서 새로
+    // 받아와요 — 그래서 구성 직후 티어표(사이드바 그룹원 MMR 포함)·전적·프로필 MMR이
+    // 바뀔 수 있어, 내전 종료 때처럼 관련 캐시를 같이 무효화함(2026-09-28).
+    onSuccess: (match) => {
+      queryClient.setQueryData(['matches', 'detail', matchId], match);
+      queryClient.invalidateQueries({ queryKey: ['tiers', match.groupId] });
+      queryClient.invalidateQueries({ queryKey: ['game-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
   });
 }
 
