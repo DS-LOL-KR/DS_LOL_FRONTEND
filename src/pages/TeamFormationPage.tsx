@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import styled, { css, keyframes, type DefaultTheme } from 'styled-components';
+import styled, { type DefaultTheme } from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle, HeaderActions } from '../components/layout/PageHeader';
 import { Grid, Col } from '../components/layout/Grid';
@@ -256,16 +256,6 @@ const NameCell = styled.span`
   }
 `;
 
-const spin = keyframes`
-  to { transform: rotate(360deg); }
-`;
-
-// 팀 구성 요청이 몇 초 걸릴 수 있어서 "다시 추첨" 아이콘을 돌려 진행 중임을 보여줌.
-const Spinning = styled.span<{ $active: boolean }>`
-  display: inline-flex;
-  animation: ${({ $active }) => ($active ? css`${spin} 0.8s linear infinite` : 'none')};
-`;
-
 // 계정 미연동 인원은 서버가 기본 MMR로 채워서 보내요 — 합계에는 들어가니 숫자는
 // 남기되, 실제 실력 값처럼 읽히지 않게 흐리게 표시.
 const MmrCell = styled.span<{ $estimated?: boolean }>`
@@ -460,9 +450,7 @@ export function TeamFormationPage() {
             disabled={isGenerating || participants.length === 0}
             aria-busy={isGenerating || undefined}
           >
-            <Spinning $active={isGenerating}>
-              <Icon name="refresh" />
-            </Spinning>
+            <Icon name="refresh" spin={isGenerating} />
             {isGenerating ? '추첨 중…' : '다시 추첨'}
           </Button>
           {/* 추첨 중에 확정하면 바뀌기 전 팀이 저장되니 응답이 올 때까지 막음 */}

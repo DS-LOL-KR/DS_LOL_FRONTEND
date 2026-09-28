@@ -15,7 +15,7 @@ import { Icon } from '../components/Icon/Icon';
 import { Avatar } from '../components/Avatar/Avatar';
 import { LaneIcon, LaneLabel } from '../components/LaneIcon/LaneIcon';
 import { WinRateBar } from '../components/WinRateBar/WinRateBar';
-import { useRecalculateTiers, useTierTable } from '../features/tiers/hooks';
+import { useRecalculateTiers, useRefreshGroupTiers, useTierTable } from '../features/tiers/hooks';
 import type { Position, TierEntry } from '../features/tiers/types';
 import { setActiveGroupId } from '../utils/activeGroup';
 import { resolveAssetUrl } from '../utils/assetUrl';
@@ -167,6 +167,12 @@ const InlineError = styled.p`
   color: ${({ theme }) => theme.color.state.danger};
 `;
 
+const InlineNote = styled.p`
+  margin-top: var(--space-1);
+  font: ${({ theme }) => theme.type.caption};
+  color: ${({ theme }) => theme.color.text.muted};
+`;
+
 const KpiSubRow = styled.span`
   display: inline-flex;
   align-items: center;
@@ -216,6 +222,9 @@ export function TierTablePage() {
   const [position, setPosition] = useState<LaneFilter>('ALL');
   const { data: tierTable, isError: tierTableError } = useTierTable(groupIdNum, position === 'ALL' ? undefined : position);
   const recalculateTiers = useRecalculateTiers(groupIdNum);
+  const refreshTiers = useRefreshGroupTiers(groupIdNum);
+  const refreshSummary = refreshTiers.data?.refresh;
+  const busy = refreshTiers.isPending || recalculateTiers.isPending;
 
   useEffect(() => {
     if (groupId) setActiveGroupId(groupId);
@@ -349,12 +358,39 @@ export function TierTablePage() {
           {recalculateTiers.isError && (
             <InlineError>{recalculateTiers.error.message || '티어 재선정에 실패했어요'}</InlineError>
           )}
+          {/* 그룹 전체 갱신: 한 명당 약 0.5초라 오래 걸릴 수 있어 진행·결과를 헤더에서 바로 알려줌 */}
+          <div role="status" aria-live="polite">
+            {refreshTiers.isPending ? (
+              <InlineNote>그룹원 전체의 라이엇 티어를 불러오고 있어요 · 인원이 많으면 10초 넘게 걸릴 수 있어요</InlineNote>
+            ) : refreshTiers.isError ? (
+              <InlineError>{refreshTiers.error.message || '그룹 전체 갱신에 실패했어요. 잠시 후 다시 시도해 주세요'}</InlineError>
+            ) : refreshSummary && refreshSummary.failed > 0 ? (
+              <InlineError>
+                일부 갱신 실패 ({refreshSummary.failed.toLocaleString()}명) · 잠시 후 다시 시도해 주세요
+              </InlineError>
+            ) : refreshSummary && refreshSummary.succeeded === 0 && refreshSummary.skipped > 0 ? (
+              <InlineNote>모두 5분 안에 갱신돼서 건너뛰었어요</InlineNote>
+            ) : refreshSummary ? (
+              <InlineNote>
+                {refreshSummary.succeeded.toLocaleString()}명 갱신 완료
+                {refreshSummary.skipped > 0 && ` · ${refreshSummary.skipped.toLocaleString()}명은 5분 안에 갱신돼 건너뛰었어요`}
+              </InlineNote>
+            ) : null}
+          </div>
         </div>
         <HeaderActions>
           <LaneSegmented value={position} onChange={setPosition} />
-          <Button $variant="primary" onClick={() => recalculateTiers.mutate()} disabled={recalculateTiers.isPending}>
-            <Icon name="refresh" size={14} />
+          <Button onClick={() => recalculateTiers.mutate()} disabled={busy}>
             {recalculateTiers.isPending ? '재선정 중...' : '티어 재선정'}
+          </Button>
+          <Button
+            $variant="primary"
+            onClick={() => refreshTiers.mutate()}
+            disabled={busy}
+            aria-busy={refreshTiers.isPending || undefined}
+          >
+            <Icon name="refresh" size={14} spin={refreshTiers.isPending} />
+            {refreshTiers.isPending ? '갱신 중…' : '그룹 전체 갱신'}
           </Button>
         </HeaderActions>
       </Header>

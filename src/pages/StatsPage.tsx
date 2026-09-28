@@ -882,7 +882,8 @@ export function StatsPage() {
       <Header>
         <div>
           <Title>내 전적</Title>
-          <Subtitle>전적은 하루 1회 자동 갱신 · {formatRelativeTime(primaryAccount?.stats?.updatedAt ?? null)}</Subtitle>
+          {/* 매일 자정 자동 갱신이 없어졌어요(2026-09-28) — 직접 누르거나 티어표의 "그룹 전체 갱신"으로만 갱신돼요. */}
+          <Subtitle>"지금 갱신"을 눌러야 새로 불러와요 · {formatRelativeTime(primaryAccount?.stats?.updatedAt ?? null)}</Subtitle>
         </div>
         <HeaderActions>
           <Button

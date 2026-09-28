@@ -31,3 +31,19 @@ export interface TierTable {
   // null if nobody in the group has a linked account yet.
   lastUpdatedAt: string | null;
 }
+
+// POST /groups/:id/tiers/refresh — 그룹원 전체의 Riot 티어를 새로 받아오고 MMR을 다시
+// 계산한 결과. 매일 자정 자동 갱신이 없어져서(2026-09-28) 이 버튼이 유일한 일괄 갱신 경로.
+// skipped = 5분 안에 이미 갱신돼서 건너뛴 계정 수.
+export interface TierRefreshSummary {
+  total: number;
+  succeeded: number;
+  skipped: number;
+  failed: number;
+  errors: { gameAccountId: number; message: string }[];
+}
+
+// GET /groups/:id/tiers와 같은 모양 + refresh 요약.
+export interface TierRefreshResponse extends TierTable {
+  refresh: TierRefreshSummary;
+}
