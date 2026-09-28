@@ -293,7 +293,7 @@ export function MatchHistoryPage() {
   const winRate = finished.length ? ((wins / finished.length) * 100).toFixed(1) : null;
   const avgMmrDelta = finished.length ? finished.reduce((sum, r) => sum + r.mmrDelta, 0) / finished.length : null;
 
-  // 그룹 전체 기준(내 참여 여부 무관) 레드/블루 승리 수 — 같은 기간 필터를 따름.
+  // 그룹 전체 기준(내 참여 여부 무관) 블루/레드 승리 수 — 같은 기간 필터를 따름.
   const finishedMatches = (matches ?? []).filter(
     (m) => m.status === 'FINISHED' && m.winningTeam && inDateRange(m.createdAt),
   );
@@ -424,13 +424,13 @@ export function MatchHistoryPage() {
         </Col>
         <Col $span={3}>
           <Kpi
-            label="레드 : 블루 승리"
+            label="블루 : 레드 승리"
             value={
               finishedMatches.length ? (
                 <>
-                  <TeamNum $team="red">{redWins.toLocaleString()}</TeamNum>
-                  {' : '}
                   <TeamNum $team="blue">{blueWins.toLocaleString()}</TeamNum>
+                  {' : '}
+                  <TeamNum $team="red">{redWins.toLocaleString()}</TeamNum>
                 </>
               ) : (
                 <Muted>—</Muted>

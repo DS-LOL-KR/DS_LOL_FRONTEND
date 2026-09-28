@@ -399,7 +399,7 @@ body {
 .delta-flat { color: var(--text-muted); }
 ```
 
-**Hero Number** (내 MMR, 팀 합계 MMR): KPI의 큰 버전. 카드당 1개, 페이지당 최대 2개(레드 vs 블루 대결 구도).
+**Hero Number** (내 MMR, 팀 합계 MMR): KPI의 큰 버전. 카드당 1개, 페이지당 최대 2개(블루 vs 레드 대결 구도, 블루가 왼쪽).
 
 ```css
 .hero-number { font: var(--type-hero); letter-spacing: var(--type-hero-tracking); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -440,22 +440,23 @@ body {
 
 ### 3.5 Team Balance Bar
 
-- 막대 너비 = **레드 예상 승률** (레드 51% → 레드 51% / 블루 49%). 중앙(50%)에 고정된 흰 마커 = 완전 균형 기준선. 마커에서 경계가 멀수록 불균형.
+- **팀 순서는 항상 블루 → 레드** (블루가 왼쪽·앞). 막대, 예상 승률 숫자, 팀 카드, 승리 선택 버튼, 변동 내역 행 모두 같은 순서를 따른다. 로고 언더바(레드|블루)는 브랜드 마크라 예외.
+- 막대 왼쪽 구간 너비 = **블루 예상 승률** (블루 49% → 블루 49% / 레드 51%). 중앙(50%)에 고정된 흰 마커 = 완전 균형 기준선. 마커에서 경계가 멀수록 불균형.
 - 막대 높이 6px, radius full, 두 구간 사이 2px 틈.
-- 위 행: 좌측 "밸런스 98%"(body-strong + num), 우측 "예상 승률 **51** : **49**"(레드 숫자는 team-red, 블루 숫자는 team-blue).
-- 접근성: 컨테이너에 `role="img"` + `aria-label="밸런스 98%, 예상 승률 레드 51 대 블루 49"`.
+- 위 행: 좌측 "밸런스 98%"(body-strong + num), 우측 "예상 승률 **49** : **51**"(블루 숫자는 team-blue, 레드 숫자는 team-red).
+- 접근성: 컨테이너에 `role="img"` + `aria-label="밸런스 98%, 예상 승률 블루 49 대 레드 51"`.
 
 ```html
-<div class="balance" role="img" aria-label="밸런스 98%, 예상 승률 레드 51 대 블루 49" style="--red: 51%">
+<div class="balance" role="img" aria-label="밸런스 98%, 예상 승률 블루 49 대 레드 51" style="--blue: 49%">
   <div class="balance-meta">
     <span class="balance-score">밸런스 <b class="num">98%</b></span>
     <span class="label">예상 승률
-      <b class="num t-red">51</b> : <b class="num t-blue">49</b>
+      <b class="num t-blue">49</b> : <b class="num t-red">51</b>
     </span>
   </div>
   <div class="balance-track">
-    <span class="balance-red"></span>
     <span class="balance-blue"></span>
+    <span class="balance-red"></span>
     <span class="balance-marker"></span>
   </div>
 </div>
@@ -470,8 +471,8 @@ body {
 .t-blue { color: var(--team-blue); }
 
 .balance-track { position: relative; display: flex; gap: 2px; height: 6px; }
-.balance-red  { width: var(--red); background: var(--team-red);  border-radius: var(--radius-full); }
-.balance-blue { flex: 1;           background: var(--team-blue); border-radius: var(--radius-full); }
+.balance-blue { width: var(--blue); background: var(--team-blue); border-radius: var(--radius-full); }
+.balance-red  { flex: 1;            background: var(--team-red);  border-radius: var(--radius-full); }
 .balance-marker {
   position: absolute; left: 50%; top: -3px; width: 2px; height: 12px;
   transform: translateX(-50%); background: var(--text-primary); border-radius: 1px;
@@ -816,7 +817,8 @@ body {
 
 ### Typography & Numbers
 - [ ] **Do** 모든 숫자(MMR, 승률, 판수, 순위)에 `tabular-nums`, 테이블 숫자 컬럼은 우측 정렬.
-- [ ] **Do** 페이지당 hero-number는 최대 2개(레드 vs 블루), display 제목은 1개.
+- [ ] **Do** 페이지당 hero-number는 최대 2개(블루 vs 레드), display 제목은 1개.
+- [ ] **Do** 두 팀을 나란히 보여줄 때는 항상 블루 → 레드 순서(블루가 왼쪽·앞).
 - [ ] **Do** 천 단위 구분 쉼표(1,842), 퍼센트는 정수 또는 소수 1자리로 화면 안에서 통일.
 - [ ] **Don't** 이모지를 쓰지 않는다.
 

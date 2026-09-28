@@ -275,18 +275,18 @@ function MatchupPreview() {
             밸런스 <b>98%</b>
           </BalanceScore>
           <BalanceOdds>
-            예상 승률 <TeamNum $team="red">51</TeamNum> : <TeamNum $team="blue">49</TeamNum>
+            예상 승률 <TeamNum $team="blue">49</TeamNum> : <TeamNum $team="red">51</TeamNum>
           </BalanceOdds>
         </BalanceMeta>
         <BalanceTrack>
-          <BalancePart $team="red" $width={51} />
-          <BalancePart $team="blue" />
+          <BalancePart $team="blue" $width={49} />
+          <BalancePart $team="red" />
           <BalanceMarker />
         </BalanceTrack>
       </Balance>
       <Rosters>
-        <Roster team="red" />
         <Roster team="blue" />
+        <Roster team="red" />
       </Rosters>
     </PreviewCard>
   );
