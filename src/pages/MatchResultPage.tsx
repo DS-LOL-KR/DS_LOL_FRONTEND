@@ -413,7 +413,10 @@ export function MatchResultPage() {
     match?.winningTeam === 'TEAM_A' ? 'A' : match?.winningTeam === 'TEAM_B' ? 'B' : null;
   const teamA = players.filter((p) => p.team === 'A');
   const teamB = players.filter((p) => p.team === 'B');
-  const changes = mmrChanges ?? [];
+  // 화면 순서는 블루 → 레드 — 변동 내역도 블루팀(TEAM_B) 행을 먼저(같은 팀 안 순서는 서버 순서 유지).
+  const changes = [...(mmrChanges ?? [])].sort(
+    (a, b) => Number(a.assignedTeam === 'TEAM_A') - Number(b.assignedTeam === 'TEAM_A'),
+  );
   const isParticipant = (match?.participants ?? []).some((p) => p.userId === me?.id);
   const isFinished = match?.status === 'FINISHED';
 
@@ -569,7 +572,8 @@ export function MatchResultPage() {
           </Card>
         ) : (
           <Grid>
-            {([['A', teamA] as const, ['B', teamB] as const]).map(([team, roster]) => {
+            {/* 블루팀(TEAM_B)을 왼쪽, 레드팀(TEAM_A)을 오른쪽에 — 화면 순서만 블루 → 레드. */}
+            {([['B', teamB] as const, ['A', teamA] as const]).map(([team, roster]) => {
               const summary = teamSummary(team, roster);
               return (
                 <Col key={team} $span={6}>
@@ -630,13 +634,13 @@ export function MatchResultPage() {
               description="참가자들의 라이엇 전적이 동기화되면 자동으로 반영돼요. 급하면 직접 골라도 돼요."
             />
             <WinnerRow>
-              <Button onClick={() => setPendingWinner('TEAM_A')} disabled={finishMatch.isPending}>
-                <TeamDot $team="A" aria-hidden="true" />
-                레드 팀 승리
-              </Button>
               <Button onClick={() => setPendingWinner('TEAM_B')} disabled={finishMatch.isPending}>
                 <TeamDot $team="B" aria-hidden="true" />
                 블루 팀 승리
+              </Button>
+              <Button onClick={() => setPendingWinner('TEAM_A')} disabled={finishMatch.isPending}>
+                <TeamDot $team="A" aria-hidden="true" />
+                레드 팀 승리
               </Button>
             </WinnerRow>
             {finishMatch.isError && (

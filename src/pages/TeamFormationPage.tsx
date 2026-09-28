@@ -66,16 +66,17 @@ const BalanceTrack = styled.div`
   height: 6px;
 `;
 
-const BalanceRed = styled.span<{ $pct: number }>`
+// 블루 → 레드 순서(블루가 왼쪽) — 막대 왼쪽 구간 폭 = 블루 예상 승률.
+const BalanceBlue = styled.span<{ $pct: number }>`
   width: calc(${({ $pct }) => $pct}% - 1px);
-  background: ${({ theme }) => theme.color.team.red};
+  background: ${({ theme }) => theme.color.team.blue};
   border-radius: var(--radius-full);
   transition: width 0.3s var(--ease-out);
 `;
 
-const BalanceBlue = styled.span`
+const BalanceRed = styled.span`
   flex: 1;
-  background: ${({ theme }) => theme.color.team.blue};
+  background: ${({ theme }) => theme.color.team.red};
   border-radius: var(--radius-full);
 `;
 
@@ -467,30 +468,30 @@ export function TeamFormationPage() {
               <SectionHeader icon={<Icon name="stats" />} title="팀 밸런스" description="팀을 옮기면 바로 다시 계산돼요" />
               <Balance
                 role="img"
-                aria-label={`밸런스 ${analysis.balancePercent}%, 예상 승률 레드 ${redPct} 대 블루 ${bluePct}`}
+                aria-label={`밸런스 ${analysis.balancePercent}%, 예상 승률 블루 ${bluePct} 대 레드 ${redPct}`}
               >
                 <BalanceMeta aria-hidden="true">
                   <BalanceScore>
                     밸런스 <b>{analysis.balancePercent}%</b>
                   </BalanceScore>
                   <WinRateLabel>
-                    예상 승률 <TeamText $team="A">{redPct}</TeamText> : <TeamText $team="B">{bluePct}</TeamText>
+                    예상 승률 <TeamText $team="B">{bluePct}</TeamText> : <TeamText $team="A">{redPct}</TeamText>
                   </WinRateLabel>
                 </BalanceMeta>
                 <BalanceTrack aria-hidden="true">
-                  <BalanceRed $pct={redPct} />
-                  <BalanceBlue />
+                  <BalanceBlue $pct={bluePct} />
+                  <BalanceRed />
                   <BalanceMarker />
                 </BalanceTrack>
               </Balance>
               <StatGrid>
                 <Stat>
-                  <StatLabel>레드 평균 MMR</StatLabel>
-                  <StatValue $team="A">{analysis.teamA.averageMmr.toLocaleString()}</StatValue>
-                </Stat>
-                <Stat>
                   <StatLabel>블루 평균 MMR</StatLabel>
                   <StatValue $team="B">{analysis.teamB.averageMmr.toLocaleString()}</StatValue>
+                </Stat>
+                <Stat>
+                  <StatLabel>레드 평균 MMR</StatLabel>
+                  <StatValue $team="A">{analysis.teamA.averageMmr.toLocaleString()}</StatValue>
                 </Stat>
                 <Stat>
                   <StatLabel>평균 MMR 차이</StatLabel>
@@ -510,7 +511,8 @@ export function TeamFormationPage() {
         )}
 
         {participants.length > 0 &&
-          ([['A', teamA], ['B', teamB]] as const).map(([team, roster]) => {
+          // 블루팀(TEAM_B)을 왼쪽, 레드팀(TEAM_A)을 오른쪽에 — 화면 순서만 블루 → 레드.
+          ([['B', teamB], ['A', teamA]] as const).map(([team, roster]) => {
             const total = roster.reduce((sum, p) => sum + p.mmr, 0);
             return (
               <Col key={team} $span={6}>
