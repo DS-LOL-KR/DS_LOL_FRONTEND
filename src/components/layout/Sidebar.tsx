@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { useMe } from '../../features/auth/hooks';
@@ -186,8 +186,21 @@ const SectionLabel = styled.h3`
   color: ${({ theme }) => theme.color.text.muted};
 `;
 
-const MemberList = styled.ul`
+// 펼치면 전체 그룹원을 그리되 높이는 접힌 목록(MEMBER_LIMIT행)과 같게 두고 안에서
+// 스크롤 — 인원이 많은 그룹에서 사이드바 아래 디스코드 카드가 밀려나지 않게.
+const MemberList = styled.ul<{ $scroll: boolean }>`
   list-style: none;
+  ${({ $scroll }) =>
+    $scroll &&
+    `
+    max-height: calc(var(--sidebar-item-height) * ${MEMBER_LIMIT});
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-default) transparent;
+    /* 스크롤바가 MMR 숫자를 덮지 않게 */
+    padding-right: 6px;
+  `}
 `;
 
 const MemberRow = styled(Link)`
@@ -218,13 +231,16 @@ const MemberMmr = styled.span`
   color: ${({ theme }) => theme.color.text.muted};
 `;
 
-const MoreLink = styled(Link)`
+const MoreButton = styled.button`
   display: flex;
   align-items: center;
   height: 28px;
   padding: 0 8px;
+  border: 0;
+  background: transparent;
   font: ${({ theme }) => theme.type.caption};
   color: ${({ theme }) => theme.color.text.secondary};
+  cursor: pointer;
 
   &:hover {
     color: ${({ theme }) => theme.color.text.primary};
@@ -376,8 +392,11 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
   // MMR 높은 순, 계정 미연동(null)은 뒤로.
   const sorted = [...members].sort((a, b) => (b.mmr ?? -Infinity) - (a.mmr ?? -Infinity));
-  const visible = sorted.slice(0, MEMBER_LIMIT);
-  const hidden = sorted.length - visible.length;
+  const [membersExpanded, setMembersExpanded] = useState(false);
+  const memberListId = useId();
+  useEffect(() => setMembersExpanded(false), [activeGroupId]);
+  const visible = membersExpanded ? sorted : sorted.slice(0, MEMBER_LIMIT);
+  const hidden = sorted.length - Math.min(sorted.length, MEMBER_LIMIT);
   const discordOn = Boolean(group?.discordGuildId || group?.discordWebhookUrl);
 
   return (
@@ -424,7 +443,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       {group && members.length > 0 && (
         <section aria-label="그룹원">
           <SectionLabel>그룹원 · {members.length}</SectionLabel>
-          <MemberList>
+          <MemberList id={memberListId} $scroll={membersExpanded}>
             {visible.map((m) => (
               <li key={m.userId}>
                 <MemberRow to={`/users/${m.userId}`}>
@@ -435,7 +454,16 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
               </li>
             ))}
           </MemberList>
-          {hidden > 0 && <MoreLink to={`${base}/manage`}>+{hidden}명 더 보기</MoreLink>}
+          {hidden > 0 && (
+            <MoreButton
+              type="button"
+              aria-expanded={membersExpanded}
+              aria-controls={memberListId}
+              onClick={() => setMembersExpanded((v) => !v)}
+            >
+              {membersExpanded ? '접기' : `+${hidden}명 더 보기`}
+            </MoreButton>
+          )}
         </section>
       )}
 
