@@ -58,12 +58,42 @@ const RowActions = styled.div`
   gap: var(--space-2);
 `;
 
-const InviteCodeBox = styled.div`
+// 키 자체가 복사 버튼 — 따로 "복사" 버튼을 두지 않고 누르면 바로 복사돼요.
+const InviteCodeButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+  width: 100%;
   min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid transparent;
+  border-radius: ${({ theme }) => theme.radius.control}px;
+  background: ${({ theme }) => theme.color.surface.subtle};
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+
+  &:hover:not(:disabled) {
+    background: ${({ theme }) => theme.color.surface.hover};
+    border-color: ${({ theme }) => theme.color.border.strong};
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+`;
+
+const CopyState = styled.span<{ $copied: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font: ${({ theme }) => theme.type.captionStrong};
+  color: ${({ theme, $copied }) => ($copied ? theme.color.state.success : theme.color.text.muted)};
 `;
 
 const InviteCodeText = styled.span`
@@ -407,15 +437,20 @@ export function GroupManagePage() {
           <Card>
             <SectionHeader icon={<Icon name="link" />} title="초대 키" description="이 키를 받은 사람은 바로 그룹에 참여해요" />
             <Rows>
-              <RaisedRow>
-                <InviteCodeBox>
-                  <InviteCodeText>{inviteCode ?? '—'}</InviteCodeText>
-                  <Button $size="sm" onClick={handleCopyKey} disabled={!inviteCode}>
+              <InviteCodeButton
+                type="button"
+                onClick={handleCopyKey}
+                disabled={!inviteCode}
+                aria-label={inviteCode ? `초대 키 ${inviteCode} 복사` : '초대 키 없음'}
+              >
+                <InviteCodeText>{inviteCode ?? '—'}</InviteCodeText>
+                {inviteCode && (
+                  <CopyState $copied={copied} aria-live="polite">
                     <Icon name={copied ? 'check' : 'copy'} size={14} />
-                    {copied ? '복사됨' : '복사'}
-                  </Button>
-                </InviteCodeBox>
-              </RaisedRow>
+                    {copied ? '복사됨' : '눌러서 복사'}
+                  </CopyState>
+                )}
+              </InviteCodeButton>
               <RowActions>
                 <Button $size="sm" onClick={handleRefreshInviteCode} disabled={refreshInviteCode.isPending}>
                   <Icon name="refresh" size={14} />
