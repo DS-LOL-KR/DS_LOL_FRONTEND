@@ -10,7 +10,7 @@ import { Avatar } from '../components/Avatar/Avatar';
 import { CardBox, SectionHeader } from '../components/Card/Card';
 import { Icon } from '../components/Icon/Icon';
 import { PageHeader, PageTitle, PageSubtitle } from '../components/layout/PageHeader';
-import { useProfile, useUpdateProfile, useUploadProfileImage } from '../features/profile/hooks';
+import { useProfile, useUnlinkDiscord, useUpdateProfile, useUploadProfileImage } from '../features/profile/hooks';
 import { useLogout } from '../features/auth/hooks';
 import {
   useGames,
@@ -335,6 +335,8 @@ export function ProfileSetupPage() {
   const linkGameAccount = useLinkAndSyncGameAccount();
   const unlinkGameAccount = useUnlinkGameAccount();
   const logout = useLogout();
+  const unlinkDiscord = useUnlinkDiscord();
+  const [unlinkDiscordOpen, setUnlinkDiscordOpen] = useState(false);
 
   const [nickname, setNickname] = useState('');
   const [bio, setBio] = useState('');
@@ -535,6 +537,40 @@ export function ProfileSetupPage() {
             </CardFootnote>
           </CardBox>
 
+          {/* 디스코드 봇 계정 연결(2026-09-29) — 연결은 봇이 보내는 /discord/link 링크로만
+              해요. 여기서는 상태 확인과 해제만. */}
+          <CardBox>
+            <SectionHeader
+              icon={<Icon name="chat" />}
+              title="디스코드 계정"
+              description="연결하면 디스코드 봇이 이 계정을 알아볼 수 있어요"
+            />
+            <RaisedRow>
+              <AccountTop>
+                <AccountInfo>
+                  <AccountNameRow>
+                    <AccountName $linked={Boolean(profile?.discordUserId)}>
+                      {profile?.discordUserId ? '디스코드' : '연결 안 됨'}
+                    </AccountName>
+                    {profile?.discordUserId && <LinkedTag>연결됨</LinkedTag>}
+                  </AccountNameRow>
+                  <AccountHint>
+                    {profile?.discordUserId
+                      ? '디스코드 봇 명령어를 쓰면 이 계정으로 처리돼요'
+                      : '디스코드에서 봇 명령어를 쓰면 연결 링크를 보내줘요'}
+                  </AccountHint>
+                </AccountInfo>
+                {profile?.discordUserId && (
+                  <AccountActions>
+                    <Button type="button" $variant="danger" onClick={() => setUnlinkDiscordOpen(true)}>
+                      연결 해제
+                    </Button>
+                  </AccountActions>
+                )}
+              </AccountTop>
+            </RaisedRow>
+          </CardBox>
+
           <Footer>
             <Button type="submit" $variant="primary" disabled={updateProfile.isPending}>
               저장하고 시작하기
@@ -572,6 +608,24 @@ export function ProfileSetupPage() {
           <Button $variant="ghost" onClick={() => setUnlinkTarget(null)}>취소</Button>
           <Button $variant="danger" onClick={handleUnlinkConfirmed} disabled={unlinkGameAccount.isPending}>
             {unlinkGameAccount.isPending ? '해제 중...' : '연동 해제'}
+          </Button>
+        </ModalActions>
+      </Modal>
+
+      <Modal open={unlinkDiscordOpen} onClose={() => setUnlinkDiscordOpen(false)}>
+        <ModalTitle>디스코드 연결을 해제할까요?</ModalTitle>
+        <ModalBody>해제하면 디스코드 봇이 이 계정을 알아보지 못해요. 디스코드에서 다시 연결할 수 있어요.</ModalBody>
+        {unlinkDiscord.isError && (
+          <ModalError>{unlinkDiscord.error.message || '연결 해제에 실패했어요'}</ModalError>
+        )}
+        <ModalActions>
+          <Button $variant="ghost" onClick={() => setUnlinkDiscordOpen(false)}>취소</Button>
+          <Button
+            $variant="danger"
+            onClick={() => unlinkDiscord.mutate(undefined, { onSuccess: () => setUnlinkDiscordOpen(false) })}
+            disabled={unlinkDiscord.isPending}
+          >
+            {unlinkDiscord.isPending ? '해제 중...' : '연결 해제'}
           </Button>
         </ModalActions>
       </Modal>

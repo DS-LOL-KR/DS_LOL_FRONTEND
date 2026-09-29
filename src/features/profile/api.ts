@@ -31,3 +31,13 @@ export async function uploadProfileImage(file: File): Promise<User> {
   });
   return data.user;
 }
+
+// 디스코드 봇이 보낸 연결 링크의 token으로 지금 로그인한 DS_LOL 계정에 디스코드 계정을
+// 연결해요. 400 = 링크 만료(10분), 409 = 이미 다른 DS_LOL 계정에 연결된 디스코드 계정.
+export async function linkDiscord(token: string): Promise<void> {
+  await apiClient.post('/users/me/discord', { token });
+}
+
+export async function unlinkDiscord(): Promise<void> {
+  await apiClient.delete('/users/me/discord');
+}
