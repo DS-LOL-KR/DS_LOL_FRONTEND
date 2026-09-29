@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getTierTable, recalculateTiers, refreshGroupTiers } from './api';
+import { getTierTable, refreshGroupTiers } from './api';
 import type { Position } from './types';
 
 export function useTierTable(groupId: number, position?: Position) {
@@ -7,14 +7,6 @@ export function useTierTable(groupId: number, position?: Position) {
     queryKey: ['tiers', groupId, position ?? 'ALL'],
     queryFn: () => getTierTable(groupId, position),
     enabled: Number.isFinite(groupId),
-  });
-}
-
-export function useRecalculateTiers(groupId: number) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: () => recalculateTiers(groupId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tiers', groupId] }),
   });
 }
 

@@ -15,7 +15,7 @@ import { Icon } from '../components/Icon/Icon';
 import { Avatar } from '../components/Avatar/Avatar';
 import { LaneIcon, LaneLabel } from '../components/LaneIcon/LaneIcon';
 import { WinRateBar } from '../components/WinRateBar/WinRateBar';
-import { useRecalculateTiers, useRefreshGroupTiers, useTierTable } from '../features/tiers/hooks';
+import { useRefreshGroupTiers, useTierTable } from '../features/tiers/hooks';
 import type { Position, TierEntry } from '../features/tiers/types';
 import { setActiveGroupId } from '../utils/activeGroup';
 import { resolveAssetUrl } from '../utils/assetUrl';
@@ -221,10 +221,8 @@ export function TierTablePage() {
   const groupIdNum = Number(groupId);
   const [position, setPosition] = useState<LaneFilter>('ALL');
   const { data: tierTable, isError: tierTableError } = useTierTable(groupIdNum, position === 'ALL' ? undefined : position);
-  const recalculateTiers = useRecalculateTiers(groupIdNum);
   const refreshTiers = useRefreshGroupTiers(groupIdNum);
   const refreshSummary = refreshTiers.data?.refresh;
-  const busy = refreshTiers.isPending || recalculateTiers.isPending;
 
   useEffect(() => {
     if (groupId) setActiveGroupId(groupId);
@@ -355,9 +353,6 @@ export function TierTablePage() {
         <div>
           <Title>티어표</Title>
           <Subtitle>전적 · 그룹 티어 · 사용자 평가를 합산해 계산 · {formatRelativeTime(tierTable?.lastUpdatedAt ?? null)}</Subtitle>
-          {recalculateTiers.isError && (
-            <InlineError>{recalculateTiers.error.message || '티어 재선정에 실패했어요'}</InlineError>
-          )}
           {/* 그룹 전체 갱신: 한 명당 약 0.5초라 오래 걸릴 수 있어 진행·결과를 헤더에서 바로 알려줌 */}
           <div role="status" aria-live="polite">
             {refreshTiers.isPending ? (
@@ -380,13 +375,10 @@ export function TierTablePage() {
         </div>
         <HeaderActions>
           <LaneSegmented value={position} onChange={setPosition} />
-          <Button onClick={() => recalculateTiers.mutate()} disabled={busy}>
-            {recalculateTiers.isPending ? '재선정 중...' : '티어 재선정'}
-          </Button>
           <Button
             $variant="primary"
             onClick={() => refreshTiers.mutate()}
-            disabled={busy}
+            disabled={refreshTiers.isPending}
             aria-busy={refreshTiers.isPending || undefined}
           >
             <Icon name="refresh" size={14} spin={refreshTiers.isPending} />
