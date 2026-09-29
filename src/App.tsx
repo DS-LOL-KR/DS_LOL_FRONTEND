@@ -1,4 +1,5 @@
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { useMe } from './features/auth/hooks';
 import { LoginPage } from './pages/LoginPage';
@@ -14,6 +15,8 @@ import { MatchHistoryPage } from './pages/MatchHistoryPage';
 import { StatsPage } from './pages/StatsPage';
 import { UserProfilePage } from './pages/UserProfilePage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { DiscordLinkPage } from './pages/DiscordLinkPage';
+import { consumeReturnTo, saveReturnTo } from './utils/returnTo';
 
 const spin = keyframes`
   to { transform: rotate(360deg); }
@@ -55,8 +58,24 @@ function SessionCheck() {
 function RootGate() {
   const { data, isLoading, isError } = useMe();
   if (isLoading) return <SessionCheck />;
+  // 저장해둔 원래 주소는 /groups 안쪽의 ReturnToRedirect가 꺼내요 — 렌더 중에 꺼내면
+  // StrictMode 이중 렌더에서 값이 먼저 지워질 수 있어서 effect 한 곳에서만 읽음.
   if (!isError && data) return <Navigate to="/groups" replace />;
   return <LoginPage />;
+}
+
+// 로그인 직후 OAuth 콜백이 떨어진 첫 화면에서, 로그인 전에 적어둔 원래 주소가 있으면
+// 그리로 보냄 (utils/returnTo.ts).
+function ReturnToRedirect() {
+  const navigate = useNavigate();
+  const { pathname, search } = useLocation();
+  useEffect(() => {
+    const target = consumeReturnTo();
+    if (target && target !== pathname + search) navigate(target, { replace: true });
+    // 세션이 확인된 직후 한 번만.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
 }
 
 // Every route besides "/", "/login", "/privacy" and the 404 catch-all needs a
@@ -64,9 +83,18 @@ function RootGate() {
 // queries get, which reads as "the server is broken" rather than "log in".
 function RequireAuth() {
   const { data, isLoading, isError } = useMe();
+  const { pathname, search } = useLocation();
   if (isLoading) return <SessionCheck />;
-  if (isError || !data) return <Navigate to="/login" replace />;
-  return <Outlet />;
+  if (isError || !data) {
+    saveReturnTo(pathname + search);
+    return <Navigate to="/login" replace />;
+  }
+  return (
+    <>
+      <ReturnToRedirect />
+      <Outlet />
+    </>
+  );
 }
 
 function App() {
@@ -87,6 +115,7 @@ function App() {
           <Route path="/matches/:id" element={<MatchResultPage />} />
           <Route path="/stats" element={<StatsPage />} />
           <Route path="/users/:id" element={<UserProfilePage />} />
+          <Route path="/discord/link" element={<DiscordLinkPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
