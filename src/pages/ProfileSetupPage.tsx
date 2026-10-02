@@ -614,7 +614,10 @@ export function ProfileSetupPage() {
 
       <Modal open={unlinkDiscordOpen} onClose={() => setUnlinkDiscordOpen(false)}>
         <ModalTitle>디스코드 연결을 해제할까요?</ModalTitle>
-        <ModalBody>해제하면 디스코드 봇이 이 계정을 알아보지 못해요. 디스코드에서 다시 연결할 수 있어요.</ModalBody>
+        <ModalBody>
+          해제하면 디스코드 봇이 이 계정을 알아보지 못해요. 디스코드에서 /내전모집을 누르면 연결 링크가 다시 와요. 지난
+          내전 기록은 그대로 남아요.
+        </ModalBody>
         {unlinkDiscord.isError && (
           <ModalError>{unlinkDiscord.error.message || '연결 해제에 실패했어요'}</ModalError>
         )}

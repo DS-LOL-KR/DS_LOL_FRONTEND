@@ -22,6 +22,7 @@ import {
   useLeaveGroup,
   useRefreshInviteCode,
   useTransferOwner,
+  useUnlinkDiscordGuild,
   useUpdateDiscordWebhook,
 } from '../features/groups/hooks';
 import type { GroupMember } from '../features/groups/types';
@@ -244,6 +245,8 @@ export function GroupManagePage() {
   const leaveGroup = useLeaveGroup(numericGroupId);
   const updateDiscordWebhook = useUpdateDiscordWebhook(numericGroupId);
   const discordInviteUrl = useDiscordInviteUrl(numericGroupId);
+  const unlinkDiscordGuild = useUnlinkDiscordGuild(numericGroupId);
+  const [unlinkGuildOpen, setUnlinkGuildOpen] = useState(false);
 
   // 디스코드 OAuth 콜백(discord.controller.ts handleOAuthCallback)이 성공/실패를
   // 쿼리로 알려주며 이 화면으로 돌려보냄 — 한 번 보여준 뒤엔 새로고침해도 다시
@@ -511,7 +514,14 @@ export function GroupManagePage() {
                           <Dot $on />
                           연동됨
                         </StatusLine>
-                        <Hint>디스코드 서버에서 /티어표, /전적, /내전결과 명령어를 쓸 수 있어요</Hint>
+                        <Hint>디스코드 서버에서 /티어표, /내전모집, /전적, /내전결과 명령어를 쓸 수 있어요</Hint>
+                        {/* 봇을 디스코드에서 추방해도 연결 기록이 남아 다른 그룹이 그 서버에 봇을
+                            초대하지 못해요(409) — 그룹장이 여기서 직접 끊을 수 있게. */}
+                        <RowActions>
+                          <Button $variant="danger" $size="sm" onClick={() => setUnlinkGuildOpen(true)}>
+                            연동 해제
+                          </Button>
+                        </RowActions>
                       </>
                     ) : (
                       <>
@@ -610,6 +620,28 @@ export function GroupManagePage() {
           </Button>
           <Button $variant="danger" onClick={handleKickConfirmed} disabled={kickMember.isPending}>
             추방
+          </Button>
+        </ModalActions>
+      </Modal>
+
+      <Modal open={unlinkGuildOpen} onClose={() => setUnlinkGuildOpen(false)}>
+        <ModalTitle>이 디스코드 서버와의 연동을 해제할까요?</ModalTitle>
+        <ModalBody>
+          해제하면 그 서버에서 /티어표, /내전모집 등을 쓸 수 없어요. 봇은 디스코드에서 따로 추방해야 해요.
+        </ModalBody>
+        {unlinkDiscordGuild.isError && (
+          <InlineError>{unlinkDiscordGuild.error.message || '디스코드 서버 연동 해제에 실패했어요'}</InlineError>
+        )}
+        <ModalActions>
+          <Button $variant="ghost" onClick={() => setUnlinkGuildOpen(false)}>
+            취소
+          </Button>
+          <Button
+            $variant="danger"
+            onClick={() => unlinkDiscordGuild.mutate(undefined, { onSuccess: () => setUnlinkGuildOpen(false) })}
+            disabled={unlinkDiscordGuild.isPending}
+          >
+            {unlinkDiscordGuild.isPending ? '해제 중...' : '연동 해제'}
           </Button>
         </ModalActions>
       </Modal>
