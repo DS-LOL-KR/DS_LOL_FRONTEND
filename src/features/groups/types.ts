@@ -61,6 +61,14 @@ export interface UpdateDiscordWebhookRequest {
   webhookUrl: string | null;
 }
 
+// PATCH /groups/:id/discord-guild — 지금은 해제(null)만 씀. 디스코드에서 봇을 추방해도
+// 서버가 알 방법이 없어 연결 기록이 남고, 그러면 다른 그룹이 그 서버에 봇을 초대할 때
+// 409 "이미 다른 그룹에 연동된 디스코드 서버"로 막혀요 — 그래서 웹에서 직접 해제(2026-10-02).
+// 그룹장만 가능(아니면 403).
+export interface UpdateDiscordGuildRequest {
+  guildId: null;
+}
+
 // Merges GET /groups/:id's roster with GET /groups/:id/tiers per member — the
 // roster alone has no tier/lane/MMR, and the tiers endpoint has no role/joinedAt.
 // internalTier/mainLane/mmr are null when the member has no linked account or no

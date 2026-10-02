@@ -6,6 +6,7 @@ import type {
   JoinGroupRequest,
   Membership,
   TransferOwnerRequest,
+  UpdateDiscordGuildRequest,
   UpdateDiscordWebhookRequest,
 } from './types';
 
@@ -53,6 +54,11 @@ export async function transferOwner(groupId: number, payload: TransferOwnerReque
 
 export async function updateDiscordWebhook(groupId: number, payload: UpdateDiscordWebhookRequest): Promise<Group> {
   const { data } = await apiClient.patch<{ group: Group }>(`/groups/${groupId}/discord-webhook`, payload);
+  return data.group;
+}
+
+export async function updateDiscordGuild(groupId: number, payload: UpdateDiscordGuildRequest): Promise<Group> {
+  const { data } = await apiClient.patch<{ group: Group }>(`/groups/${groupId}/discord-guild`, payload);
   return data.group;
 }
 

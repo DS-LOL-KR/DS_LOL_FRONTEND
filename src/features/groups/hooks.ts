@@ -11,10 +11,12 @@ import {
   leaveGroup,
   refreshInviteCode,
   transferOwner,
+  updateDiscordGuild,
   updateDiscordWebhook,
 } from './api';
 import type {
   CreateGroupRequest,
+  GroupDetail,
   GroupMember,
   JoinGroupRequest,
   TransferOwnerRequest,
@@ -105,6 +107,19 @@ export function useUpdateDiscordWebhook(groupId: number) {
   return useMutation({
     mutationFn: (payload: UpdateDiscordWebhookRequest) => updateDiscordWebhook(groupId, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups', groupId] }),
+  });
+}
+
+// 응답 group에는 members가 없어서(GroupDetail 아님) 캐시를 통째로 바꾸지 않고 필드만
+// 덮어씀 — 사이드바 디스코드 상태와 그룹 설정 카드가 바로 "연동 안 됨"으로 바뀜.
+export function useUnlinkDiscordGuild(groupId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => updateDiscordGuild(groupId, { guildId: null }),
+    onSuccess: (group) => {
+      queryClient.setQueryData<GroupDetail>(['groups', groupId], (prev) => (prev ? { ...prev, ...group } : prev));
+      queryClient.invalidateQueries({ queryKey: ['groups', groupId] });
+    },
   });
 }
 
