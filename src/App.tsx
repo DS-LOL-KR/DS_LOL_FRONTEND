@@ -1,22 +1,24 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { useMe } from './features/auth/hooks';
 import { LoginPage } from './pages/LoginPage';
 import { PrivacyPage } from './pages/PrivacyPage';
-import { ProfileSetupPage } from './pages/ProfileSetupPage';
-import { GroupsPage } from './pages/GroupsPage';
-import { GroupManagePage } from './pages/GroupManagePage';
-import { TierTablePage } from './pages/TierTablePage';
-import { MatchCreatePage } from './pages/MatchCreatePage';
-import { TeamFormationPage } from './pages/TeamFormationPage';
-import { MatchResultPage } from './pages/MatchResultPage';
-import { MatchHistoryPage } from './pages/MatchHistoryPage';
-import { StatsPage } from './pages/StatsPage';
-import { UserProfilePage } from './pages/UserProfilePage';
 import { NotFoundPage } from './pages/NotFoundPage';
-import { DiscordLinkPage } from './pages/DiscordLinkPage';
 import { consumeReturnTo, saveReturnTo } from './utils/returnTo';
+
+// 로그인/개인정보/404는 첫 화면이라 바로 불러오고, 나머지 페이지는 들어갈 때 청크로 받아요.
+const ProfileSetupPage = lazy(() => import('./pages/ProfileSetupPage').then((m) => ({ default: m.ProfileSetupPage })));
+const GroupsPage = lazy(() => import('./pages/GroupsPage').then((m) => ({ default: m.GroupsPage })));
+const GroupManagePage = lazy(() => import('./pages/GroupManagePage').then((m) => ({ default: m.GroupManagePage })));
+const TierTablePage = lazy(() => import('./pages/TierTablePage').then((m) => ({ default: m.TierTablePage })));
+const MatchCreatePage = lazy(() => import('./pages/MatchCreatePage').then((m) => ({ default: m.MatchCreatePage })));
+const TeamFormationPage = lazy(() => import('./pages/TeamFormationPage').then((m) => ({ default: m.TeamFormationPage })));
+const MatchResultPage = lazy(() => import('./pages/MatchResultPage').then((m) => ({ default: m.MatchResultPage })));
+const MatchHistoryPage = lazy(() => import('./pages/MatchHistoryPage').then((m) => ({ default: m.MatchHistoryPage })));
+const StatsPage = lazy(() => import('./pages/StatsPage').then((m) => ({ default: m.StatsPage })));
+const UserProfilePage = lazy(() => import('./pages/UserProfilePage').then((m) => ({ default: m.UserProfilePage })));
+const DiscordLinkPage = lazy(() => import('./pages/DiscordLinkPage').then((m) => ({ default: m.DiscordLinkPage })));
 
 const spin = keyframes`
   to { transform: rotate(360deg); }
@@ -100,25 +102,27 @@ function RequireAuth() {
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<RootGate />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/privacy" element={<PrivacyPage />} />
-        <Route element={<RequireAuth />}>
-          <Route path="/onboarding" element={<ProfileSetupPage />} />
-          <Route path="/groups" element={<GroupsPage />} />
-          <Route path="/groups/:id/manage" element={<GroupManagePage />} />
-          <Route path="/groups/:id/tiers" element={<TierTablePage />} />
-          <Route path="/groups/:id/matches/new" element={<MatchCreatePage />} />
-          <Route path="/groups/:id/matches" element={<MatchHistoryPage />} />
-          <Route path="/matches/:id/teams" element={<TeamFormationPage />} />
-          <Route path="/matches/:id" element={<MatchResultPage />} />
-          <Route path="/stats" element={<StatsPage />} />
-          <Route path="/users/:id" element={<UserProfilePage />} />
-          <Route path="/discord/link" element={<DiscordLinkPage />} />
-        </Route>
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+      <Suspense fallback={<SessionCheck />}>
+        <Routes>
+          <Route path="/" element={<RootGate />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route element={<RequireAuth />}>
+            <Route path="/onboarding" element={<ProfileSetupPage />} />
+            <Route path="/groups" element={<GroupsPage />} />
+            <Route path="/groups/:id/manage" element={<GroupManagePage />} />
+            <Route path="/groups/:id/tiers" element={<TierTablePage />} />
+            <Route path="/groups/:id/matches/new" element={<MatchCreatePage />} />
+            <Route path="/groups/:id/matches" element={<MatchHistoryPage />} />
+            <Route path="/matches/:id/teams" element={<TeamFormationPage />} />
+            <Route path="/matches/:id" element={<MatchResultPage />} />
+            <Route path="/stats" element={<StatsPage />} />
+            <Route path="/users/:id" element={<UserProfilePage />} />
+            <Route path="/discord/link" element={<DiscordLinkPage />} />
+          </Route>
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
