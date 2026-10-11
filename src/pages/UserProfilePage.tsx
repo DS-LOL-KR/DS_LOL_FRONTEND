@@ -141,7 +141,7 @@ export function UserProfilePage() {
                 onClick={handleFullSync}
                 disabled={fullSyncGameAccount.isPending || !account}
               >
-                <Icon name="refresh" />
+                <Icon name="refresh" spin={fullSyncGameAccount.isPending} />
                 {fullSyncGameAccount.isPending ? '갱신 중...' : '지금 갱신'}
               </Button>
             </HeaderActions>

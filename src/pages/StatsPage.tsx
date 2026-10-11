@@ -891,7 +891,7 @@ export function StatsPage() {
             onClick={handleFullSync}
             disabled={fullSyncGameAccount.isPending || !primaryAccount}
           >
-            <Icon name="refresh" />
+            <Icon name="refresh" spin={fullSyncGameAccount.isPending} />
             {fullSyncGameAccount.isPending ? '갱신 중...' : '지금 갱신'}
           </Button>
         </HeaderActions>
@@ -1011,6 +1011,7 @@ export function StatsPage() {
                   onClick={handleFullSync}
                   disabled={fullSyncGameAccount.isPending || !primaryAccount}
                 >
+                  <Icon name="refresh" spin={fullSyncGameAccount.isPending} />
                   {fullSyncGameAccount.isPending ? '동기화 중...' : '전적 동기화'}
                 </Button>
               }
