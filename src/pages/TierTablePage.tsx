@@ -228,10 +228,10 @@ export function TierTablePage() {
     if (groupId) setActiveGroupId(groupId);
   }, [groupId]);
 
-  const allMembers = tierTable?.tiers ?? [];
   // '전체' 탭에서는 한 사람이 여러 라인으로 중복 등장하면 지저분하니, 라인별
   // position_mmr가 가장 높은 한 줄만 남김.
   const filtered = useMemo(() => {
+    const allMembers = tierTable?.tiers ?? [];
     if (position !== 'ALL') return allMembers.filter((m) => m.position === position);
     const bestByUser = new Map<number, TierEntry>();
     for (const m of allMembers) {
@@ -239,7 +239,7 @@ export function TierTablePage() {
       if (!current || m.positionMmr > current.positionMmr) bestByUser.set(m.userId, m);
     }
     return Array.from(bestByUser.values());
-  }, [allMembers, position]);
+  }, [tierTable, position]);
 
   // 전체 탭에서는 등급(1~5) 기준인 계정 전체 internal_mmr을 보여줌 —
   // 라인별 position_mmr을 보여주면 숫자 순서랑 등급 순서가 안 맞아
