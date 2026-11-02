@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createMatch,
   deleteMatch,
@@ -14,6 +14,7 @@ import {
   updateTeams,
 } from './api';
 import type { FinishMatchRequest, GenerateTeamsRequest, SubmitEvaluationRequest, UpdateTeamsRequest } from './types';
+import { STALE_TIME } from '../../api/queryClient';
 
 export function useMatches(groupId: number) {
   return useQuery({
@@ -31,11 +32,25 @@ export function useCreateMatch(groupId: number) {
   });
 }
 
+// 내전이 생기거나 끝나면 MMR이 바뀌는 화면들 — 결과 입력, 평가, 종료된 내전 삭제(백엔드가
+// 그 내전의 MMR·매너 반영분을 되돌림)가 같이 씀. 캐시를 오래 두게 바꾼 뒤로(2026-11-03)
+// 여기서 빠진 화면은 몇 분 동안 예전 MMR을 보여주게 됨.
+function invalidateMmrViews(queryClient: QueryClient, groupId: number) {
+  queryClient.invalidateQueries({ queryKey: ['tiers', groupId] });
+  queryClient.invalidateQueries({ queryKey: ['game-accounts'] });
+  queryClient.invalidateQueries({ queryKey: ['users'] });
+  queryClient.invalidateQueries({ queryKey: ['me', 'mmr-history'] });
+}
+
 export function useDeleteMatch(groupId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (matchId: number) => deleteMatch(matchId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['matches', groupId] }),
+    onSuccess: (_data, matchId) => {
+      queryClient.invalidateQueries({ queryKey: ['matches', groupId] });
+      queryClient.removeQueries({ queryKey: ['matches', 'detail', matchId] });
+      invalidateMmrViews(queryClient, groupId);
+    },
   });
 }
 
@@ -61,6 +76,8 @@ export function useGenerateTeams(matchId: number) {
       queryClient.invalidateQueries({ queryKey: ['tiers', match.groupId] });
       queryClient.invalidateQueries({ queryKey: ['game-accounts'] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      // 목록의 상태 배지(대기 → 팀 구성됨)
+      queryClient.invalidateQueries({ queryKey: ['matches', match.groupId], exact: true });
     },
   });
 }
@@ -83,8 +100,9 @@ export function useFinishMatch(matchId: number) {
     // 있으니 그걸로 관련 캐시를 같이 무효화함(2026-08-30).
     onSuccess: (match) => {
       queryClient.setQueryData(['matches', 'detail', matchId], match);
-      queryClient.invalidateQueries({ queryKey: ['tiers', match.groupId] });
-      queryClient.invalidateQueries({ queryKey: ['game-accounts'] });
+      invalidateMmrViews(queryClient, match.groupId);
+      queryClient.invalidateQueries({ queryKey: ['matches', match.groupId], exact: true });
+      queryClient.invalidateQueries({ queryKey: ['matches', matchId, 'mmr-changes'] });
     },
   });
 }
@@ -103,8 +121,7 @@ export function useSubmitEvaluation(matchId: number, groupId: number) {
     mutationFn: (payload: SubmitEvaluationRequest) => submitEvaluation(matchId, payload),
     // 매너평가도 internal_mmr에 반영되므로 finishMatch와 동일하게 캐시 무효화.
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tiers', groupId] });
-      queryClient.invalidateQueries({ queryKey: ['game-accounts'] });
+      invalidateMmrViews(queryClient, groupId);
       queryClient.invalidateQueries({ queryKey: ['matches', matchId, 'evaluations', 'me'] });
     },
   });
@@ -135,5 +152,6 @@ export function useMyMmrHistory(groupId?: number) {
   return useQuery({
     queryKey: ['me', 'mmr-history', groupId ?? 'all'],
     queryFn: () => getMyMmrHistory(groupId),
+    staleTime: STALE_TIME.group,
   });
 }

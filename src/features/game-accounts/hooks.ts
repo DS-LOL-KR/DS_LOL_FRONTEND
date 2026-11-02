@@ -13,13 +13,14 @@ import {
   updatePreferredPosition,
 } from './api';
 import type { LinkGameAccountRequest, SyncMatchHistoryRequest, UpdatePreferredPositionRequest } from './types';
+import { STALE_TIME } from '../../api/queryClient';
 
 export function useGames() {
-  return useQuery({ queryKey: ['games'], queryFn: getGames });
+  return useQuery({ queryKey: ['games'], queryFn: getGames, staleTime: STALE_TIME.static });
 }
 
 export function useMyGameAccounts() {
-  return useQuery({ queryKey: ['game-accounts'], queryFn: getMyGameAccounts });
+  return useQuery({ queryKey: ['game-accounts'], queryFn: getMyGameAccounts, staleTime: STALE_TIME.account });
 }
 
 // 연동 버튼만 눌러도 티어/전적까지 바로 채워지길 원하는 피드백으로, link 성공 직후
@@ -47,6 +48,7 @@ export function useLinkAndSyncGameAccount() {
       queryClient.invalidateQueries({ queryKey: ['game-accounts', account.id, 'stats'] });
       queryClient.invalidateQueries({ queryKey: ['game-accounts', account.id, 'champion-stats'] });
       queryClient.invalidateQueries({ queryKey: ['tiers'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     },
   });
 }
@@ -55,7 +57,12 @@ export function useUnlinkGameAccount() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (accountId: number) => unlinkGameAccount(accountId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['game-accounts'] }),
+    // 연동을 끊으면 티어표에서 빠지고 프로필 MMR도 사라짐
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['game-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['tiers'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
   });
 }
 
@@ -69,6 +76,8 @@ export function useUpdatePreferredPosition(accountId: number) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['game-accounts'] });
       queryClient.invalidateQueries({ queryKey: ['game-accounts', accountId, 'stats'] });
+      // 티어표/그룹원 목록의 "주 라인" 컬럼이 이 값을 씀
+      queryClient.invalidateQueries({ queryKey: ['tiers'] });
     },
   });
 }
@@ -78,6 +87,7 @@ export function useGameAccountFullStats(accountId: number) {
     queryKey: ['game-accounts', accountId, 'stats'],
     queryFn: () => getGameAccountFullStats(accountId),
     enabled: Number.isFinite(accountId),
+    staleTime: STALE_TIME.account,
   });
 }
 
@@ -86,6 +96,7 @@ export function useMatchHistory(accountId: number) {
     queryKey: ['game-accounts', accountId, 'match-history'],
     queryFn: () => getMatchHistory(accountId),
     enabled: Number.isFinite(accountId),
+    staleTime: STALE_TIME.account,
   });
 }
 
@@ -107,6 +118,7 @@ export function useFullSyncGameAccount(accountId: number) {
       queryClient.invalidateQueries({ queryKey: ['game-accounts', accountId, 'champion-stats'] });
       // internal_mmr/position_mmr이 바뀌면 그룹 티어표도 다시 계산돼야 함.
       queryClient.invalidateQueries({ queryKey: ['tiers'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     },
   });
 }
@@ -116,6 +128,7 @@ export function useChampionStats(accountId: number) {
     queryKey: ['game-accounts', accountId, 'champion-stats'],
     queryFn: () => getChampionStats(accountId),
     enabled: Number.isFinite(accountId),
+    staleTime: STALE_TIME.account,
   });
 }
 
@@ -124,5 +137,6 @@ export function useChampionMasteries(accountId: number) {
     queryKey: ['game-accounts', accountId, 'champion-masteries'],
     queryFn: () => getChampionMasteries(accountId),
     enabled: Number.isFinite(accountId),
+    staleTime: STALE_TIME.account,
   });
 }

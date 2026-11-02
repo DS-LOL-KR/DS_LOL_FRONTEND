@@ -24,9 +24,10 @@ import type {
 } from './types';
 import { useTierTable } from '../tiers/hooks';
 import { clearActiveGroupIdIfMatches } from '../../utils/activeGroup';
+import { STALE_TIME } from '../../api/queryClient';
 
 export function useGroups() {
-  return useQuery({ queryKey: ['groups'], queryFn: getGroups });
+  return useQuery({ queryKey: ['groups'], queryFn: getGroups, staleTime: STALE_TIME.group });
 }
 
 export function useGroup(groupId: number) {
@@ -34,6 +35,7 @@ export function useGroup(groupId: number) {
     queryKey: ['groups', groupId],
     queryFn: () => getGroup(groupId),
     enabled: Number.isFinite(groupId),
+    staleTime: STALE_TIME.group,
   });
 }
 
@@ -49,7 +51,10 @@ export function useJoinGroup() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: JoinGroupRequest) => joinGroup(payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['tiers'] });
+    },
   });
 }
 
@@ -78,7 +83,11 @@ export function useKickMember(groupId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (userId: number) => kickMember(groupId, userId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups', groupId] }),
+    // 티어표 순위(5구간)도 멤버 구성으로 다시 매겨짐
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['tiers', groupId] });
+    },
   });
 }
 
