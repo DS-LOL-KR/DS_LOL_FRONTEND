@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import styled, { css } from 'styled-components';
+import { InfoTip } from '../InfoTip/InfoTip';
 
 // docs/design-system.md → surface layer 2. 1px subtle border, no shadow; a
 // card never sits inside another card (use `raised` rows inside instead).
@@ -67,6 +68,12 @@ export const CardTitle = styled.h2`
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
+const TitleLine = styled.div`
+  display: flex;
+  align-items: center;
+  min-width: 0;
+`;
+
 const CardDescription = styled.p`
   margin-top: 2px;
   font: ${({ theme }) => theme.type.caption};
@@ -78,7 +85,10 @@ const CardDescription = styled.p`
 
 export interface SectionHeaderProps {
   title: ReactNode;
+  /** 항상 보이는 짧은 정보(개수·범위 등) */
   description?: ReactNode;
+  /** 부가 설명 — 제목 옆 ⓘ에 호버/탭하면 보여요 */
+  hint?: ReactNode;
   icon?: ReactNode;
   action?: ReactNode;
   /** Set inside a flush card so the header carries the card's padding. */
@@ -86,12 +96,15 @@ export interface SectionHeaderProps {
   as?: 'h2' | 'h3';
 }
 
-export function SectionHeader({ title, description, icon, action, inset, as = 'h2' }: SectionHeaderProps) {
+export function SectionHeader({ title, description, hint, icon, action, inset, as = 'h2' }: SectionHeaderProps) {
   return (
     <HeaderRow $inset={inset}>
       {icon && <IconBox aria-hidden="true">{icon}</IconBox>}
       <TitleBlock>
-        <CardTitle as={as}>{title}</CardTitle>
+        <TitleLine>
+          <CardTitle as={as}>{title}</CardTitle>
+          {hint && <InfoTip>{hint}</InfoTip>}
+        </TitleLine>
         {description && <CardDescription>{description}</CardDescription>}
       </TitleBlock>
       {action}

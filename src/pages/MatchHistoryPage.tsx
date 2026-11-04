@@ -8,6 +8,7 @@ import { Button } from '../components/Button/Button';
 import { Card, IconBox, SectionHeader } from '../components/Card/Card';
 import { Kpi } from '../components/Kpi/Kpi';
 import { Badge } from '../components/Badge/Badge';
+import { HintRow, InfoTip } from '../components/InfoTip/InfoTip';
 import { Icon } from '../components/Icon/Icon';
 import { Modal } from '../components/Modal/Modal';
 import { Table } from '../components/Table/Table';
@@ -108,12 +109,6 @@ const FormCard = styled(Card)`
 const FormLabel = styled.p`
   font: ${({ theme }) => theme.type.label};
   color: ${({ theme }) => theme.color.text.secondary};
-`;
-
-const FormCaption = styled.p`
-  margin-top: 2px;
-  font: ${({ theme }) => theme.type.caption};
-  color: ${({ theme }) => theme.color.text.muted};
 `;
 
 const FormStrip = styled.ol`
@@ -444,8 +439,10 @@ export function MatchHistoryPage() {
           <Col $span={12}>
             <FormCard>
               <div>
-                <FormLabel>최근 {Math.min(finished.length, 10)}판</FormLabel>
-                <FormCaption>왼쪽이 가장 최근 경기예요</FormCaption>
+                <HintRow>
+                  <FormLabel>최근 {Math.min(finished.length, 10)}판</FormLabel>
+                  <InfoTip>왼쪽이 가장 최근 경기예요</InfoTip>
+                </HintRow>
               </div>
               <FormStrip aria-label={`최근 ${Math.min(finished.length, 10)}판: ${finished.slice(0, 10).map((r) => r.result).join(' ')}`}>
                 {finished.slice(0, 10).map((r) => (

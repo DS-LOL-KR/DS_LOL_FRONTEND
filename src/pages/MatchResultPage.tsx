@@ -13,6 +13,7 @@ import { Card, SectionHeader } from '../components/Card/Card';
 import { Delta } from '../components/Kpi/Kpi';
 import { Table, type Column } from '../components/Table/Table';
 import { Button } from '../components/Button/Button';
+import { HintRow, InfoTip } from '../components/InfoTip/InfoTip';
 import { Icon } from '../components/Icon/Icon';
 import { Modal } from '../components/Modal/Modal';
 import { Avatar } from '../components/Avatar/Avatar';
@@ -631,7 +632,7 @@ export function MatchResultPage() {
             <SectionHeader
               icon={<Icon name="trophy" />}
               title="어느 팀이 이겼나요?"
-              description="참가자들의 라이엇 전적이 동기화되면 자동으로 반영돼요. 급하면 직접 골라도 돼요."
+              hint="참가자들의 라이엇 전적이 동기화되면 자동으로 반영돼요. 급하면 직접 골라도 돼요."
             />
             <WinnerRow>
               <Button onClick={() => setPendingWinner('TEAM_B')} disabled={finishMatch.isPending}>
@@ -655,7 +656,7 @@ export function MatchResultPage() {
               inset
               icon={<Icon name="swap" />}
               title="MMR 변동 내역"
-              description="확정된 결과로 참가자 전원에게 반영된 변동"
+              hint="확정된 결과로 참가자 전원에게 반영된 변동"
             />
             {changes.length === 0 ? (
               <InsetEmpty>아직 집계된 변동 내역이 없어요</InsetEmpty>
@@ -687,10 +688,12 @@ export function MatchResultPage() {
       <Modal open={evalOpen} onClose={() => setEvalOpen(false)}>
         <EvalPanel>
           <EvalHeader>
-            <ModalTitle>팀원 평가</ModalTitle>
+            <HintRow>
+              <ModalTitle>팀원 평가</ModalTitle>
+              <InfoTip>평가는 다음 내전의 팀 밸런스와 그룹 티어에 반영돼요</InfoTip>
+            </HintRow>
             {wonForEval !== null && <ResultBadge $win={wonForEval}>{wonForEval ? '승리' : '패배'}</ResultBadge>}
           </EvalHeader>
-          <ModalHint>평가는 다음 내전의 팀 밸런스와 그룹 티어에 반영돼요</ModalHint>
           <EvalProgressRow>
             <span>팀원 평가</span>
             <EvalProgressCount>{completedCount} / {teammates.length}명 완료</EvalProgressCount>

@@ -383,7 +383,7 @@ export function MatchCreatePage() {
             <SectionHeader
               icon={<Icon name="groups" />}
               title="참여자"
-              description="클릭해서 이번 판에 빠지는 그룹원을 뺄 수 있어요."
+              hint="클릭해서 이번 판에 빠지는 그룹원을 뺄 수 있어요."
             />
             {group ? (
               <MemberList>
