@@ -1,12 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getTierTable, refreshGroupTiers } from './api';
 import type { Position } from './types';
+import { STALE_TIME } from '../../api/queryClient';
 
 export function useTierTable(groupId: number, position?: Position) {
   return useQuery({
     queryKey: ['tiers', groupId, position ?? 'ALL'],
     queryFn: () => getTierTable(groupId, position),
     enabled: Number.isFinite(groupId),
+    staleTime: STALE_TIME.group,
   });
 }
 
@@ -16,14 +18,17 @@ export function useRefreshGroupTiers(groupId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => refreshGroupTiers(groupId),
-    onSuccess: ({ tiers, lastUpdatedAt }) => {
-      queryClient.setQueryData(['tiers', groupId, 'ALL'], { tiers, lastUpdatedAt });
+    // refresh(성공/실패 수)만 빼고 GET /groups/:id/tiers와 같은 모양이라 그대로 넣음 — 예전엔
+    // tiers/lastUpdatedAt만 골라 넣어서 나중에 추가된 필드(members)가 캐시에서 빠졌음.
+    onSuccess: ({ refresh: _refresh, ...table }) => {
+      queryClient.setQueryData(['tiers', groupId, 'ALL'], table);
       queryClient.invalidateQueries({
         queryKey: ['tiers', groupId],
         predicate: (query) => query.queryKey[2] !== 'ALL',
       });
       queryClient.invalidateQueries({ queryKey: ['game-accounts'] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['me'] });
     },
   });
 }
