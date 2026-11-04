@@ -33,13 +33,7 @@ const JoinInput = styled(Input)`
   letter-spacing: 0.04em;
 `;
 
-// Input + button share the first line; the hint/error takes the next one.
-const JoinHint = styled.span`
-  flex-basis: 100%;
-  font: ${({ theme }) => theme.type.caption};
-  color: ${({ theme }) => theme.color.text.muted};
-`;
-
+// Input + button share the first line; the error takes the next one.
 const JoinError = styled.span`
   flex-basis: 100%;
   font: ${({ theme }) => theme.type.caption};
@@ -185,7 +179,7 @@ export function GroupsPage() {
             inset
             icon={<Icon name="groups" />}
             title="참여 중인 그룹"
-            description="그룹을 누르면 그룹 설정으로 이동해요"
+            hint="그룹을 누르면 그룹 설정으로 이동해요"
           />
           {groupsLoading ? (
             <EmptyState>
@@ -219,7 +213,7 @@ export function GroupsPage() {
           <SectionHeader
             icon={<Icon name="link" />}
             title={<label htmlFor="join-key">그룹 키로 참여</label>}
-            description="친구에게 받은 초대 코드로 기존 그룹에 들어가요"
+            hint="친구에게 받은 8자리 초대 코드를 입력하면 바로 참여돼요"
           />
           <JoinForm>
             <JoinInput
@@ -235,11 +229,7 @@ export function GroupsPage() {
             <Button onClick={handleJoinGroup} disabled={joinGroup.isPending}>
               참여
             </Button>
-            {joinGroup.isError ? (
-              <JoinError>키를 확인해주세요</JoinError>
-            ) : (
-              <JoinHint>친구에게 받은 8자리 코드를 입력하면 바로 참여돼요</JoinHint>
-            )}
+            {joinGroup.isError && <JoinError>키를 확인해주세요</JoinError>}
           </JoinForm>
         </Card>
         </Col>

@@ -7,6 +7,7 @@ import { Grid, Col } from '../components/layout/Grid';
 import { Card, SectionHeader } from '../components/Card/Card';
 import { Badge } from '../components/Badge/Badge';
 import { Button } from '../components/Button/Button';
+import { HintRow, InfoTip } from '../components/InfoTip/InfoTip';
 import { Icon } from '../components/Icon/Icon';
 import { Modal } from '../components/Modal/Modal';
 import { Table } from '../components/Table/Table';
@@ -414,7 +415,8 @@ export function GroupManagePage() {
               inset
               icon={<Icon name="groups" />}
               title="멤버"
-              description={`그룹원 ${members.length.toLocaleString()}명 · MMR은 계정 전체 기준이에요`}
+              description={`그룹원 ${members.length.toLocaleString()}명`}
+              hint="MMR은 계정 전체 기준이에요"
             />
             {transferOwner.isError && (
               <CardMessages>
@@ -438,7 +440,7 @@ export function GroupManagePage() {
 
         <Col $span={4}>
           <Card>
-            <SectionHeader icon={<Icon name="link" />} title="초대 키" description="이 키를 받은 사람은 바로 그룹에 참여해요" />
+            <SectionHeader icon={<Icon name="link" />} title="초대 키" hint="이 키를 받은 사람은 바로 그룹에 참여해요. 키가 유출됐다면 재발급하세요 — 기존 키는 즉시 만료돼요" />
             <Rows>
               <InviteCodeButton
                 type="button"
@@ -460,7 +462,6 @@ export function GroupManagePage() {
                   키 재발급
                 </Button>
               </RowActions>
-              <Hint>키가 유출됐다면 재발급하세요. 기존 키는 즉시 만료됩니다</Hint>
             </Rows>
             {refreshInviteCode.isError && (
               <InlineError>{refreshInviteCode.error.message || '초대 키 재발급에 실패했어요'}</InlineError>
@@ -469,13 +470,16 @@ export function GroupManagePage() {
 
           {showDiscordCard && (
             <Card>
-              <SectionHeader icon={<Icon name="chat" />} title="디스코드 연동" description="알림과 슬래시 명령어를 연결해요" />
+              <SectionHeader icon={<Icon name="chat" />} title="디스코드 연동" hint="알림과 슬래시 명령어를 연결해요" />
               {isViewerOwner && (
                 <Rows>
                   <RaisedRow>
-                    <RowLabel as="label" htmlFor="discord-webhook">
-                      디스코드 알림
-                    </RowLabel>
+                    <HintRow>
+                      <RowLabel as="label" htmlFor="discord-webhook">
+                        디스코드 알림
+                      </RowLabel>
+                      <InfoTip>등록하면 팀 구성/내전 종료 결과가 이 채널로 자동 전송돼요</InfoTip>
+                    </HintRow>
                     <Input
                       id="discord-webhook"
                       value={webhookInput}
@@ -501,20 +505,25 @@ export function GroupManagePage() {
                         </Button>
                       )}
                     </RowActions>
-                    <Hint>등록하면 팀 구성/내전 종료 결과가 이 채널로 자동 전송돼요</Hint>
                     {updateDiscordWebhook.isError && (
                       <InlineError>{updateDiscordWebhook.error.message || '디스코드 웹후크 설정에 실패했어요'}</InlineError>
                     )}
                   </RaisedRow>
                   <RaisedRow>
-                    <RowLabel>디스코드 명령어</RowLabel>
+                    <HintRow>
+                      <RowLabel>디스코드 명령어</RowLabel>
+                      <InfoTip>
+                        {group?.discordGuildId
+                          ? '디스코드 서버에서 /티어표, /내전모집, /전적, /내전결과 명령어를 쓸 수 있어요'
+                          : '봇을 서버에 초대하면 그 서버가 자동으로 이 그룹에 연동돼요'}
+                      </InfoTip>
+                    </HintRow>
                     {group?.discordGuildId ? (
                       <>
                         <StatusLine>
                           <Dot $on />
                           연동됨
                         </StatusLine>
-                        <Hint>디스코드 서버에서 /티어표, /내전모집, /전적, /내전결과 명령어를 쓸 수 있어요</Hint>
                         {/* 봇을 디스코드에서 추방해도 연결 기록이 남아 다른 그룹이 그 서버에 봇을
                             초대하지 못해요(409) — 그룹장이 여기서 직접 끊을 수 있게. */}
                         <RowActions>
@@ -538,7 +547,6 @@ export function GroupManagePage() {
                             디스코드 봇 초대
                           </Button>
                         </RowActions>
-                        <Hint>봇을 서버에 초대하면 그 서버가 자동으로 이 그룹에 연동돼요</Hint>
                       </>
                     )}
                   </RaisedRow>

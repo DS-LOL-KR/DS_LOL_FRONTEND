@@ -476,7 +476,7 @@ export function TeamFormationPage() {
         {analysis && (
           <Col $span={12}>
             <Card>
-              <SectionHeader icon={<Icon name="stats" />} title="팀 밸런스" description="팀을 옮기면 바로 다시 계산돼요" />
+              <SectionHeader icon={<Icon name="stats" />} title="팀 밸런스" hint="팀을 옮기면 바로 다시 계산돼요" />
               <Balance
                 role="img"
                 aria-label={`밸런스 ${analysis.balancePercent}%, 예상 승률 블루 ${bluePct} 대 레드 ${redPct}`}
@@ -545,7 +545,7 @@ export function TeamFormationPage() {
         {analysis && analysis.reasoning.length > 0 && (
           <Col $span={12}>
             <Card>
-              <SectionHeader icon={<Icon name="chat" />} title="구성 근거" description="AI가 이렇게 나눈 이유예요" />
+              <SectionHeader icon={<Icon name="chat" />} title="구성 근거" hint="AI가 이렇게 나눈 이유예요" />
               <ReasonList>
                 {analysis.reasoning.map((line, i) => (
                   <ReasonRow key={i}>{line}</ReasonRow>

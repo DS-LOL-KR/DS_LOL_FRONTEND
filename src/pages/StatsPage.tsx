@@ -14,6 +14,7 @@ import { Kpi, Delta } from '../components/Kpi/Kpi';
 import { Table, type Column } from '../components/Table/Table';
 import { WinRateBar } from '../components/WinRateBar/WinRateBar';
 import { LaneIcon, LaneLabel, type Lane } from '../components/LaneIcon/LaneIcon';
+import { InfoTip } from '../components/InfoTip/InfoTip';
 import { Icon } from '../components/Icon/Icon';
 import { MmrSummary } from '../components/MmrSummary/MmrSummary';
 import { Button } from '../components/Button/Button';
@@ -334,7 +335,7 @@ export function RecentMatchesCard({
         inset
         icon={<Icon name="history" />}
         title="최근 매치"
-        description="라이엇 전적 · 동기화된 경기 기준"
+        hint="라이엇 전적 · 동기화된 경기 기준"
         action={action}
       />
       {recent.length > 0 && (
@@ -410,7 +411,7 @@ export function ChampionStatsCard({ stats, masteries, championName }: ChampionSt
         inset
         icon={<Icon name="star" />}
         title="챔피언 전적"
-        description="숙련도 순 · 동기화된 경기 기준"
+        hint="숙련도 순 · 동기화된 경기 기준"
       />
       {stats.length === 0 ? (
         <InsetEmpty>동기화된 챔피언 전적이 없어요</InsetEmpty>
@@ -603,7 +604,7 @@ export function LaneMmrCard({ positionStats, groupRows, groupName, mainPosition,
       <SectionHeader
         icon={<Icon name="stats" />}
         title="라인별 MMR"
-        description="라인별 판수 · 승률 · MMR"
+        hint="라인별 판수 · 승률 · MMR"
         action={
           hasMine ? (
             <Legend aria-hidden="true">
@@ -883,7 +884,10 @@ export function StatsPage() {
         <div>
           <Title>내 전적</Title>
           {/* 매일 자정 자동 갱신이 없어졌어요(2026-09-28) — 직접 누르거나 티어표의 "그룹 전체 갱신"으로만 갱신돼요. */}
-          <Subtitle>"지금 갱신"을 눌러야 새로 불러와요 · {formatRelativeTime(primaryAccount?.stats?.updatedAt ?? null)}</Subtitle>
+          <Subtitle>
+            {formatRelativeTime(primaryAccount?.stats?.updatedAt ?? null)}
+            <InfoTip>"지금 갱신"을 눌러야 새로 불러와요</InfoTip>
+          </Subtitle>
         </div>
         <HeaderActions>
           <Button
@@ -930,7 +934,8 @@ export function StatsPage() {
               <SectionHeader
                 icon={<Icon name="stats" />}
                 title="MMR 추이"
-                description={`최근 ${trendSeries.length}경기 · 막대를 누르면 내전 상세로 이동해요`}
+                description={`최근 ${trendSeries.length}경기`}
+                hint="막대를 누르면 내전 상세로 이동해요"
               />
               {barRatios.length === 0 ? (
                 <EmptyHint>{primaryAccount ? '아직 집계된 내전 기록이 없어요' : noAccountHint}</EmptyHint>

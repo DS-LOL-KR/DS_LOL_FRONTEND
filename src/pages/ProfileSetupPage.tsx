@@ -8,8 +8,9 @@ import { LaneLabel } from '../components/LaneIcon/LaneIcon';
 import { Wordmark } from '../components/Wordmark/Wordmark';
 import { Avatar } from '../components/Avatar/Avatar';
 import { CardBox, SectionHeader } from '../components/Card/Card';
+import { HintRow, InfoTip } from '../components/InfoTip/InfoTip';
 import { Icon } from '../components/Icon/Icon';
-import { PageHeader, PageTitle, PageSubtitle } from '../components/layout/PageHeader';
+import { PageHeader, PageTitle } from '../components/layout/PageHeader';
 import { useProfile, useUnlinkDiscord, useUpdateProfile, useUploadProfileImage } from '../features/profile/hooks';
 import { useLogout } from '../features/auth/hooks';
 import {
@@ -85,11 +86,6 @@ const Field = styled.div`
 const FieldLabel = styled.label`
   font: ${({ theme }) => theme.type.labelStrong};
   color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const FieldHint = styled.span`
-  font: ${({ theme }) => theme.type.caption};
-  color: ${({ theme }) => theme.color.text.muted};
 `;
 
 // Raised row inside the card (no card-in-card).
@@ -422,13 +418,15 @@ export function ProfileSetupPage() {
         <Form onSubmit={handleSave}>
           <Header>
             <div>
-              <PageTitle>프로필 설정</PageTitle>
-              <PageSubtitle>그룹원들에게 보여질 정보예요</PageSubtitle>
+              <HintRow>
+                <PageTitle>프로필 설정</PageTitle>
+                <InfoTip>그룹원들에게 보여질 정보예요</InfoTip>
+              </HintRow>
             </div>
           </Header>
 
           <CardBox>
-            <SectionHeader icon={<Icon name="user" />} title="프로필" description="이름과 사진은 그룹 안에서 보여요" />
+            <SectionHeader icon={<Icon name="user" />} title="프로필" hint="이름과 사진은 그룹 안에서 보여요" />
             <AvatarRow>
               <Avatar
                 name={nickname || profile?.nickname || '?'}
@@ -445,17 +443,22 @@ export function ProfileSetupPage() {
               </Button>
             </AvatarRow>
             <Field>
-              <FieldLabel htmlFor="profile-nickname">이름</FieldLabel>
+              <HintRow>
+                <FieldLabel htmlFor="profile-nickname">이름</FieldLabel>
+                <InfoTip>그룹 안에서 표시되는 이름이에요</InfoTip>
+              </HintRow>
               <Input
                 id="profile-nickname"
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
                 placeholder="재현"
               />
-              <FieldHint>그룹 안에서 표시되는 이름이에요</FieldHint>
             </Field>
             <Field>
-              <FieldLabel htmlFor="profile-bio">자기소개</FieldLabel>
+              <HintRow>
+                <FieldLabel htmlFor="profile-bio">자기소개</FieldLabel>
+                <InfoTip>마크다운 지원 · **굵게**, *기울임*, - 목록</InfoTip>
+              </HintRow>
               <Textarea
                 id="profile-bio"
                 rows={3}
@@ -463,7 +466,6 @@ export function ProfileSetupPage() {
                 onChange={(e) => setBio(e.target.value)}
                 placeholder={'미드 주력 / 정글 서브\n야간 내전만 참여합니다'}
               />
-              <FieldHint>마크다운 지원 · **굵게**, *기울임*, - 목록</FieldHint>
             </Field>
           </CardBox>
 
@@ -471,7 +473,7 @@ export function ProfileSetupPage() {
             <SectionHeader
               icon={<Icon name="link" />}
               title="게임 계정 연동"
-              description="연동하면 티어와 전적을 자동으로 불러와요"
+              hint="연동하면 티어와 전적을 자동으로 불러와요"
             />
             <GameAccounts>
               {(!games || games.length === 0) && <AccountHint>연동 가능한 게임을 불러오는 중이에요</AccountHint>}
@@ -543,7 +545,7 @@ export function ProfileSetupPage() {
             <SectionHeader
               icon={<Icon name="chat" />}
               title="디스코드 계정"
-              description="연결하면 디스코드 봇이 이 계정을 알아볼 수 있어요"
+              hint="연결하면 디스코드 봇이 이 계정을 알아볼 수 있어요"
             />
             <RaisedRow>
               <AccountTop>
