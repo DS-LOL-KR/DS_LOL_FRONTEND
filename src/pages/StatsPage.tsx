@@ -171,7 +171,7 @@ export function RecordKpis({
   hasAccount,
 }: RecordKpisProps) {
   const theme = useTheme();
-  const noAccountHint = '라이엇 계정을 연동하면 표시돼요';
+  const noAccountHint = '라이엇 계정을 연동하면 표시됩니다';
   const customTotal = customRecord ? customRecord.wins + customRecord.losses : 0;
 
   const riotWins = matches.filter((m) => m.win).length;
@@ -216,7 +216,7 @@ export function RecordKpis({
             label="라이엇 승률"
             value={dash}
             color={mutedColor}
-            sub={hasAccount ? '동기화된 매치가 없어요' : noAccountHint}
+            sub={hasAccount ? '동기화된 매치가 없습니다' : noAccountHint}
           />
         )}
       </Col>
@@ -241,7 +241,7 @@ export function RecordKpis({
             label="주 라인"
             value={dash}
             color={mutedColor}
-            sub={hasAccount ? '아직 집계된 라인 기록이 없어요' : noAccountHint}
+            sub={hasAccount ? '아직 집계된 라인 기록이 없습니다' : noAccountHint}
           />
         )}
       </Col>
@@ -257,7 +257,7 @@ export function RecordKpis({
             label="평균 KDA"
             value={dash}
             color={mutedColor}
-            sub={hasAccount ? '동기화된 매치가 없어요' : noAccountHint}
+            sub={hasAccount ? '동기화된 매치가 없습니다' : noAccountHint}
           />
         )}
       </Col>
@@ -287,7 +287,7 @@ export function RecentMatchesCard({
   matches,
   championName,
   action,
-  emptyHint = '동기화된 매치가 없어요',
+  emptyHint = '동기화된 매치가 없습니다',
 }: RecentMatchesCardProps) {
   const recent = matches.slice(0, 10);
   const recentWins = recent.filter((m) => m.win).length;
@@ -414,7 +414,7 @@ export function ChampionStatsCard({ stats, masteries, championName }: ChampionSt
         hint="숙련도 순 · 동기화된 경기 기준"
       />
       {stats.length === 0 ? (
-        <InsetEmpty>동기화된 챔피언 전적이 없어요</InsetEmpty>
+        <InsetEmpty>동기화된 챔피언 전적이 없습니다</InsetEmpty>
       ) : (
         <Table columns={columns} data={stats} minWidth={480} rowKey={(c) => c.championId} />
       )}
@@ -876,7 +876,7 @@ export function StatsPage() {
   // 늦추는 장식이라 바로 이동하게 바꿈. 가장 최근 경기(현재 MMR) 막대만 진하게.
   const handleBarClick = (matchId: number) => navigate(`/matches/${matchId}`);
 
-  const noAccountHint = '게임 계정을 연동하면 표시돼요';
+  const noAccountHint = '게임 계정을 연동하면 표시됩니다';
 
   return (
     <PageLayout>
@@ -886,7 +886,7 @@ export function StatsPage() {
           {/* 매일 자정 자동 갱신이 없어졌어요(2026-09-28) — 직접 누르거나 티어표의 "그룹 전체 갱신"으로만 갱신돼요. */}
           <Subtitle>
             {formatRelativeTime(primaryAccount?.stats?.updatedAt ?? null)}
-            <InfoTip>"지금 갱신"을 눌러야 새로 불러와요</InfoTip>
+            <InfoTip>"지금 갱신"을 눌러야 새로 불러옵니다</InfoTip>
           </Subtitle>
         </div>
         <HeaderActions>
@@ -920,7 +920,7 @@ export function StatsPage() {
                 ? { wins: myGroupTier.customMatchWins, losses: myGroupTier.customMatchLosses }
                 : null
             }
-            customEmptyHint={activeGroup ? `${activeGroup.name} 내전 기록이 없어요` : '그룹에 참여하면 표시돼요'}
+            customEmptyHint={activeGroup ? `${activeGroup.name} 내전 기록이 없습니다` : '그룹에 참여하면 표시됩니다'}
             matches={recentMatches}
             positionStats={positionStats}
             mainPosition={primaryAccount?.stats?.mainPosition ?? null}
@@ -935,10 +935,10 @@ export function StatsPage() {
                 icon={<Icon name="stats" />}
                 title="MMR 추이"
                 description={`최근 ${trendSeries.length}경기`}
-                hint="막대를 누르면 내전 상세로 이동해요"
+                hint="막대를 누르면 내전 상세로 이동합니다"
               />
               {barRatios.length === 0 ? (
-                <EmptyHint>{primaryAccount ? '아직 집계된 내전 기록이 없어요' : noAccountHint}</EmptyHint>
+                <EmptyHint>{primaryAccount ? '아직 집계된 내전 기록이 없습니다' : noAccountHint}</EmptyHint>
               ) : (
                 <Chart>
                   <YAxis aria-hidden="true">
@@ -984,7 +984,7 @@ export function StatsPage() {
                 description={activeGroup ? `${activeGroup.name} 내전 기준` : '내전 기준'}
               />
               {history.length === 0 ? (
-                <EmptyHint>아직 집계된 변동 내역이 없어요</EmptyHint>
+                <EmptyHint>아직 집계된 변동 내역이 없습니다</EmptyHint>
               ) : (
                 <ChangeList>
                   {history.map((c) => (
@@ -1009,7 +1009,7 @@ export function StatsPage() {
             <RecentMatchesCard
               matches={recentMatches}
               championName={championName}
-              emptyHint={primaryAccount ? '동기화된 매치가 없어요' : noAccountHint}
+              emptyHint={primaryAccount ? '동기화된 매치가 없습니다' : noAccountHint}
               action={
                 <Button
                   $size="sm"
@@ -1034,7 +1034,7 @@ export function StatsPage() {
               groupRows={activeGroupTiers?.tiers}
               groupName={activeGroup?.name}
               mainPosition={primaryAccount?.stats?.mainPosition ?? null}
-              emptyHint={primaryAccount ? '아직 집계된 라인 기록이 없어요' : noAccountHint}
+              emptyHint={primaryAccount ? '아직 집계된 라인 기록이 없습니다' : noAccountHint}
             />
           </Col>
         </Grid>

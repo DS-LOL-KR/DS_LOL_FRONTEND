@@ -56,8 +56,8 @@ export function NotFoundPage() {
           <Icon name="close" />
         </IconBox>
         <Code>404</Code>
-        <Title>페이지를 찾을 수 없어요</Title>
-        <Body>주소가 잘못되었거나 삭제된 페이지예요.</Body>
+        <Title>페이지를 찾을 수 없습니다</Title>
+        <Body>주소가 잘못되었거나 삭제된 페이지입니다.</Body>
         <HomeButton as={Link} to="/" $variant="primary">
           DS_LOL 홈으로 돌아가기
         </HomeButton>

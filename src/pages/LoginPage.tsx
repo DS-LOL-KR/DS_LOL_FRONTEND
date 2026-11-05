@@ -267,7 +267,7 @@ function MatchupPreview() {
         as="h3"
         icon={<Icon name="matches" />}
         title="AI 팀 구성 결과"
-        description="예시 화면 · 실제 사용자 데이터가 아니에요"
+        description="예시 화면 · 실제 사용자 데이터가 아닙니다"
       />
       <Balance>
         <BalanceMeta>

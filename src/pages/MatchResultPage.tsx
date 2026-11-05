@@ -32,9 +32,9 @@ import { useMe } from '../features/auth/hooks';
 import { resolveAssetUrl } from '../utils/assetUrl';
 import { formatDateTime } from '../utils/formatDateTime';
 
-type RatingOption = '아쉬웠어요' | '무난했어요' | '좋았어요';
-const RATING_OPTIONS: RatingOption[] = ['아쉬웠어요', '무난했어요', '좋았어요'];
-const RATING_SCORE: Record<RatingOption, 1 | 2 | 3 | 4 | 5> = { 아쉬웠어요: 1, 무난했어요: 3, 좋았어요: 5 };
+type RatingOption = '아쉬웠습니다' | '무난했습니다' | '좋았습니다';
+const RATING_OPTIONS: RatingOption[] = ['아쉬웠습니다', '무난했습니다', '좋았습니다'];
+const RATING_SCORE: Record<RatingOption, 1 | 2 | 3 | 4 | 5> = { 아쉬웠습니다: 1, 무난했습니다: 3, 좋았습니다: 5 };
 
 // TODO: no design frame covers a standalone match-detail page yet (the Figma file
 // only has AI 팀 구성 / 사용자 평가) — this view is assembled from the /matches/:id
@@ -560,7 +560,7 @@ export function MatchResultPage() {
             )}
           </HeaderActions>
           {duplicateTeams.isError && (
-            <InlineError role="alert">{duplicateTeams.error.message || '다음 판 생성에 실패했어요'}</InlineError>
+            <InlineError role="alert">{duplicateTeams.error.message || '다음 판 생성에 실패했습니다'}</InlineError>
           )}
         </HeaderActionColumn>
       </Header>
@@ -569,7 +569,7 @@ export function MatchResultPage() {
         {players.length === 0 ? (
           <Card>
             <SectionHeader icon={<Icon name="matches" />} title="팀 배정" />
-            <EmptyText>아직 팀 배정 정보가 없어요</EmptyText>
+            <EmptyText>아직 팀 배정 정보가 없습니다</EmptyText>
           </Card>
         ) : (
           <Grid>
@@ -608,7 +608,7 @@ export function MatchResultPage() {
                           <PlayerMmr
                             data-optional
                             $estimated={!p.hasLinkedAccount}
-                            title={p.hasLinkedAccount ? undefined : '계정 미연동 — 기본 MMR로 계산했어요'}
+                            title={p.hasLinkedAccount ? undefined : '계정 미연동 — 기본 MMR로 계산했습니다'}
                           >
                             {p.mmr.toLocaleString()}
                             {!p.hasLinkedAccount && ' · 기본값'}
@@ -631,8 +631,8 @@ export function MatchResultPage() {
           <Card>
             <SectionHeader
               icon={<Icon name="trophy" />}
-              title="어느 팀이 이겼나요?"
-              hint="참가자들의 라이엇 전적이 동기화되면 자동으로 반영돼요. 급하면 직접 골라도 돼요."
+              title="어느 팀이 이겼습니까?"
+              hint="참가자들의 라이엇 전적이 동기화되면 자동으로 반영됩니다. 급하면 직접 골라도 됩니다."
             />
             <WinnerRow>
               <Button onClick={() => setPendingWinner('TEAM_B')} disabled={finishMatch.isPending}>
@@ -645,7 +645,7 @@ export function MatchResultPage() {
               </Button>
             </WinnerRow>
             {finishMatch.isError && (
-              <InlineError role="alert">{finishMatch.error.message || '승리팀 확정에 실패했어요'}</InlineError>
+              <InlineError role="alert">{finishMatch.error.message || '승리팀 확정에 실패했습니다'}</InlineError>
             )}
           </Card>
         )}
@@ -659,7 +659,7 @@ export function MatchResultPage() {
               hint="확정된 결과로 참가자 전원에게 반영된 변동"
             />
             {changes.length === 0 ? (
-              <InsetEmpty>아직 집계된 변동 내역이 없어요</InsetEmpty>
+              <InsetEmpty>아직 집계된 변동 내역이 없습니다</InsetEmpty>
             ) : (
               <Table
                 columns={changeColumns}
@@ -674,10 +674,10 @@ export function MatchResultPage() {
       </Stack>
 
       <Modal open={pendingWinner !== null} onClose={() => setPendingWinner(null)}>
-        <ModalTitle>{pendingWinner === 'TEAM_A' ? '레드 팀(팀 A)' : '블루 팀(팀 B)'} 승리로 확정할까요?</ModalTitle>
-        <ModalHint>확정하면 참가자 전원의 MMR에 즉시 반영되며 되돌릴 수 없어요.</ModalHint>
+        <ModalTitle>{pendingWinner === 'TEAM_A' ? '레드 팀(팀 A)' : '블루 팀(팀 B)'} 승리로 확정하시겠습니까?</ModalTitle>
+        <ModalHint>확정하면 참가자 전원의 MMR에 즉시 반영되며 되돌릴 수 없습니다.</ModalHint>
         {finishMatch.isError && (
-          <InlineError role="alert">{finishMatch.error.message || '승리팀 확정에 실패했어요'}</InlineError>
+          <InlineError role="alert">{finishMatch.error.message || '승리팀 확정에 실패했습니다'}</InlineError>
         )}
         <ModalActions>
           <Button $variant="ghost" onClick={() => setPendingWinner(null)}>취소</Button>
@@ -690,7 +690,7 @@ export function MatchResultPage() {
           <EvalHeader>
             <HintRow>
               <ModalTitle>팀원 평가</ModalTitle>
-              <InfoTip>평가는 다음 내전의 팀 밸런스와 그룹 티어에 반영돼요</InfoTip>
+              <InfoTip>평가는 다음 내전의 팀 밸런스와 그룹 티어에 반영됩니다</InfoTip>
             </HintRow>
             {wonForEval !== null && <ResultBadge $win={wonForEval}>{wonForEval ? '승리' : '패배'}</ResultBadge>}
           </EvalHeader>
@@ -699,7 +699,7 @@ export function MatchResultPage() {
             <EvalProgressCount>{completedCount} / {teammates.length}명 완료</EvalProgressCount>
           </EvalProgressRow>
 
-          {pendingTeammates.length === 0 && <EvalEmpty>평가할 팀원이 없어요</EvalEmpty>}
+          {pendingTeammates.length === 0 && <EvalEmpty>평가할 팀원이 없습니다</EvalEmpty>}
           {pendingTeammates.map((mate) => (
             <TeammateRow key={mate.id}>
               <TeammateInfo>
@@ -729,7 +729,7 @@ export function MatchResultPage() {
           ))}
 
           <EvalFooter>
-            <AnonymousHint>평가는 익명으로 반영돼요</AnonymousHint>
+            <AnonymousHint>평가는 익명으로 반영됩니다</AnonymousHint>
             <EvalFooterActions>
               <Button $variant="ghost" onClick={() => setEvalOpen(false)}>나중에</Button>
               <Button
