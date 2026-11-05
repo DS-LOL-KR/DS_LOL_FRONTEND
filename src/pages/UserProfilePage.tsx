@@ -146,7 +146,7 @@ export function UserProfilePage() {
               </Button>
             </HeaderActions>
             {fullSyncGameAccount.isError && (
-              <InlineError role="alert">{fullSyncGameAccount.error.message || '전적 갱신에 실패했어요'}</InlineError>
+              <InlineError role="alert">{fullSyncGameAccount.error.message || '전적 갱신에 실패했습니다'}</InlineError>
             )}
           </HeaderActionColumn>
         )}
@@ -156,20 +156,20 @@ export function UserProfilePage() {
         <Card>
           <SectionHeader icon={<Icon name="user" />} title="자기소개" />
           {isError ? (
-            <EmptyText>프로필을 불러올 수 없어요.</EmptyText>
+            <EmptyText>프로필을 불러올 수 없습니다.</EmptyText>
           ) : user?.bio ? (
             <Bio>
               <ReactMarkdown remarkPlugins={[remarkBreaks]}>{user.bio}</ReactMarkdown>
             </Bio>
           ) : (
-            <EmptyText>{isLoading ? '불러오는 중...' : '작성된 자기소개가 없어요.'}</EmptyText>
+            <EmptyText>{isLoading ? '불러오는 중...' : '작성된 자기소개가 없습니다.'}</EmptyText>
           )}
         </Card>
 
         {!isError && user && !account ? (
           <Card>
             <SectionHeader icon={<Icon name="link" />} title="라이엇 전적" />
-            <EmptyText>게임 계정을 연동하지 않았어요.</EmptyText>
+            <EmptyText>게임 계정을 연동하지 않았습니다.</EmptyText>
           </Card>
         ) : !isError && account ? (
           <>
@@ -192,7 +192,7 @@ export function UserProfilePage() {
                 customRecord={
                   groupEntry ? { wins: groupEntry.customMatchWins, losses: groupEntry.customMatchLosses } : null
                 }
-                customEmptyHint={activeGroup ? `${activeGroup.name} 내전 기록이 없어요` : '같은 그룹 기록이 없어요'}
+                customEmptyHint={activeGroup ? `${activeGroup.name} 내전 기록이 없습니다` : '같은 그룹 기록이 없습니다'}
                 matches={recentMatches}
                 positionStats={positionStats}
                 mainPosition={mainPosition}
@@ -216,7 +216,7 @@ export function UserProfilePage() {
                   groupRows={activeGroupTiers?.tiers}
                   groupName={activeGroup?.name}
                   mainPosition={mainPosition}
-                  emptyHint="아직 집계된 라인 기록이 없어요"
+                  emptyHint="아직 집계된 라인 기록이 없습니다"
                 />
               </Col>
             </Grid>

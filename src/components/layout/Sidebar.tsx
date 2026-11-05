@@ -323,7 +323,7 @@ function GroupSwitcher({ activeGroupId, groupName, memberCount }: {
       <Switcher type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         <SwitcherText>
           <GroupName>{groupName ?? '그룹 선택'}</GroupName>
-          <Caption>{memberCount !== undefined ? `멤버 ${memberCount}명` : '내전할 그룹을 골라요'}</Caption>
+          <Caption>{memberCount !== undefined ? `멤버 ${memberCount}명` : '내전할 그룹을 선택하십시오'}</Caption>
         </SwitcherText>
         <Icon name="chevronDown" />
       </Switcher>

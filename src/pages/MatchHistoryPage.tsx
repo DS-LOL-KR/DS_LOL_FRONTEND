@@ -366,7 +366,7 @@ export function MatchHistoryPage() {
       <Header>
         <div>
           <Title>내전 기록</Title>
-          <Subtitle>{group?.name ?? (groupError ? '그룹 정보를 불러올 수 없어요' : '불러오는 중...')}</Subtitle>
+          <Subtitle>{group?.name ?? (groupError ? '그룹 정보를 불러올 수 없습니다' : '불러오는 중...')}</Subtitle>
         </div>
         {/* "게임" 필터는 없음 — 그룹당 게임이 하나로 고정돼 있어서(group.gameId)
             이 목록의 모든 내전이 항상 같은 게임이라 필터링할 대상 자체가 없음. */}
@@ -390,7 +390,7 @@ export function MatchHistoryPage() {
             label="내 승률"
             value={winRate ?? <Muted>—</Muted>}
             unit={winRate !== null ? '%' : undefined}
-            sub={finished.length ? `${wins}승 ${losses}패` : '완료된 내전이 없어요'}
+            sub={finished.length ? `${wins}승 ${losses}패` : '완료된 내전이 없습니다'}
           />
         </Col>
         <Col $span={3}>
@@ -400,7 +400,7 @@ export function MatchHistoryPage() {
             color={
               avgMmr?.dir === 'up' ? theme.color.state.success : avgMmr?.dir === 'down' ? theme.color.state.danger : undefined
             }
-            sub={finished.length ? `완료된 ${finished.length.toLocaleString()}판 기준` : '완료된 내전이 없어요'}
+            sub={finished.length ? `완료된 ${finished.length.toLocaleString()}판 기준` : '완료된 내전이 없습니다'}
           />
         </Col>
         <Col $span={3}>
@@ -413,7 +413,7 @@ export function MatchHistoryPage() {
                 ? `진행중·미참여 ${(dateFilteredRows.length - finished.length).toLocaleString()}판`
                 : latestCreatedAt
                   ? `최근 ${formatDate(latestCreatedAt)}`
-                  : '아직 진행된 내전이 없어요'
+                  : '아직 진행된 내전이 없습니다'
             }
           />
         </Col>
@@ -431,7 +431,7 @@ export function MatchHistoryPage() {
                 <Muted>—</Muted>
               )
             }
-            sub={finishedMatches.length ? `그룹 전체 완료 ${finishedMatches.length.toLocaleString()}판` : '완료된 내전이 없어요'}
+            sub={finishedMatches.length ? `그룹 전체 완료 ${finishedMatches.length.toLocaleString()}판` : '완료된 내전이 없습니다'}
           />
         </Col>
 
@@ -441,7 +441,7 @@ export function MatchHistoryPage() {
               <div>
                 <HintRow>
                   <FormLabel>최근 {Math.min(finished.length, 10)}판</FormLabel>
-                  <InfoTip>왼쪽이 가장 최근 경기예요</InfoTip>
+                  <InfoTip>왼쪽이 가장 최근 경기입니다</InfoTip>
                 </HintRow>
               </div>
               <FormStrip aria-label={`최근 ${Math.min(finished.length, 10)}판: ${finished.slice(0, 10).map((r) => r.result).join(' ')}`}>
@@ -476,9 +476,9 @@ export function MatchHistoryPage() {
                 <IconBox aria-hidden="true">
                   <Icon name="matches" />
                 </IconBox>
-                <EmptyTitle>{rows.length === 0 ? '아직 진행된 내전이 없어요' : '조건에 맞는 내전이 없어요'}</EmptyTitle>
+                <EmptyTitle>{rows.length === 0 ? '아직 진행된 내전이 없습니다' : '조건에 맞는 내전이 없습니다'}</EmptyTitle>
                 <EmptyBody>
-                  {rows.length === 0 ? '첫 내전을 만들면 여기에 기록이 쌓여요.' : '기간이나 결과 필터를 바꿔 보세요.'}
+                  {rows.length === 0 ? '첫 내전을 만들면 여기에 기록이 쌓입니다.' : '기간이나 결과 필터를 바꿔 보십시오.'}
                 </EmptyBody>
               </Empty>
             ) : (
@@ -489,8 +489,8 @@ export function MatchHistoryPage() {
       </Grid>
 
       <Modal open={deleteTarget !== null} onClose={() => setDeleteTarget(null)}>
-        <ModalTitle>이 내전을 삭제할까요?</ModalTitle>
-        <ModalBody>팀 구성·평가 기록이 함께 삭제되며 되돌릴 수 없어요.</ModalBody>
+        <ModalTitle>이 내전을 삭제하시겠습니까?</ModalTitle>
+        <ModalBody>팀 구성·평가 기록이 함께 삭제되며 되돌릴 수 없습니다.</ModalBody>
         <ModalActions>
           <Button $variant="ghost" onClick={() => setDeleteTarget(null)}>취소</Button>
           <Button $variant="danger" onClick={handleDeleteConfirmed} disabled={deleteMatch.isPending}>삭제</Button>

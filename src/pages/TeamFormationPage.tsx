@@ -401,7 +401,7 @@ export function TeamFormationPage() {
         <TierCell>{p.tier ?? (p.hasLinkedAccount ? '언랭크' : '미연동')}</TierCell>
         <MmrCell
           $estimated={!p.hasLinkedAccount}
-          title={p.hasLinkedAccount ? undefined : '계정 미연동 — 기본 MMR로 계산했어요'}
+          title={p.hasLinkedAccount ? undefined : '계정 미연동 — 기본 MMR로 계산했습니다'}
         >
           {p.mmr.toLocaleString()}
         </MmrCell>
@@ -426,12 +426,12 @@ export function TeamFormationPage() {
   const bluePct = analysis ? Math.round(analysis.teamB.expectedWinRate * 100) : 50;
 
   const notice = matchError
-    ? '내전 정보를 불러올 수 없어요.'
+    ? '내전 정보를 불러올 수 없습니다.'
     : notEnoughMembers
-      ? '그룹원이 2명 이상이어야 팀을 구성할 수 있어요.'
+      ? '그룹원이 2명 이상이어야 팀을 구성할 수 있습니다.'
       : (matchLoading || isGenerating) && participants.length === 0
         ? isGenerating
-          ? 'AI가 팀을 구성하고 있어요...'
+          ? 'AI가 팀을 구성하고 있습니다...'
           : '불러오는 중...'
         : null;
 
@@ -476,7 +476,7 @@ export function TeamFormationPage() {
         {analysis && (
           <Col $span={12}>
             <Card>
-              <SectionHeader icon={<Icon name="stats" />} title="팀 밸런스" hint="팀을 옮기면 바로 다시 계산돼요" />
+              <SectionHeader icon={<Icon name="stats" />} title="팀 밸런스" hint="팀을 옮기면 바로 다시 계산됩니다" />
               <Balance
                 role="img"
                 aria-label={`밸런스 ${analysis.balancePercent}%, 예상 승률 블루 ${bluePct} 대 레드 ${redPct}`}
@@ -545,7 +545,7 @@ export function TeamFormationPage() {
         {analysis && analysis.reasoning.length > 0 && (
           <Col $span={12}>
             <Card>
-              <SectionHeader icon={<Icon name="chat" />} title="구성 근거" hint="AI가 이렇게 나눈 이유예요" />
+              <SectionHeader icon={<Icon name="chat" />} title="구성 근거" hint="AI가 이렇게 나눈 이유입니다" />
               <ReasonList>
                 {analysis.reasoning.map((line, i) => (
                   <ReasonRow key={i}>{line}</ReasonRow>
