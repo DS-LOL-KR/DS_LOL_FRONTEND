@@ -14,5 +14,5 @@ export function useChampionName() {
     retry: 1,
   });
   return (championId: number, fallback: string | null) =>
-    names?.get(championId) ?? fallback ?? `챔피언 #${championId}`;
+    names?.[championId] ?? fallback ?? `챔피언 #${championId}`;
 }
