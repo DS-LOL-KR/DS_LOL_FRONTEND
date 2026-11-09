@@ -21,7 +21,8 @@ export type IconName =
   | 'trophy'
   | 'history'
   | 'swap'
-  | 'star';
+  | 'star'
+  | 'info';
 
 const PATHS: Record<IconName, JSX.Element> = {
   matches: (
@@ -91,6 +92,12 @@ const PATHS: Record<IconName, JSX.Element> = {
   ),
   swap: <path d="M3 5.5h9.5L10 3M13 10.5H3.5L6 13" />,
   star: <path d="M8 2.5l1.7 3.5 3.8.5-2.8 2.6.7 3.8L8 11.1l-3.4 1.8.7-3.8-2.8-2.6 3.8-.5z" />,
+  info: (
+    <>
+      <circle cx="8" cy="8" r="5.75" />
+      <path d="M8 7.3v3.4M8 5.2v.1" />
+    </>
+  ),
 };
 
 const rotate = keyframes`
