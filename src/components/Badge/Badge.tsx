@@ -12,7 +12,7 @@ const StyledBadge = styled.span<{ $tier?: Tier }>`
   color: ${({ theme, $tier }) => ($tier ? theme.color.tier[$tier] : theme.color.text.secondary)};
   ${({ theme, $tier }) =>
     $tier
-      ? `font: ${theme.type.bodyStrong};`
+      ? `font: 700 18px/1.2 ${theme.fontFamily.sans};`
       : `
     height: 22px;
     padding: 0 8px;

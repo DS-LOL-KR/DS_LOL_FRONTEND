@@ -74,7 +74,7 @@ const TagValue = styled.dd`
 const TierChip = styled.span<{ $tier: Tier }>`
   display: inline-flex;
   align-items: center;
-  font: ${({ theme }) => theme.type.bodyStrong};
+  font: 700 18px/1.2 ${({ theme }) => theme.fontFamily.sans};
   color: ${({ theme, $tier }) => theme.color.tier[$tier]};
 `;
 

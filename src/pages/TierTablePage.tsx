@@ -22,11 +22,9 @@ import { setActiveGroupId } from '../utils/activeGroup';
 import { resolveAssetUrl } from '../utils/assetUrl';
 import { formatRelativeTime } from '../utils/formatRelativeTime';
 
-type Tier = 1 | 2 | 3 | 4 | 5;
 type LaneFilter = Position | 'ALL';
 const POSITIONS: Position[] = ['TOP', 'JUG', 'MID', 'ADC', 'SUP'];
 const FILTERS: LaneFilter[] = ['ALL', ...POSITIONS];
-const TIERS: Tier[] = [1, 2, 3, 4, 5];
 
 // ── Segmented control (docs/design-system.md → 3.11) ─────────────────────────
 // Raised track, selected option = hover step + primary text. Never a white fill.
@@ -85,19 +83,6 @@ const SegOption = styled.button`
   }
 `;
 
-// ── Tier cards ──────────────────────────────────────────────────────────────
-const TierHeading = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-`;
-
-const TierCount = styled.span`
-  font: ${({ theme }) => theme.type.label};
-  font-variant-numeric: tabular-nums;
-  color: ${({ theme }) => theme.color.text.secondary};
-`;
-
 const NameButton = styled.button`
   display: flex;
   align-items: center;
@@ -139,12 +124,6 @@ const Mmr = styled.span`
   font: ${({ theme }) => theme.type.bodyStrong};
   font-variant-numeric: tabular-nums;
   color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const EmptyRow = styled.p`
-  padding: 0 var(--card-padding) var(--card-padding);
-  font: ${({ theme }) => theme.type.label};
-  color: ${({ theme }) => theme.color.text.muted};
 `;
 
 // ── Empty / error state (3.14) ──────────────────────────────────────────────
@@ -253,15 +232,14 @@ export function TierTablePage() {
   const record = (m: TierEntry) =>
     position === 'ALL' ? { wins: m.customMatchWins, losses: m.customMatchLosses } : { wins: m.wins, losses: m.losses };
 
-  const byTier = useMemo(() => {
-    const groups = new Map<Tier, TierEntry[]>();
-    for (const t of TIERS) groups.set(t, []);
-    for (const m of filtered) groups.get(m.tier)?.push(m);
-    for (const list of groups.values()) {
-      list.sort((a, b) => (position === 'ALL' ? b.internalMmr - a.internalMmr : b.positionMmr - a.positionMmr));
-    }
-    return groups;
-  }, [filtered, position]);
+  // 티어별로 카드를 나누지 않고 한 표에 1티어부터 순서대로 — 같은 티어 안에서는 MMR 높은 순.
+  const rows = useMemo(
+    () =>
+      [...filtered].sort(
+        (a, b) => a.tier - b.tier || (position === 'ALL' ? b.internalMmr - a.internalMmr : b.positionMmr - a.positionMmr),
+      ),
+    [filtered, position],
+  );
 
   const kpis = useMemo(() => {
     const mmrs = filtered.map((m) => (position === 'ALL' ? m.internalMmr : m.positionMmr));
@@ -280,6 +258,12 @@ export function TierTablePage() {
   // 티어표는 라이엇 계정을 연동한 사람만 집계해요 — 그룹원 수(사이드바)와 다를 수 있어서 기준을 밝혀둠.
 
   const columns: Column<TierEntry>[] = [
+    {
+      key: 'tier',
+      header: '티어',
+      width: 96,
+      render: (m) => <Badge tier={m.tier} />,
+    },
     {
       key: 'nickname',
       header: '플레이어',
@@ -434,35 +418,15 @@ export function TierTablePage() {
             </Col>
           </Grid>
 
-          <Stack $gap="card">
-            {TIERS.map((tier) => {
-              const members = byTier.get(tier) ?? [];
-              const mmrs = members.map(shownMmr);
-              const range =
-                mmrs.length > 0
-                  ? `MMR ${Math.min(...mmrs).toLocaleString()} – ${Math.max(...mmrs).toLocaleString()}`
-                  : undefined;
-              return (
-                <Card key={tier} flush>
-                  <SectionHeader
-                    inset
-                    title={
-                      <TierHeading>
-                        <Badge tier={tier} />
-                        <TierCount>{members.length.toLocaleString()}명</TierCount>
-                      </TierHeading>
-                    }
-                    hint={range}
-                  />
-                  {members.length === 0 ? (
-                    <EmptyRow>해당 티어 없음</EmptyRow>
-                  ) : (
-                    <Table columns={columns} data={members} minWidth={640} rowKey={(m) => m.userId} />
-                  )}
-                </Card>
-              );
-            })}
-          </Stack>
+          <Card flush>
+            <SectionHeader
+              inset
+              icon={<Icon name="tiers" />}
+              title="그룹원 티어"
+              hint="그룹 내 MMR 순위를 상위 20%씩 5구간으로 나눠 1~5티어를 매깁니다"
+            />
+            <Table columns={columns} data={rows} minWidth={640} rowKey={(m) => m.userId} />
+          </Card>
         </Stack>
       )}
     </PageLayout>

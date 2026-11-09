@@ -58,8 +58,8 @@ function SessionCheck() {
 // verification requires the registered homepage URL to show that content directly,
 // not redirect to a sign-in page first.
 function RootGate() {
-  const { data, isLoading, isError } = useMe();
-  if (isLoading) return <SessionCheck />;
+  const { data, isPending, isError } = useMe();
+  if (isPending) return <SessionCheck />;
   // 저장해둔 원래 주소는 /groups 안쪽의 ReturnToRedirect가 꺼내요 — 렌더 중에 꺼내면
   // StrictMode 이중 렌더에서 값이 먼저 지워질 수 있어서 effect 한 곳에서만 읽음.
   if (!isError && data) return <Navigate to="/groups" replace />;
@@ -84,9 +84,11 @@ function ReturnToRedirect() {
 // live session — anonymous access falls through to the 401 the page's own
 // queries get, which reads as "the server is broken" rather than "log in".
 function RequireAuth() {
-  const { data, isLoading, isError } = useMe();
+  const { data, isPending, isError } = useMe();
   const { pathname, search } = useLocation();
-  if (isLoading) return <SessionCheck />;
+  // isLoading이 아니라 isPending — 새로고침 직후 저장된 캐시를 복원하는 동안에는 요청이 멈춰 있어
+  // isLoading이 false라, 그대로 두면 세션 확인 전에 /login으로 튕겨요.
+  if (isPending) return <SessionCheck />;
   if (isError || !data) {
     saveReturnTo(pathname + search);
     return <Navigate to="/login" replace />;
