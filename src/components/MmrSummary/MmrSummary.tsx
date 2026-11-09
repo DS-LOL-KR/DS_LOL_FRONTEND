@@ -15,7 +15,6 @@ const Row = styled.section`
   gap: ${({ theme }) => theme.space.md}px 40px;
   padding: var(--card-padding);
   background: ${({ theme }) => theme.color.surface.card};
-  border: 1px solid ${({ theme }) => theme.color.border.base};
   border-radius: ${({ theme }) => theme.radius.card}px;
 `;
 
@@ -71,15 +70,12 @@ const TagValue = styled.dd`
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
+// 그룹 티어는 캡슐 없이 티어 색 글자로만 (Badge와 같은 규칙).
 const TierChip = styled.span<{ $tier: Tier }>`
   display: inline-flex;
   align-items: center;
-  height: 22px;
-  padding: 0 8px;
-  border-radius: ${({ theme }) => theme.radius.badge}px;
-  font: ${({ theme }) => theme.type.badge};
+  font: ${({ theme }) => theme.type.bodyStrong};
   color: ${({ theme, $tier }) => theme.color.tier[$tier]};
-  background: ${({ theme, $tier }) => theme.color.tierSoft[$tier]};
 `;
 
 const Muted = styled.span`

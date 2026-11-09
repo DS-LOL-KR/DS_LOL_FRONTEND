@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import styled, { type DefaultTheme } from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
-import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle, HeaderActions } from '../components/layout/PageHeader';
+import { PageHeader as Header, PageTitle as Title, HeaderActions } from '../components/layout/PageHeader';
 import { Grid, Col } from '../components/layout/Grid';
 import { Button } from '../components/Button/Button';
 import { Card, SectionHeader } from '../components/Card/Card';
@@ -440,9 +440,6 @@ export function TeamFormationPage() {
       <Header>
         <div>
           <Title>내전 팀 구성</Title>
-          <Subtitle>
-            {group?.name ?? '그룹 불러오는 중...'} · {participants.length.toLocaleString()}명 참여
-          </Subtitle>
         </div>
         <HeaderActions>
           <Button

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
-import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle, HeaderActions } from '../components/layout/PageHeader';
+import { PageHeader as Header, PageTitle as Title, HeaderActions } from '../components/layout/PageHeader';
 import { Grid, Col } from '../components/layout/Grid';
 import { Card, SectionHeader } from '../components/Card/Card';
 import { Badge } from '../components/Badge/Badge';
@@ -108,11 +108,6 @@ const InviteCodeText = styled.span`
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
-const Hint = styled.p`
-  font: ${({ theme }) => theme.type.caption};
-  color: ${({ theme }) => theme.color.text.muted};
-`;
-
 const StatusLine = styled.span`
   display: inline-flex;
   align-items: center;
@@ -177,13 +172,6 @@ const ActionCell = styled.div`
 
 const NoAction = styled.span`
   font: ${({ theme }) => theme.type.label};
-  color: ${({ theme }) => theme.color.text.muted};
-`;
-
-const TableFooter = styled.p`
-  padding: var(--space-3) var(--card-padding);
-  border-top: 1px solid ${({ theme }) => theme.color.border.base};
-  font: ${({ theme }) => theme.type.caption};
   color: ${({ theme }) => theme.color.text.muted};
 `;
 
@@ -284,7 +272,6 @@ export function GroupManagePage() {
   }, [group]);
 
   const isViewerOwner = group !== undefined && me !== undefined && group.ownerId === me.id;
-  const hasUnlinkedMember = members.some((m) => m.internalTier === null || m.mmr === null);
 
   const handleCopyKey = () => {
     if (!inviteCode) return;
@@ -396,9 +383,6 @@ export function GroupManagePage() {
       <Header>
         <div>
           <Title>{group?.name ?? (groupError ? '그룹 정보를 불러올 수 없습니다' : groupLoading ? '불러오는 중...' : '')}</Title>
-          <Subtitle>
-            그룹원 {members.length.toLocaleString()}명 · 내 역할 {isViewerOwner ? '그룹장' : '멤버'}
-          </Subtitle>
         </div>
         <HeaderActions>
           <Button $variant="primary" onClick={() => navigate(`/groups/${groupId}/matches/new`)}>
@@ -415,8 +399,7 @@ export function GroupManagePage() {
               inset
               icon={<Icon name="groups" />}
               title="멤버"
-              description={`그룹원 ${members.length.toLocaleString()}명`}
-              hint="MMR은 계정 전체 기준입니다"
+              hint="MMR은 계정 전체 기준입니다. — 표시는 아직 라이엇 계정을 연동하지 않았거나 전적이 동기화되지 않은 그룹원입니다"
             />
             {transferOwner.isError && (
               <CardMessages>
@@ -428,12 +411,7 @@ export function GroupManagePage() {
             ) : members.length === 0 ? (
               <EmptyLabel>그룹원이 없습니다</EmptyLabel>
             ) : (
-              <>
-                <Table columns={columns} data={members} minWidth={720} rowKey={(m) => m.userId} />
-                {hasUnlinkedMember && (
-                  <TableFooter>— 표시는 아직 라이엇 계정을 연동하지 않았거나 전적이 동기화되지 않은 그룹원입니다</TableFooter>
-                )}
-              </>
+              <Table columns={columns} data={members} minWidth={720} rowKey={(m) => m.userId} />
             )}
           </Card>
         </Col>
@@ -563,13 +541,12 @@ export function GroupManagePage() {
           )}
 
           <Card>
-            <SectionHeader icon={<Icon name="settings" />} title="위험 영역" description="되돌릴 수 없는 작업입니다" />
+            <SectionHeader icon={<Icon name="settings" />} title="위험 영역" />
             <DangerRow>
               {isViewerOwner ? (
                 <>
                   <DangerText>
                     <RowLabel>그룹 삭제</RowLabel>
-                    <Hint>모든 내전 기록이 함께 삭제됩니다</Hint>
                   </DangerText>
                   <Button $variant="danger" onClick={() => setDeleteOpen(true)}>
                     그룹 삭제
@@ -579,7 +556,6 @@ export function GroupManagePage() {
                 <>
                   <DangerText>
                     <RowLabel>그룹 나가기</RowLabel>
-                    <Hint>초대 키로 다시 참여할 수 있습니다</Hint>
                   </DangerText>
                   <Button $variant="danger" onClick={handleLeaveGroup} disabled={leaveGroup.isPending}>
                     그룹 나가기
