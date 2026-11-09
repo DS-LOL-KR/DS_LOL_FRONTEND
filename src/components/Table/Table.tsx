@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import styled from 'styled-components';
 
 // docs/design-system.md → Table. Meant to sit in a flush Card: header in
@@ -60,6 +60,21 @@ const StyledTable = styled.table<{ $minWidth?: number; $clickable?: boolean }>`
     background: ${({ theme }) => theme.color.surface.hover};
   }
 
+  /* 묶음 제목 줄(예: "1티어") — 선·배경 없이 위 여백으로만 구분, hover 없음. */
+  tbody tr[data-group-label] td {
+    height: auto;
+    padding-top: var(--space-6);
+    padding-bottom: var(--space-2);
+  }
+
+  tbody tr[data-group-label]:first-child td {
+    padding-top: var(--space-2);
+  }
+
+  tbody tr[data-group-label]:hover {
+    background: none;
+  }
+
   tr[data-team] td:first-child {
     position: relative;
   }
@@ -102,16 +117,31 @@ export interface TableProps<T> {
   rowTeam?: (row: T) => Team | null | undefined;
   onRowClick?: (row: T) => void;
   rowKey?: (row: T, index: number) => string | number;
+  /** 행을 묶음으로 나눠 보여줄 때 — 묶음마다 제목 줄 하나 + 행들. 주면 `data`는 무시. 헤더는 맨 위 한 번만. */
+  groups?: { key: string | number; label: ReactNode; rows: T[] }[];
 }
 
 // 너비를 안 정한 칸(이름 등)이 최소 이만큼은 갖도록 표 최소 너비를 자동으로 늘림. 고정 너비 칸
 // 합이 minWidth에 가까우면 남는 칸이 32px처럼 찌그러져 모바일에서 이름이 안 보였음.
 const FLEX_COLUMN_MIN = 160;
 
-export function Table<T extends object>({ columns, data, minWidth, rowTeam, onRowClick, rowKey }: TableProps<T>) {
+export function Table<T extends object>({ columns, data, minWidth, rowTeam, onRowClick, rowKey, groups }: TableProps<T>) {
   const fixedTotal = columns.reduce((sum, col) => sum + (col.width ?? 0), 0);
   const flexCount = columns.filter((col) => !col.width).length;
   const safeMinWidth = minWidth ? Math.max(minWidth, fixedTotal + flexCount * FLEX_COLUMN_MIN) : undefined;
+  const renderRow = (row: T, i: number) => (
+    <tr
+      key={rowKey ? rowKey(row, i) : i}
+      data-team={rowTeam?.(row) ?? undefined}
+      onClick={onRowClick ? () => onRowClick(row) : undefined}
+    >
+      {columns.map((col) => (
+        <td key={col.key} style={{ textAlign: col.align ?? 'left' }}>
+          {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? '')}
+        </td>
+      ))}
+    </tr>
+  );
   return (
     <Scroller>
       <StyledTable $minWidth={safeMinWidth} $clickable={!!onRowClick}>
@@ -130,19 +160,16 @@ export function Table<T extends object>({ columns, data, minWidth, rowTeam, onRo
           </tr>
         </thead>
         <tbody>
-          {data.map((row, i) => (
-            <tr
-              key={rowKey ? rowKey(row, i) : i}
-              data-team={rowTeam?.(row) ?? undefined}
-              onClick={onRowClick ? () => onRowClick(row) : undefined}
-            >
-              {columns.map((col) => (
-                <td key={col.key} style={{ textAlign: col.align ?? 'left' }}>
-                  {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? '')}
-                </td>
-              ))}
-            </tr>
-          ))}
+          {groups
+            ? groups.map((group) => (
+                <Fragment key={group.key}>
+                  <tr data-group-label="">
+                    <td colSpan={columns.length}>{group.label}</td>
+                  </tr>
+                  {group.rows.map(renderRow)}
+                </Fragment>
+              ))
+            : data.map(renderRow)}
         </tbody>
       </StyledTable>
     </Scroller>
