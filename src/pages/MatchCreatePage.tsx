@@ -347,11 +347,11 @@ export function MatchCreatePage() {
   const handleCreate = () => {
     if (!groupId) return;
     if (target !== null && selectedUserIds.size !== target) {
-      setParticipantError(`${mode}는 참여자를 정확히 ${target}명 선택해주세요`);
+      setParticipantError(`${mode}는 참여자를 정확히 ${target}명 선택해 주십시오`);
       return;
     }
     if (target === null && selectedUserIds.size < 2) {
-      setParticipantError('참여자를 2명 이상 선택해주세요');
+      setParticipantError('참여자를 2명 이상 선택해 주십시오');
       return;
     }
     setParticipantError(null);
@@ -368,7 +368,7 @@ export function MatchCreatePage() {
       <Header>
         <div>
           <Title>새 내전</Title>
-          <Subtitle>{group?.name ?? (groupError ? '그룹 정보를 불러올 수 없어요' : '불러오는 중...')}</Subtitle>
+          <Subtitle>{group?.name ?? (groupError ? '그룹 정보를 불러올 수 없습니다' : '불러오는 중...')}</Subtitle>
         </div>
         <HeaderActions>
           <Button $variant="primary" onClick={handleCreate} disabled={createMatch.isPending}>
@@ -383,7 +383,7 @@ export function MatchCreatePage() {
             <SectionHeader
               icon={<Icon name="groups" />}
               title="참여자"
-              hint="클릭해서 이번 판에 빠지는 그룹원을 뺄 수 있어요."
+              hint="클릭해서 이번 판에 빠지는 그룹원을 뺄 수 있습니다."
             />
             {group ? (
               <MemberList>
@@ -442,9 +442,9 @@ export function MatchCreatePage() {
               {countMatches && <Icon name="check" size={14} />}
               {target !== null
                 ? countMatches
-                  ? `${mode} 인원이 맞아요`
-                  : `${mode}는 ${target}명이 필요해요`
-                : '2명 이상이면 팀을 짤 수 있어요'}
+                  ? `${mode} 인원이 맞습니다`
+                  : `${mode}는 ${target}명이 필요합니다`
+                : '2명 이상이면 팀을 짤 수 있습니다'}
             </CountHint>
             <StatList>
               <StatRow>
@@ -453,7 +453,7 @@ export function MatchCreatePage() {
               </StatRow>
             </StatList>
             {unknownMmrCount > 0 && (
-              <Caption>MMR을 확인할 수 없는 {unknownMmrCount}명은 평균에서 빠졌어요 (라이엇 계정 미연동·전적 없음)</Caption>
+              <Caption>MMR을 확인할 수 없는 {unknownMmrCount}명은 평균에서 빠졌습니다 (라이엇 계정 미연동·전적 없음)</Caption>
             )}
             {participantError && <ParticipantError role="alert">{participantError}</ParticipantError>}
           </Card>
@@ -502,7 +502,7 @@ export function MatchCreatePage() {
             </Field>
             <Field>
               <FieldLabel>팀 구성 · 티어 기준</FieldLabel>
-              <Notice>AI가 그룹 내부 티어를 기준으로 자동 배정해요 (다음 화면에서 팀을 직접 조정할 수 있어요)</Notice>
+              <Notice>AI가 그룹 내부 티어를 기준으로 자동 배정합니다 (다음 화면에서 팀을 직접 조정할 수 있습니다)</Notice>
             </Field>
           </Card>
         </SideCol>

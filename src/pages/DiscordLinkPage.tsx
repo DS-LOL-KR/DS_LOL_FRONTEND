@@ -142,26 +142,26 @@ export function DiscordLinkPage() {
   let content: ReactNode;
   if (!token) {
     content = (
-      <Result icon="link" title="연결 링크가 올바르지 않아요" body="디스코드에서 연결 링크를 다시 눌러 주세요." />
+      <Result icon="link" title="연결 링크가 올바르지 않습니다" body="디스코드에서 연결 링크를 다시 눌러 주십시오." />
     );
   } else if (linkDiscord.isSuccess) {
     content = (
-      <Result icon="check" title="연결됐어요!" body="디스코드로 돌아가서 다시 눌러 주세요." />
+      <Result icon="check" title="연결되었습니다!" body="디스코드로 돌아가서 다시 눌러 주십시오." />
     );
   } else if (status === 400) {
     content = (
       <Result
         icon="history"
-        title="링크가 만료됐어요"
-        body="연결 링크는 10분 동안만 쓸 수 있어요. 디스코드에서 다시 눌러 주세요."
+        title="링크가 만료되었습니다"
+        body="연결 링크는 10분 동안만 쓸 수 있습니다. 디스코드에서 다시 눌러 주십시오."
       />
     );
   } else if (status === 409) {
     content = (
       <Result
         icon="user"
-        title="이미 다른 계정에 연결된 디스코드 계정이에요"
-        body="그 DS_LOL 계정의 프로필에서 디스코드 연결을 해제한 뒤 다시 시도해 주세요."
+        title="이미 다른 계정에 연결된 디스코드 계정입니다"
+        body="그 DS_LOL 계정의 프로필에서 디스코드 연결을 해제한 뒤 다시 시도해 주십시오."
       />
     );
   } else {
@@ -170,8 +170,8 @@ export function DiscordLinkPage() {
         <IconBox aria-hidden="true">
           <Icon name="chat" />
         </IconBox>
-        <Title>이 디스코드 계정을 DS_LOL 계정에 연결할까요?</Title>
-        <Body>연결하면 디스코드 봇이 이 계정을 알아볼 수 있어요.</Body>
+        <Title>이 디스코드 계정을 DS_LOL 계정에 연결하시겠습니까?</Title>
+        <Body>연결하면 디스코드 봇이 이 계정을 알아볼 수 있습니다.</Body>
         {me && (
           <AccountRow>
             <Avatar name={me.nickname} imageUrl={resolveAssetUrl(me.profileImageUrl)} size={36} />
@@ -184,7 +184,7 @@ export function DiscordLinkPage() {
         )}
         {linkDiscord.isError && (
           <ErrorText role="alert">
-            {linkDiscord.error.message || '연결하지 못했어요. 잠시 후 다시 시도해 주세요.'}
+            {linkDiscord.error.message || '연결하지 못했습니다. 잠시 후 다시 시도해 주십시오.'}
           </ErrorText>
         )}
         <Actions>
