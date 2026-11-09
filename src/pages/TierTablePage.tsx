@@ -4,9 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
 import { PageHeader as Header, PageTitle as Title, HeaderActions } from '../components/layout/PageHeader';
-import { Grid, Col, Stack } from '../components/layout/Grid';
+import { Stack } from '../components/layout/Grid';
 import { Card, SectionHeader, IconBox, CardTitle } from '../components/Card/Card';
-import { Kpi } from '../components/Kpi/Kpi';
 import { Table } from '../components/Table/Table';
 import type { Column } from '../components/Table/Table';
 import { Badge } from '../components/Badge/Badge';
@@ -153,12 +152,6 @@ const InlineNote = styled.p`
   color: ${({ theme }) => theme.color.text.muted};
 `;
 
-const KpiSubRow = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-`;
-
 function LaneSegmented({ value, onChange }: { value: LaneFilter; onChange: (v: LaneFilter) => void }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -241,29 +234,16 @@ export function TierTablePage() {
     [filtered, position],
   );
 
-  const kpis = useMemo(() => {
-    const mmrs = filtered.map((m) => (position === 'ALL' ? m.internalMmr : m.positionMmr));
-    const avg = mmrs.length ? Math.round(mmrs.reduce((s, v) => s + v, 0) / mmrs.length) : null;
-    const top = filtered.reduce<TierEntry | null>(
-      (best, m) =>
-        !best || (position === 'ALL' ? m.internalMmr > best.internalMmr : m.positionMmr > best.positionMmr) ? m : best,
-      null,
-    );
-    // 등급은 internal_mmr 순위로 나뉘니 컷도 internal_mmr 기준.
-    const tier1 = filtered.filter((m) => m.tier === 1);
-    const tier1Cut = tier1.length ? Math.min(...tier1.map((m) => m.internalMmr)) : null;
-    return { count: filtered.length, avg, top, tier1Count: tier1.length, tier1Cut };
-  }, [filtered, position]);
-
-  // 티어표는 라이엇 계정을 연동한 사람만 집계해요 — 그룹원 수(사이드바)와 다를 수 있어서 기준을 밝혀둠.
+  // "1티어" 제목 줄 아래로 그 티어 그룹원이 쭉 이어지게 — 카드·선 없이 여백으로만 구분.
+  const tierGroups = useMemo(
+    () =>
+      ([1, 2, 3, 4, 5] as const)
+        .map((tier) => ({ key: tier, label: <Badge tier={tier} />, rows: rows.filter((m) => m.tier === tier) }))
+        .filter((g) => g.rows.length > 0),
+    [rows],
+  );
 
   const columns: Column<TierEntry>[] = [
-    {
-      key: 'tier',
-      header: '티어',
-      width: 96,
-      render: (m) => <Badge tier={m.tier} />,
-    },
     {
       key: 'nickname',
       header: '플레이어',
@@ -385,39 +365,6 @@ export function TierTablePage() {
         </Card>
       ) : (
         <Stack $gap="section">
-          <Grid>
-            <Col $span={3}>
-              <Kpi label="인원" value={kpis.count.toLocaleString()} unit="명" />
-            </Col>
-            <Col $span={3}>
-              <Kpi
-                label={position === 'ALL' ? '평균 MMR' : `평균 ${position} MMR`}
-                value={kpis.avg !== null ? kpis.avg.toLocaleString() : '—'}
-              />
-            </Col>
-            <Col $span={3}>
-              <Kpi
-                label={position === 'ALL' ? '최고 MMR' : `최고 ${position} MMR`}
-                value={kpis.top ? shownMmr(kpis.top).toLocaleString() : '—'}
-                sub={kpis.top?.nickname}
-              />
-            </Col>
-            <Col $span={3}>
-              <Kpi
-                label="1티어 컷"
-                value={kpis.tier1Cut !== null ? kpis.tier1Cut.toLocaleString() : '—'}
-                sub={
-                  kpis.tier1Cut !== null ? (
-                    <KpiSubRow>
-                      <Badge tier={1} />
-                      {kpis.tier1Count.toLocaleString()}명
-                    </KpiSubRow>
-                  ) : undefined
-                }
-              />
-            </Col>
-          </Grid>
-
           <Card flush>
             <SectionHeader
               inset
@@ -425,7 +372,7 @@ export function TierTablePage() {
               title="그룹원 티어"
               hint="그룹 내 MMR 순위를 상위 20%씩 5구간으로 나눠 1~5티어를 매깁니다"
             />
-            <Table columns={columns} data={rows} minWidth={640} rowKey={(m) => m.userId} />
+            <Table columns={columns} data={rows} groups={tierGroups} minWidth={640} rowKey={(m) => m.userId} />
           </Card>
         </Stack>
       )}
