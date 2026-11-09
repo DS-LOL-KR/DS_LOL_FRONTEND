@@ -6,7 +6,6 @@ import { PageLayout } from '../components/layout/PageLayout';
 import {
   PageHeader as Header,
   PageTitle as Title,
-  PageSubtitle as Subtitle,
   HeaderActions,
 } from '../components/layout/PageHeader';
 import { Grid, Col, Stack } from '../components/layout/Grid';
@@ -29,7 +28,6 @@ import { useTierTable } from '../features/tiers/hooks';
 import { useActiveGroupId } from '../utils/activeGroup';
 import { useChampionName } from '../features/champions/hooks';
 import { resolveAssetUrl } from '../utils/assetUrl';
-import { formatDate } from '../utils/formatDateTime';
 import { ChampionStatsCard, LaneMmrCard, RecentMatchesCard, RecordKpis } from './StatsPage';
 
 const Identity = styled.div`
@@ -130,7 +128,6 @@ export function UserProfilePage() {
           <Avatar name={user?.nickname ?? '?'} imageUrl={resolveAssetUrl(user?.profileImageUrl)} size={56} />
           <div>
             <Title>{user?.nickname ?? (isLoading ? '불러오는 중...' : '알 수 없는 사용자')}</Title>
-            {user && <Subtitle>{formatDate(user.createdAt)} 가입</Subtitle>}
           </div>
         </Identity>
         {!isError && account && (
@@ -146,7 +143,7 @@ export function UserProfilePage() {
               </Button>
             </HeaderActions>
             {fullSyncGameAccount.isError && (
-              <InlineError role="alert">{fullSyncGameAccount.error.message || '전적 갱신에 실패했어요'}</InlineError>
+              <InlineError role="alert">{fullSyncGameAccount.error.message || '전적 갱신에 실패했습니다'}</InlineError>
             )}
           </HeaderActionColumn>
         )}
@@ -156,20 +153,20 @@ export function UserProfilePage() {
         <Card>
           <SectionHeader icon={<Icon name="user" />} title="자기소개" />
           {isError ? (
-            <EmptyText>프로필을 불러올 수 없어요.</EmptyText>
+            <EmptyText>프로필을 불러올 수 없습니다.</EmptyText>
           ) : user?.bio ? (
             <Bio>
               <ReactMarkdown remarkPlugins={[remarkBreaks]}>{user.bio}</ReactMarkdown>
             </Bio>
           ) : (
-            <EmptyText>{isLoading ? '불러오는 중...' : '작성된 자기소개가 없어요.'}</EmptyText>
+            <EmptyText>{isLoading ? '불러오는 중...' : '작성된 자기소개가 없습니다.'}</EmptyText>
           )}
         </Card>
 
         {!isError && user && !account ? (
           <Card>
             <SectionHeader icon={<Icon name="link" />} title="라이엇 전적" />
-            <EmptyText>게임 계정을 연동하지 않았어요.</EmptyText>
+            <EmptyText>게임 계정을 연동하지 않았습니다.</EmptyText>
           </Card>
         ) : !isError && account ? (
           <>
@@ -192,11 +189,9 @@ export function UserProfilePage() {
                 customRecord={
                   groupEntry ? { wins: groupEntry.customMatchWins, losses: groupEntry.customMatchLosses } : null
                 }
-                customEmptyHint={activeGroup ? `${activeGroup.name} 내전 기록이 없어요` : '같은 그룹 기록이 없어요'}
                 matches={recentMatches}
                 positionStats={positionStats}
                 mainPosition={mainPosition}
-                hasAccount
               />
             </Grid>
 
@@ -216,7 +211,7 @@ export function UserProfilePage() {
                   groupRows={activeGroupTiers?.tiers}
                   groupName={activeGroup?.name}
                   mainPosition={mainPosition}
-                  emptyHint="아직 집계된 라인 기록이 없어요"
+                  emptyHint="아직 집계된 라인 기록이 없습니다"
                 />
               </Col>
             </Grid>

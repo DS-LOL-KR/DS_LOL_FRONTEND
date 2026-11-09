@@ -70,7 +70,6 @@ const TopBar = styled.header`
     height: 56px;
     padding: 0 ${({ theme }) => theme.space.xs}px 0 ${({ theme }) => theme.space.md}px;
     background: ${({ theme }) => theme.color.sidebar};
-    border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
   }
 `;
 

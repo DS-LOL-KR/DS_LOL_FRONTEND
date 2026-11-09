@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
-import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle, HeaderActions } from '../components/layout/PageHeader';
+import { PageHeader as Header, PageTitle as Title, HeaderActions } from '../components/layout/PageHeader';
 import { Grid, Col } from '../components/layout/Grid';
 import { Card, SectionHeader } from '../components/Card/Card';
 import { Badge } from '../components/Badge/Badge';
@@ -108,11 +108,6 @@ const InviteCodeText = styled.span`
   color: ${({ theme }) => theme.color.text.primary};
 `;
 
-const Hint = styled.p`
-  font: ${({ theme }) => theme.type.caption};
-  color: ${({ theme }) => theme.color.text.muted};
-`;
-
 const StatusLine = styled.span`
   display: inline-flex;
   align-items: center;
@@ -177,13 +172,6 @@ const ActionCell = styled.div`
 
 const NoAction = styled.span`
   font: ${({ theme }) => theme.type.label};
-  color: ${({ theme }) => theme.color.text.muted};
-`;
-
-const TableFooter = styled.p`
-  padding: var(--space-3) var(--card-padding);
-  border-top: 1px solid ${({ theme }) => theme.color.border.base};
-  font: ${({ theme }) => theme.type.caption};
   color: ${({ theme }) => theme.color.text.muted};
 `;
 
@@ -284,7 +272,6 @@ export function GroupManagePage() {
   }, [group]);
 
   const isViewerOwner = group !== undefined && me !== undefined && group.ownerId === me.id;
-  const hasUnlinkedMember = members.some((m) => m.internalTier === null || m.mmr === null);
 
   const handleCopyKey = () => {
     if (!inviteCode) return;
@@ -395,10 +382,7 @@ export function GroupManagePage() {
     <PageLayout>
       <Header>
         <div>
-          <Title>{group?.name ?? (groupError ? '그룹 정보를 불러올 수 없어요' : groupLoading ? '불러오는 중...' : '')}</Title>
-          <Subtitle>
-            그룹원 {members.length.toLocaleString()}명 · 내 역할 {isViewerOwner ? '그룹장' : '멤버'}
-          </Subtitle>
+          <Title>{group?.name ?? (groupError ? '그룹 정보를 불러올 수 없습니다' : groupLoading ? '불러오는 중...' : '')}</Title>
         </div>
         <HeaderActions>
           <Button $variant="primary" onClick={() => navigate(`/groups/${groupId}/matches/new`)}>
@@ -415,32 +399,26 @@ export function GroupManagePage() {
               inset
               icon={<Icon name="groups" />}
               title="멤버"
-              description={`그룹원 ${members.length.toLocaleString()}명`}
-              hint="MMR은 계정 전체 기준이에요"
+              hint="MMR은 계정 전체 기준입니다. — 표시는 아직 라이엇 계정을 연동하지 않았거나 전적이 동기화되지 않은 그룹원입니다"
             />
             {transferOwner.isError && (
               <CardMessages>
-                <InlineError>{transferOwner.error.message || '그룹장 위임에 실패했어요'}</InlineError>
+                <InlineError>{transferOwner.error.message || '그룹장 위임에 실패했습니다'}</InlineError>
               </CardMessages>
             )}
             {groupLoading ? (
               <EmptyLabel>불러오는 중...</EmptyLabel>
             ) : members.length === 0 ? (
-              <EmptyLabel>그룹원이 없어요</EmptyLabel>
+              <EmptyLabel>그룹원이 없습니다</EmptyLabel>
             ) : (
-              <>
-                <Table columns={columns} data={members} minWidth={720} rowKey={(m) => m.userId} />
-                {hasUnlinkedMember && (
-                  <TableFooter>— 표시는 아직 라이엇 계정을 연동하지 않았거나 전적이 동기화되지 않은 그룹원이에요</TableFooter>
-                )}
-              </>
+              <Table columns={columns} data={members} minWidth={720} rowKey={(m) => m.userId} />
             )}
           </Card>
         </Col>
 
         <Col $span={4}>
           <Card>
-            <SectionHeader icon={<Icon name="link" />} title="초대 키" hint="이 키를 받은 사람은 바로 그룹에 참여해요. 키가 유출됐다면 재발급하세요 — 기존 키는 즉시 만료돼요" />
+            <SectionHeader icon={<Icon name="link" />} title="초대 키" hint="이 키를 받은 사람은 바로 그룹에 참여합니다. 키가 유출됐다면 재발급하십시오 — 기존 키는 즉시 만료됩니다" />
             <Rows>
               <InviteCodeButton
                 type="button"
@@ -464,13 +442,13 @@ export function GroupManagePage() {
               </RowActions>
             </Rows>
             {refreshInviteCode.isError && (
-              <InlineError>{refreshInviteCode.error.message || '초대 키 재발급에 실패했어요'}</InlineError>
+              <InlineError>{refreshInviteCode.error.message || '초대 키 재발급에 실패했습니다'}</InlineError>
             )}
           </Card>
 
           {showDiscordCard && (
             <Card>
-              <SectionHeader icon={<Icon name="chat" />} title="디스코드 연동" hint="알림과 슬래시 명령어를 연결해요" />
+              <SectionHeader icon={<Icon name="chat" />} title="디스코드 연동" hint="알림과 슬래시 명령어를 연결합니다" />
               {isViewerOwner && (
                 <Rows>
                   <RaisedRow>
@@ -478,7 +456,7 @@ export function GroupManagePage() {
                       <RowLabel as="label" htmlFor="discord-webhook">
                         디스코드 알림
                       </RowLabel>
-                      <InfoTip>등록하면 팀 구성/내전 종료 결과가 이 채널로 자동 전송돼요</InfoTip>
+                      <InfoTip>등록하면 팀 구성/내전 종료 결과가 이 채널로 자동 전송됩니다</InfoTip>
                     </HintRow>
                     <Input
                       id="discord-webhook"
@@ -506,7 +484,7 @@ export function GroupManagePage() {
                       )}
                     </RowActions>
                     {updateDiscordWebhook.isError && (
-                      <InlineError>{updateDiscordWebhook.error.message || '디스코드 웹후크 설정에 실패했어요'}</InlineError>
+                      <InlineError>{updateDiscordWebhook.error.message || '디스코드 웹후크 설정에 실패했습니다'}</InlineError>
                     )}
                   </RaisedRow>
                   <RaisedRow>
@@ -514,8 +492,8 @@ export function GroupManagePage() {
                       <RowLabel>디스코드 명령어</RowLabel>
                       <InfoTip>
                         {group?.discordGuildId
-                          ? '디스코드 서버에서 /티어표, /내전모집, /전적, /내전결과 명령어를 쓸 수 있어요'
-                          : '봇을 서버에 초대하면 그 서버가 자동으로 이 그룹에 연동돼요'}
+                          ? '디스코드 서버에서 /티어표, /내전모집, /전적, /내전결과 명령어를 쓸 수 있습니다'
+                          : '봇을 서버에 초대하면 그 서버가 자동으로 이 그룹에 연동됩니다'}
                       </InfoTip>
                     </HintRow>
                     {group?.discordGuildId ? (
@@ -553,23 +531,22 @@ export function GroupManagePage() {
                 </Rows>
               )}
               {discordInviteUrl.isError && (
-                <InlineError>{discordInviteUrl.error.message || '초대 링크를 만들지 못했어요'}</InlineError>
+                <InlineError>{discordInviteUrl.error.message || '초대 링크를 만들지 못했습니다'}</InlineError>
               )}
-              {discordLinked && <InlineSuccess>디스코드 서버가 이 그룹에 연동됐어요.</InlineSuccess>}
+              {discordLinked && <InlineSuccess>디스코드 서버가 이 그룹에 연동되었습니다.</InlineSuccess>}
               {discordLinkError && (
-                <InlineError>디스코드 연동에 실패했어요. 서버 선택을 취소했거나 권한이 없을 수 있어요 — 다시 시도해주세요.</InlineError>
+                <InlineError>디스코드 연동에 실패했습니다. 서버 선택을 취소했거나 권한이 없을 수 있습니다 — 다시 시도해 주십시오.</InlineError>
               )}
             </Card>
           )}
 
           <Card>
-            <SectionHeader icon={<Icon name="settings" />} title="위험 영역" description="되돌릴 수 없는 작업이에요" />
+            <SectionHeader icon={<Icon name="settings" />} title="위험 영역" />
             <DangerRow>
               {isViewerOwner ? (
                 <>
                   <DangerText>
                     <RowLabel>그룹 삭제</RowLabel>
-                    <Hint>모든 내전 기록이 함께 삭제돼요</Hint>
                   </DangerText>
                   <Button $variant="danger" onClick={() => setDeleteOpen(true)}>
                     그룹 삭제
@@ -579,7 +556,6 @@ export function GroupManagePage() {
                 <>
                   <DangerText>
                     <RowLabel>그룹 나가기</RowLabel>
-                    <Hint>초대 키로 다시 참여할 수 있어요</Hint>
                   </DangerText>
                   <Button $variant="danger" onClick={handleLeaveGroup} disabled={leaveGroup.isPending}>
                     그룹 나가기
@@ -592,8 +568,8 @@ export function GroupManagePage() {
       </Grid>
 
       <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)}>
-        <ModalTitle>그룹을 삭제할까요?</ModalTitle>
-        <ModalBody>그룹과 관련된 모든 내전 기록이 함께 삭제되며 되돌릴 수 없어요.</ModalBody>
+        <ModalTitle>그룹을 삭제하시겠습니까?</ModalTitle>
+        <ModalBody>그룹과 관련된 모든 내전 기록이 함께 삭제되며 되돌릴 수 없습니다.</ModalBody>
         <ModalActions>
           <Button $variant="ghost" onClick={() => setDeleteOpen(false)}>
             취소
@@ -605,9 +581,9 @@ export function GroupManagePage() {
       </Modal>
 
       <Modal open={Boolean(transferTarget)} onClose={() => setTransferTarget(null)}>
-        <ModalTitle>{transferTarget?.nickname}님에게 그룹장을 넘길까요?</ModalTitle>
-        <ModalBody>넘기면 초대 키·디스코드 연동·그룹원 관리 권한이 바로 넘어가요.</ModalBody>
-        {transferOwner.isError && <InlineError>{transferOwner.error.message || '그룹장 위임에 실패했어요'}</InlineError>}
+        <ModalTitle>{transferTarget?.nickname}님에게 그룹장을 넘기시겠습니까?</ModalTitle>
+        <ModalBody>넘기면 초대 키·디스코드 연동·그룹원 관리 권한이 바로 넘어갑니다.</ModalBody>
+        {transferOwner.isError && <InlineError>{transferOwner.error.message || '그룹장 위임에 실패했습니다'}</InlineError>}
         <ModalActions>
           <Button $variant="ghost" onClick={() => setTransferTarget(null)}>
             취소
@@ -619,9 +595,9 @@ export function GroupManagePage() {
       </Modal>
 
       <Modal open={Boolean(kickTarget)} onClose={() => setKickTarget(null)}>
-        <ModalTitle>{kickTarget?.nickname}님을 추방할까요?</ModalTitle>
-        <ModalBody>추방된 그룹원은 초대 링크로 다시 참여할 수 있어요.</ModalBody>
-        {kickMember.isError && <InlineError>{kickMember.error.message || '추방에 실패했어요'}</InlineError>}
+        <ModalTitle>{kickTarget?.nickname}님을 추방하시겠습니까?</ModalTitle>
+        <ModalBody>추방된 그룹원은 초대 링크로 다시 참여할 수 있습니다.</ModalBody>
+        {kickMember.isError && <InlineError>{kickMember.error.message || '추방에 실패했습니다'}</InlineError>}
         <ModalActions>
           <Button $variant="ghost" onClick={() => setKickTarget(null)}>
             취소
@@ -633,12 +609,12 @@ export function GroupManagePage() {
       </Modal>
 
       <Modal open={unlinkGuildOpen} onClose={() => setUnlinkGuildOpen(false)}>
-        <ModalTitle>이 디스코드 서버와의 연동을 해제할까요?</ModalTitle>
+        <ModalTitle>이 디스코드 서버와의 연동을 해제하시겠습니까?</ModalTitle>
         <ModalBody>
-          해제하면 그 서버에서 /티어표, /내전모집 등을 쓸 수 없어요. 봇은 디스코드에서 따로 추방해야 해요.
+          해제하면 그 서버에서 /티어표, /내전모집 등을 쓸 수 없습니다. 봇은 디스코드에서 따로 추방해야 합니다.
         </ModalBody>
         {unlinkDiscordGuild.isError && (
-          <InlineError>{unlinkDiscordGuild.error.message || '디스코드 서버 연동 해제에 실패했어요'}</InlineError>
+          <InlineError>{unlinkDiscordGuild.error.message || '디스코드 서버 연동 해제에 실패했습니다'}</InlineError>
         )}
         <ModalActions>
           <Button $variant="ghost" onClick={() => setUnlinkGuildOpen(false)}>

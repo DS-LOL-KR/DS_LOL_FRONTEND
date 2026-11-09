@@ -20,7 +20,6 @@ const Aside = styled.aside`
   height: 100%;
   padding: ${({ theme }) => theme.space.md}px ${({ theme }) => theme.space.sm}px;
   background: ${({ theme }) => theme.color.sidebar};
-  border-right: 1px solid ${({ theme }) => theme.color.border.base};
   overflow-y: auto;
 `;
 
@@ -96,11 +95,6 @@ const GroupName = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-`;
-
-const Caption = styled.span`
-  font: ${({ theme }) => theme.type.caption};
-  color: ${({ theme }) => theme.color.text.muted};
 `;
 
 const Popover = styled.div`
@@ -254,7 +248,6 @@ const DiscordCard = styled.div`
   gap: 8px;
   padding: ${({ theme }) => theme.space.sm}px;
   background: ${({ theme }) => theme.color.surface.card};
-  border: 1px solid ${({ theme }) => theme.color.border.base};
   border-radius: ${({ theme }) => theme.radius.control}px;
 `;
 
@@ -292,10 +285,9 @@ const SmallLinkButton = styled(Link)`
   }
 `;
 
-function GroupSwitcher({ activeGroupId, groupName, memberCount }: {
+function GroupSwitcher({ activeGroupId, groupName }: {
   activeGroupId: string | null;
   groupName?: string;
-  memberCount?: number;
 }) {
   const { data: groups } = useGroups();
   const [open, setOpen] = useState(false);
@@ -323,7 +315,6 @@ function GroupSwitcher({ activeGroupId, groupName, memberCount }: {
       <Switcher type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         <SwitcherText>
           <GroupName>{groupName ?? '그룹 선택'}</GroupName>
-          <Caption>{memberCount !== undefined ? `멤버 ${memberCount}명` : '내전할 그룹을 골라요'}</Caption>
         </SwitcherText>
         <Icon name="chevronDown" />
       </Switcher>
@@ -420,7 +411,6 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       <GroupSwitcher
         activeGroupId={activeGroupId}
         groupName={group?.name}
-        memberCount={group ? group.members.length : undefined}
       />
 
       <Nav aria-label="주요 메뉴">

@@ -43,18 +43,12 @@ const StyledTable = styled.table<{ $minWidth?: number; $clickable?: boolean }>`
     height: 40px;
     font: ${({ theme }) => theme.type.caption};
     color: ${({ theme }) => theme.color.text.muted};
-    border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
   }
 
   td {
     height: var(--table-row-height);
     font: ${({ theme }) => theme.type.body};
     color: ${({ theme }) => theme.color.text.primary};
-    border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-  }
-
-  tbody tr:last-child td {
-    border-bottom: 0;
   }
 
   tbody tr {
@@ -110,10 +104,17 @@ export interface TableProps<T> {
   rowKey?: (row: T, index: number) => string | number;
 }
 
+// 너비를 안 정한 칸(이름 등)이 최소 이만큼은 갖도록 표 최소 너비를 자동으로 늘림. 고정 너비 칸
+// 합이 minWidth에 가까우면 남는 칸이 32px처럼 찌그러져 모바일에서 이름이 안 보였음.
+const FLEX_COLUMN_MIN = 160;
+
 export function Table<T extends object>({ columns, data, minWidth, rowTeam, onRowClick, rowKey }: TableProps<T>) {
+  const fixedTotal = columns.reduce((sum, col) => sum + (col.width ?? 0), 0);
+  const flexCount = columns.filter((col) => !col.width).length;
+  const safeMinWidth = minWidth ? Math.max(minWidth, fixedTotal + flexCount * FLEX_COLUMN_MIN) : undefined;
   return (
     <Scroller>
-      <StyledTable $minWidth={minWidth} $clickable={!!onRowClick}>
+      <StyledTable $minWidth={safeMinWidth} $clickable={!!onRowClick}>
         <colgroup>
           {columns.map((col) => (
             <col key={col.key} style={col.width ? { width: col.width } : undefined} />

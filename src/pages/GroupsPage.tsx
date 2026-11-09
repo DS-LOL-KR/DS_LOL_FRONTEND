@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
-import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle, HeaderActions } from '../components/layout/PageHeader';
+import { PageHeader as Header, PageTitle as Title, HeaderActions } from '../components/layout/PageHeader';
 import { Col, Grid } from '../components/layout/Grid';
 import { Card, SectionHeader, IconBox, CardTitle } from '../components/Card/Card';
 import { Badge } from '../components/Badge/Badge';
@@ -162,7 +162,6 @@ export function GroupsPage() {
       <Header>
         <div>
           <Title>내 그룹</Title>
-          <Subtitle>참여 중인 그룹 {rows.length.toLocaleString()}개</Subtitle>
         </div>
         <HeaderActions>
           <Button $variant="primary" onClick={() => setCreateOpen(true)}>
@@ -179,7 +178,7 @@ export function GroupsPage() {
             inset
             icon={<Icon name="groups" />}
             title="참여 중인 그룹"
-            hint="그룹을 누르면 그룹 설정으로 이동해요"
+            hint="그룹을 누르면 그룹 설정으로 이동합니다"
           />
           {groupsLoading ? (
             <EmptyState>
@@ -187,15 +186,15 @@ export function GroupsPage() {
             </EmptyState>
           ) : groupsError ? (
             <EmptyState>
-              <EmptyText>그룹 목록을 불러오지 못했어요</EmptyText>
+              <EmptyText>그룹 목록을 불러오지 못했습니다</EmptyText>
             </EmptyState>
           ) : rows.length === 0 ? (
             <EmptyState>
               <IconBox aria-hidden="true">
                 <Icon name="groups" />
               </IconBox>
-              <CardTitle as="h3">아직 그룹이 없어요</CardTitle>
-              <EmptyText>참여 중인 그룹이 없어요. 그룹을 만들거나 초대 코드로 참여해보세요</EmptyText>
+              <CardTitle as="h3">아직 그룹이 없습니다</CardTitle>
+              <EmptyText>참여 중인 그룹이 없습니다. 그룹을 만들거나 초대 코드로 참여해 보십시오</EmptyText>
             </EmptyState>
           ) : (
             <Table
@@ -213,7 +212,7 @@ export function GroupsPage() {
           <SectionHeader
             icon={<Icon name="link" />}
             title={<label htmlFor="join-key">그룹 키로 참여</label>}
-            hint="친구에게 받은 8자리 초대 코드를 입력하면 바로 참여돼요"
+            hint="친구에게 받은 8자리 초대 코드를 입력하면 바로 참여됩니다"
           />
           <JoinForm>
             <JoinInput
@@ -229,7 +228,7 @@ export function GroupsPage() {
             <Button onClick={handleJoinGroup} disabled={joinGroup.isPending}>
               참여
             </Button>
-            {joinGroup.isError && <JoinError>키를 확인해주세요</JoinError>}
+            {joinGroup.isError && <JoinError>키를 확인해 주십시오</JoinError>}
           </JoinForm>
         </Card>
         </Col>
@@ -246,7 +245,7 @@ export function GroupsPage() {
           placeholder="그룹 이름"
           autoFocus
         />
-        {createGroup.isError && <ModalError>{createGroup.error.message || '그룹 생성에 실패했어요'}</ModalError>}
+        {createGroup.isError && <ModalError>{createGroup.error.message || '그룹 생성에 실패했습니다'}</ModalError>}
         <ModalActions>
           <Button $variant="ghost" onClick={() => setCreateOpen(false)}>
             취소

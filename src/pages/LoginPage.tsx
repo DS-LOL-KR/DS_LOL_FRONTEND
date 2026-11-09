@@ -92,7 +92,6 @@ const DisclaimerLink = styled(Link)`
 const PrivacyNotice = styled.p`
   margin-top: var(--space-6);
   padding-top: var(--space-4);
-  border-top: 1px solid ${({ theme }) => theme.color.border.base};
   font: ${({ theme }) => theme.type.caption};
   color: ${({ theme }) => theme.color.text.secondary};
 
@@ -266,8 +265,8 @@ function MatchupPreview() {
       <SectionHeader
         as="h3"
         icon={<Icon name="matches" />}
-        title="AI 팀 구성 결과"
-        description="예시 화면 · 실제 사용자 데이터가 아니에요"
+        title="AI 팀 구성 결과 (예시)"
+        
       />
       <Balance>
         <BalanceMeta>

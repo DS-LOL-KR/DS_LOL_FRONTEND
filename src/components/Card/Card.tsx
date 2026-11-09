@@ -8,7 +8,6 @@ import { InfoTip } from '../InfoTip/InfoTip';
 export const CardBox = styled.section<{ $flush?: boolean }>`
   min-width: 0;
   background: ${({ theme }) => theme.color.surface.card};
-  border: 1px solid ${({ theme }) => theme.color.border.base};
   border-radius: ${({ theme }) => theme.radius.card}px;
   padding: ${({ $flush }) => ($flush ? 0 : 'var(--card-padding)')};
   ${({ $flush }) =>
@@ -74,19 +73,8 @@ const TitleLine = styled.div`
   min-width: 0;
 `;
 
-const CardDescription = styled.p`
-  margin-top: 2px;
-  font: ${({ theme }) => theme.type.caption};
-  color: ${({ theme }) => theme.color.text.muted};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
 export interface SectionHeaderProps {
   title: ReactNode;
-  /** 항상 보이는 짧은 정보(개수·범위 등) */
-  description?: ReactNode;
   /** 부가 설명 — 제목 옆 ⓘ에 호버/탭하면 보여요 */
   hint?: ReactNode;
   icon?: ReactNode;
@@ -96,7 +84,7 @@ export interface SectionHeaderProps {
   as?: 'h2' | 'h3';
 }
 
-export function SectionHeader({ title, description, hint, icon, action, inset, as = 'h2' }: SectionHeaderProps) {
+export function SectionHeader({ title, hint, icon, action, inset, as = 'h2' }: SectionHeaderProps) {
   return (
     <HeaderRow $inset={inset}>
       {icon && <IconBox aria-hidden="true">{icon}</IconBox>}
@@ -105,7 +93,6 @@ export function SectionHeader({ title, description, hint, icon, action, inset, a
           <CardTitle as={as}>{title}</CardTitle>
           {hint && <InfoTip>{hint}</InfoTip>}
         </TitleLine>
-        {description && <CardDescription>{description}</CardDescription>}
       </TitleBlock>
       {action}
     </HeaderRow>

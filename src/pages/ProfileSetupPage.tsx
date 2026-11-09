@@ -43,7 +43,6 @@ const TopBar = styled.header`
   height: 56px;
   padding: 0 var(--space-6);
   background: ${({ theme }) => theme.color.sidebar};
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
 
   ${({ theme }) => theme.media.mobile} {
     padding: 0 var(--space-4);
@@ -95,7 +94,6 @@ const RaisedRow = styled.div`
   gap: var(--space-3);
   padding: var(--space-3);
   background: ${({ theme }) => theme.color.surface.subtle};
-  border: 1px solid ${({ theme }) => theme.color.border.strong};
   border-radius: ${({ theme }) => theme.radius.control}px;
 `;
 
@@ -113,11 +111,6 @@ const AvatarInfo = styled.div`
 const AvatarName = styled.p`
   font: ${({ theme }) => theme.type.bodyStrong};
   color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const AvatarHint = styled.p`
-  font: ${({ theme }) => theme.type.caption};
-  color: ${({ theme }) => theme.color.text.secondary};
 `;
 
 const FileInput = styled.input`
@@ -222,7 +215,6 @@ const PositionRow = styled.div`
   flex-direction: column;
   gap: var(--space-2);
   padding-top: var(--space-3);
-  border-top: 1px solid ${({ theme }) => theme.color.border.strong};
 `;
 
 const PositionRowLabel = styled.span`
@@ -277,12 +269,6 @@ const PositionButton = styled.button<{ $active: boolean }>`
       font-size: 0;
     }
   }
-`;
-
-const CardFootnote = styled.p`
-  margin-top: var(--space-3);
-  font: ${({ theme }) => theme.type.caption};
-  color: ${({ theme }) => theme.color.text.muted};
 `;
 
 const Footer = styled.div`
@@ -372,7 +358,7 @@ export function ProfileSetupPage() {
     if (linkingGameId === null || !riotIdInput.trim()) return;
     const [gameName, tagLine] = riotIdInput.split('#');
     if (!gameName || !tagLine) {
-      setLinkError('"이름#태그" 형식으로 입력해주세요 (예: Hide on bush#KR1)');
+      setLinkError('"이름#태그" 형식으로 입력해 주십시오 (예: Hide on bush#KR1)');
       return;
     }
     setLinkError(null);
@@ -386,7 +372,7 @@ export function ProfileSetupPage() {
           setLinkingGameId(null);
           setRiotIdInput('');
         },
-        onError: (err) => setLinkError(err.message || '계정 연동에 실패했어요'),
+        onError: (err) => setLinkError(err.message || '계정 연동에 실패했습니다'),
       },
     );
   };
@@ -420,13 +406,13 @@ export function ProfileSetupPage() {
             <div>
               <HintRow>
                 <PageTitle>프로필 설정</PageTitle>
-                <InfoTip>그룹원들에게 보여질 정보예요</InfoTip>
+                <InfoTip>그룹원들에게 보여질 정보입니다</InfoTip>
               </HintRow>
             </div>
           </Header>
 
           <CardBox>
-            <SectionHeader icon={<Icon name="user" />} title="프로필" hint="이름과 사진은 그룹 안에서 보여요" />
+            <SectionHeader icon={<Icon name="user" />} title="프로필" hint="이름과 사진은 그룹 안에서 보입니다" />
             <AvatarRow>
               <Avatar
                 name={nickname || profile?.nickname || '?'}
@@ -434,8 +420,10 @@ export function ProfileSetupPage() {
                 size={48}
               />
               <AvatarInfo>
-                <AvatarName>프로필 이미지</AvatarName>
-                <AvatarHint>JPG, PNG · 5MB 이하</AvatarHint>
+                <HintRow>
+                  <AvatarName>프로필 이미지</AvatarName>
+                  <InfoTip>JPG, PNG · 5MB 이하</InfoTip>
+                </HintRow>
               </AvatarInfo>
               <Button as="label">
                 {uploadProfileImage.isPending ? '업로드 중...' : '파일 선택'}
@@ -445,7 +433,7 @@ export function ProfileSetupPage() {
             <Field>
               <HintRow>
                 <FieldLabel htmlFor="profile-nickname">이름</FieldLabel>
-                <InfoTip>그룹 안에서 표시되는 이름이에요</InfoTip>
+                <InfoTip>그룹 안에서 표시되는 이름입니다</InfoTip>
               </HintRow>
               <Input
                 id="profile-nickname"
@@ -473,10 +461,10 @@ export function ProfileSetupPage() {
             <SectionHeader
               icon={<Icon name="link" />}
               title="게임 계정 연동"
-              hint="연동하면 티어와 전적을 자동으로 불러와요"
+              hint="연동하면 티어와 전적을 라이엇 API에서 자동으로 불러옵니다. 티어는 직접 고칠 수 없고, 그룹 내부 티어는 전적·평가를 합산해 따로 계산됩니다"
             />
             <GameAccounts>
-              {(!games || games.length === 0) && <AccountHint>연동 가능한 게임을 불러오는 중이에요</AccountHint>}
+              {(!games || games.length === 0) && <AccountHint>연동 가능한 게임을 불러오는 중입니다</AccountHint>}
               {(games ?? []).map((game) => {
                 const account = (gameAccounts ?? []).find((a) => a.gameId === game.id);
                 // 전적 갱신/동기화, 주라인 선택은 아직 LOL 전용 라이엇 API·라인 개념이라
@@ -489,12 +477,12 @@ export function ProfileSetupPage() {
                         <AccountNameRow>
                           <AccountName $linked>{account.gameNickname}</AccountName>
                           <LinkedTag>연동됨</LinkedTag>
+                          <InfoTip>
+                            {isLol
+                              ? `${formatDate(account.createdAt)} 연동`
+                              : `계정 연동만 지원됩니다 · 전적/티어 갱신은 준비 중입니다 · ${formatDate(account.createdAt)} 연동`}
+                          </InfoTip>
                         </AccountNameRow>
-                        <AccountHint>
-                          {isLol
-                            ? `티어는 라이엇 API에서 자동으로 가져와요 · ${formatDate(account.createdAt)} 연동`
-                            : `계정 연동만 지원돼요 · 전적/티어 갱신은 준비 중이에요 · ${formatDate(account.createdAt)} 연동`}
-                        </AccountHint>
                       </AccountInfo>
                       {isLol && (
                         <TierBlock>
@@ -522,7 +510,6 @@ export function ProfileSetupPage() {
                     <AccountTop>
                       <AccountInfo>
                         <AccountName>{getGameDisplayName(game)}</AccountName>
-                        <AccountHint>연동하면 티어와 전적을 자동으로 불러와요</AccountHint>
                       </AccountInfo>
                       <AccountActions>
                         <Button type="button" onClick={() => setLinkingGameId(game.id)}>
@@ -534,9 +521,6 @@ export function ProfileSetupPage() {
                 );
               })}
             </GameAccounts>
-            <CardFootnote>
-              티어는 직접 고칠 수 없어요. 그룹 내부 티어는 전적·평가를 합산해 따로 계산돼요
-            </CardFootnote>
           </CardBox>
 
           {/* 디스코드 봇 계정 연결(2026-09-29) — 연결은 봇이 보내는 /discord/link 링크로만
@@ -545,7 +529,11 @@ export function ProfileSetupPage() {
             <SectionHeader
               icon={<Icon name="chat" />}
               title="디스코드 계정"
-              hint="연결하면 디스코드 봇이 이 계정을 알아볼 수 있어요"
+              hint={
+                profile?.discordUserId
+                  ? '디스코드 봇 명령어를 쓰면 이 계정으로 처리됩니다'
+                  : '디스코드에서 봇 명령어를 쓰면 연결 링크를 보내 줍니다. 연결하면 디스코드 봇이 이 계정을 알아볼 수 있습니다'
+              }
             />
             <RaisedRow>
               <AccountTop>
@@ -556,11 +544,6 @@ export function ProfileSetupPage() {
                     </AccountName>
                     {profile?.discordUserId && <LinkedTag>연결됨</LinkedTag>}
                   </AccountNameRow>
-                  <AccountHint>
-                    {profile?.discordUserId
-                      ? '디스코드 봇 명령어를 쓰면 이 계정으로 처리돼요'
-                      : '디스코드에서 봇 명령어를 쓰면 연결 링크를 보내줘요'}
-                  </AccountHint>
                 </AccountInfo>
                 {profile?.discordUserId && (
                   <AccountActions>
@@ -604,8 +587,8 @@ export function ProfileSetupPage() {
       </Modal>
 
       <Modal open={unlinkTarget !== null} onClose={() => setUnlinkTarget(null)}>
-        <ModalTitle>{unlinkTarget?.gameNickname} 연동을 해제할까요?</ModalTitle>
-        <ModalBody>동기화된 전적·숙련도·라인 기록이 모두 삭제되며 되돌릴 수 없어요.</ModalBody>
+        <ModalTitle>{unlinkTarget?.gameNickname} 연동을 해제하시겠습니까?</ModalTitle>
+        <ModalBody>동기화된 전적·숙련도·라인 기록이 모두 삭제되며 되돌릴 수 없습니다.</ModalBody>
         <ModalActions>
           <Button $variant="ghost" onClick={() => setUnlinkTarget(null)}>취소</Button>
           <Button $variant="danger" onClick={handleUnlinkConfirmed} disabled={unlinkGameAccount.isPending}>
@@ -615,13 +598,13 @@ export function ProfileSetupPage() {
       </Modal>
 
       <Modal open={unlinkDiscordOpen} onClose={() => setUnlinkDiscordOpen(false)}>
-        <ModalTitle>디스코드 연결을 해제할까요?</ModalTitle>
+        <ModalTitle>디스코드 연결을 해제하시겠습니까?</ModalTitle>
         <ModalBody>
-          해제하면 디스코드 봇이 이 계정을 알아보지 못해요. 디스코드에서 /내전모집을 누르면 연결 링크가 다시 와요. 지난
-          내전 기록은 그대로 남아요.
+          해제하면 디스코드 봇이 이 계정을 알아보지 못합니다. 디스코드에서 /내전모집을 누르면 연결 링크가 다시 옵니다. 지난
+          내전 기록은 그대로 남습니다.
         </ModalBody>
         {unlinkDiscord.isError && (
-          <ModalError>{unlinkDiscord.error.message || '연결 해제에 실패했어요'}</ModalError>
+          <ModalError>{unlinkDiscord.error.message || '연결 해제에 실패했습니다'}</ModalError>
         )}
         <ModalActions>
           <Button $variant="ghost" onClick={() => setUnlinkDiscordOpen(false)}>취소</Button>
