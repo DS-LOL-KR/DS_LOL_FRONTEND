@@ -43,7 +43,6 @@ const TopBar = styled.header`
   height: 56px;
   padding: 0 var(--space-6);
   background: ${({ theme }) => theme.color.sidebar};
-  border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
 
   ${({ theme }) => theme.media.mobile} {
     padding: 0 var(--space-4);
@@ -95,7 +94,6 @@ const RaisedRow = styled.div`
   gap: var(--space-3);
   padding: var(--space-3);
   background: ${({ theme }) => theme.color.surface.subtle};
-  border: 1px solid ${({ theme }) => theme.color.border.strong};
   border-radius: ${({ theme }) => theme.radius.control}px;
 `;
 
@@ -113,11 +111,6 @@ const AvatarInfo = styled.div`
 const AvatarName = styled.p`
   font: ${({ theme }) => theme.type.bodyStrong};
   color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const AvatarHint = styled.p`
-  font: ${({ theme }) => theme.type.caption};
-  color: ${({ theme }) => theme.color.text.secondary};
 `;
 
 const FileInput = styled.input`
@@ -222,7 +215,6 @@ const PositionRow = styled.div`
   flex-direction: column;
   gap: var(--space-2);
   padding-top: var(--space-3);
-  border-top: 1px solid ${({ theme }) => theme.color.border.strong};
 `;
 
 const PositionRowLabel = styled.span`
@@ -277,12 +269,6 @@ const PositionButton = styled.button<{ $active: boolean }>`
       font-size: 0;
     }
   }
-`;
-
-const CardFootnote = styled.p`
-  margin-top: var(--space-3);
-  font: ${({ theme }) => theme.type.caption};
-  color: ${({ theme }) => theme.color.text.muted};
 `;
 
 const Footer = styled.div`
@@ -434,8 +420,10 @@ export function ProfileSetupPage() {
                 size={48}
               />
               <AvatarInfo>
-                <AvatarName>프로필 이미지</AvatarName>
-                <AvatarHint>JPG, PNG · 5MB 이하</AvatarHint>
+                <HintRow>
+                  <AvatarName>프로필 이미지</AvatarName>
+                  <InfoTip>JPG, PNG · 5MB 이하</InfoTip>
+                </HintRow>
               </AvatarInfo>
               <Button as="label">
                 {uploadProfileImage.isPending ? '업로드 중...' : '파일 선택'}
@@ -473,7 +461,7 @@ export function ProfileSetupPage() {
             <SectionHeader
               icon={<Icon name="link" />}
               title="게임 계정 연동"
-              hint="연동하면 티어와 전적을 자동으로 불러옵니다"
+              hint="연동하면 티어와 전적을 라이엇 API에서 자동으로 불러옵니다. 티어는 직접 고칠 수 없고, 그룹 내부 티어는 전적·평가를 합산해 따로 계산됩니다"
             />
             <GameAccounts>
               {(!games || games.length === 0) && <AccountHint>연동 가능한 게임을 불러오는 중입니다</AccountHint>}
@@ -489,12 +477,12 @@ export function ProfileSetupPage() {
                         <AccountNameRow>
                           <AccountName $linked>{account.gameNickname}</AccountName>
                           <LinkedTag>연동됨</LinkedTag>
+                          <InfoTip>
+                            {isLol
+                              ? `${formatDate(account.createdAt)} 연동`
+                              : `계정 연동만 지원됩니다 · 전적/티어 갱신은 준비 중입니다 · ${formatDate(account.createdAt)} 연동`}
+                          </InfoTip>
                         </AccountNameRow>
-                        <AccountHint>
-                          {isLol
-                            ? `티어는 라이엇 API에서 자동으로 가져옵니다 · ${formatDate(account.createdAt)} 연동`
-                            : `계정 연동만 지원됩니다 · 전적/티어 갱신은 준비 중입니다 · ${formatDate(account.createdAt)} 연동`}
-                        </AccountHint>
                       </AccountInfo>
                       {isLol && (
                         <TierBlock>
@@ -522,7 +510,6 @@ export function ProfileSetupPage() {
                     <AccountTop>
                       <AccountInfo>
                         <AccountName>{getGameDisplayName(game)}</AccountName>
-                        <AccountHint>연동하면 티어와 전적을 자동으로 불러옵니다</AccountHint>
                       </AccountInfo>
                       <AccountActions>
                         <Button type="button" onClick={() => setLinkingGameId(game.id)}>
@@ -534,9 +521,6 @@ export function ProfileSetupPage() {
                 );
               })}
             </GameAccounts>
-            <CardFootnote>
-              티어는 직접 고칠 수 없습니다. 그룹 내부 티어는 전적·평가를 합산해 따로 계산됩니다
-            </CardFootnote>
           </CardBox>
 
           {/* 디스코드 봇 계정 연결(2026-09-29) — 연결은 봇이 보내는 /discord/link 링크로만
@@ -545,7 +529,11 @@ export function ProfileSetupPage() {
             <SectionHeader
               icon={<Icon name="chat" />}
               title="디스코드 계정"
-              hint="연결하면 디스코드 봇이 이 계정을 알아볼 수 있습니다"
+              hint={
+                profile?.discordUserId
+                  ? '디스코드 봇 명령어를 쓰면 이 계정으로 처리됩니다'
+                  : '디스코드에서 봇 명령어를 쓰면 연결 링크를 보내 줍니다. 연결하면 디스코드 봇이 이 계정을 알아볼 수 있습니다'
+              }
             />
             <RaisedRow>
               <AccountTop>
@@ -556,11 +544,6 @@ export function ProfileSetupPage() {
                     </AccountName>
                     {profile?.discordUserId && <LinkedTag>연결됨</LinkedTag>}
                   </AccountNameRow>
-                  <AccountHint>
-                    {profile?.discordUserId
-                      ? '디스코드 봇 명령어를 쓰면 이 계정으로 처리됩니다'
-                      : '디스코드에서 봇 명령어를 쓰면 연결 링크를 보내 줍니다'}
-                  </AccountHint>
                 </AccountInfo>
                 {profile?.discordUserId && (
                   <AccountActions>

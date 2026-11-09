@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled, { useTheme } from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
-import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle, HeaderActions } from '../components/layout/PageHeader';
+import { PageHeader as Header, PageTitle as Title, HeaderActions } from '../components/layout/PageHeader';
 import { Grid, Col } from '../components/layout/Grid';
 import { Button } from '../components/Button/Button';
 import { Card, IconBox, SectionHeader } from '../components/Card/Card';
@@ -226,7 +226,7 @@ export function MatchHistoryPage() {
   const { id: groupId } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
-  const { data: group, isError: groupError } = useGroup(Number(groupId));
+  const { data: group } = useGroup(Number(groupId));
   const { data: matches } = useMatches(Number(groupId));
   const { data: games } = useGames();
   const { data: me } = useMe();
@@ -366,7 +366,6 @@ export function MatchHistoryPage() {
       <Header>
         <div>
           <Title>내전 기록</Title>
-          <Subtitle>{group?.name ?? (groupError ? '그룹 정보를 불러올 수 없습니다' : '불러오는 중...')}</Subtitle>
         </div>
         {/* "게임" 필터는 없음 — 그룹당 게임이 하나로 고정돼 있어서(group.gameId)
             이 목록의 모든 내전이 항상 같은 게임이라 필터링할 대상 자체가 없음. */}
@@ -390,7 +389,7 @@ export function MatchHistoryPage() {
             label="내 승률"
             value={winRate ?? <Muted>—</Muted>}
             unit={winRate !== null ? '%' : undefined}
-            sub={finished.length ? `${wins}승 ${losses}패` : '완료된 내전이 없습니다'}
+            sub={finished.length ? `${wins}승 ${losses}패` : undefined}
           />
         </Col>
         <Col $span={3}>
@@ -400,7 +399,6 @@ export function MatchHistoryPage() {
             color={
               avgMmr?.dir === 'up' ? theme.color.state.success : avgMmr?.dir === 'down' ? theme.color.state.danger : undefined
             }
-            sub={finished.length ? `완료된 ${finished.length.toLocaleString()}판 기준` : '완료된 내전이 없습니다'}
           />
         </Col>
         <Col $span={3}>
@@ -413,7 +411,7 @@ export function MatchHistoryPage() {
                 ? `진행중·미참여 ${(dateFilteredRows.length - finished.length).toLocaleString()}판`
                 : latestCreatedAt
                   ? `최근 ${formatDate(latestCreatedAt)}`
-                  : '아직 진행된 내전이 없습니다'
+                  : undefined
             }
           />
         </Col>
@@ -431,7 +429,7 @@ export function MatchHistoryPage() {
                 <Muted>—</Muted>
               )
             }
-            sub={finishedMatches.length ? `그룹 전체 완료 ${finishedMatches.length.toLocaleString()}판` : '완료된 내전이 없습니다'}
+            sub={finishedMatches.length ? `그룹 전체 완료 ${finishedMatches.length.toLocaleString()}판` : undefined}
           />
         </Col>
 
@@ -461,7 +459,6 @@ export function MatchHistoryPage() {
               inset
               icon={<Icon name="history" />}
               title="내전 목록"
-              description={`${displayedRows.length.toLocaleString()}판 표시 중`}
               action={
                 <SegmentedControl
                   label="결과"

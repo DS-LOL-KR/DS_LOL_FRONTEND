@@ -43,18 +43,12 @@ const StyledTable = styled.table<{ $minWidth?: number; $clickable?: boolean }>`
     height: 40px;
     font: ${({ theme }) => theme.type.caption};
     color: ${({ theme }) => theme.color.text.muted};
-    border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
   }
 
   td {
     height: var(--table-row-height);
     font: ${({ theme }) => theme.type.body};
     color: ${({ theme }) => theme.color.text.primary};
-    border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-  }
-
-  tbody tr:last-child td {
-    border-bottom: 0;
   }
 
   tbody tr {

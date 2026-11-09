@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
-import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle, HeaderActions } from '../components/layout/PageHeader';
+import { PageHeader as Header, PageTitle as Title, HeaderActions } from '../components/layout/PageHeader';
 import { Grid, Col } from '../components/layout/Grid';
 import { Button } from '../components/Button/Button';
 import { Card, SectionHeader } from '../components/Card/Card';
@@ -85,12 +85,6 @@ const StatValue = styled.dd`
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   color: ${({ theme }) => theme.color.text.primary};
-`;
-
-const Caption = styled.p`
-  margin-top: var(--space-3);
-  font: ${({ theme }) => theme.type.caption};
-  color: ${({ theme }) => theme.color.text.muted};
 `;
 
 const ParticipantError = styled.p`
@@ -270,7 +264,7 @@ export function MatchCreatePage() {
   const { id: groupId } = useParams();
   const navigate = useNavigate();
   const createMatch = useCreateMatch(Number(groupId));
-  const { data: group, isError: groupError } = useGroup(Number(groupId));
+  const { data: group } = useGroup(Number(groupId));
   const { data: games } = useGames();
   const { data: tierTable } = useTierTable(Number(groupId));
 
@@ -368,7 +362,6 @@ export function MatchCreatePage() {
       <Header>
         <div>
           <Title>새 내전</Title>
-          <Subtitle>{group?.name ?? (groupError ? '그룹 정보를 불러올 수 없습니다' : '불러오는 중...')}</Subtitle>
         </div>
         <HeaderActions>
           <Button $variant="primary" onClick={handleCreate} disabled={createMatch.isPending}>
@@ -433,7 +426,13 @@ export function MatchCreatePage() {
 
         <SideCol $span={4}>
           <Card>
-            <SectionHeader icon={<Icon name="stats" />} title="선택 요약" />
+            <SectionHeader icon={<Icon name="stats" />} title="선택 요약"
+              hint={
+                unknownMmrCount > 0
+                  ? `MMR을 확인할 수 없는 ${unknownMmrCount}명은 평균에서 빠졌습니다 (라이엇 계정 미연동·전적 없음)`
+                  : undefined
+              }
+            />
             <CountRow>
               {selectedUserIds.size.toLocaleString()}
               <Unit>{target !== null ? `/ ${target}명` : '명'}</Unit>
@@ -452,14 +451,13 @@ export function MatchCreatePage() {
                 <StatValue>{avgSelectedMmr !== null ? avgSelectedMmr.toLocaleString() : <Muted>—</Muted>}</StatValue>
               </StatRow>
             </StatList>
-            {unknownMmrCount > 0 && (
-              <Caption>MMR을 확인할 수 없는 {unknownMmrCount}명은 평균에서 빠졌습니다 (라이엇 계정 미연동·전적 없음)</Caption>
-            )}
             {participantError && <ParticipantError role="alert">{participantError}</ParticipantError>}
           </Card>
 
           <Card>
-            <SectionHeader icon={<Icon name="settings" />} title="내전 설정" />
+            <SectionHeader icon={<Icon name="settings" />} title="내전 설정"
+              hint="AI가 그룹 내부 티어를 기준으로 팀을 자동 배정합니다 (다음 화면에서 팀을 직접 조정할 수 있습니다)"
+            />
             <Field>
               <FieldLabel>게임 종목</FieldLabel>
               <GameRow>
@@ -499,10 +497,6 @@ export function MatchCreatePage() {
                   </SegmentButton>
                 ))}
               </Segmented>
-            </Field>
-            <Field>
-              <FieldLabel>팀 구성 · 티어 기준</FieldLabel>
-              <Notice>AI가 그룹 내부 티어를 기준으로 자동 배정합니다 (다음 화면에서 팀을 직접 조정할 수 있습니다)</Notice>
             </Field>
           </Card>
         </SideCol>

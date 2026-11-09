@@ -3,7 +3,7 @@ import type { KeyboardEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
-import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle, HeaderActions } from '../components/layout/PageHeader';
+import { PageHeader as Header, PageTitle as Title, HeaderActions } from '../components/layout/PageHeader';
 import { Grid, Col, Stack } from '../components/layout/Grid';
 import { Card, SectionHeader, IconBox, CardTitle } from '../components/Card/Card';
 import { Kpi } from '../components/Kpi/Kpi';
@@ -11,6 +11,7 @@ import { Table } from '../components/Table/Table';
 import type { Column } from '../components/Table/Table';
 import { Badge } from '../components/Badge/Badge';
 import { Button } from '../components/Button/Button';
+import { HintRow, InfoTip } from '../components/InfoTip/InfoTip';
 import { Icon } from '../components/Icon/Icon';
 import { Avatar } from '../components/Avatar/Avatar';
 import { LaneIcon, LaneLabel } from '../components/LaneIcon/LaneIcon';
@@ -277,7 +278,6 @@ export function TierTablePage() {
   }, [filtered, position]);
 
   // 티어표는 라이엇 계정을 연동한 사람만 집계해요 — 그룹원 수(사이드바)와 다를 수 있어서 기준을 밝혀둠.
-  const laneLabel = position === 'ALL' ? '계정 연동한 그룹원' : `${position} 기록 보유`;
 
   const columns: Column<TierEntry>[] = [
     {
@@ -351,8 +351,10 @@ export function TierTablePage() {
     <PageLayout>
       <Header>
         <div>
-          <Title>티어표</Title>
-          <Subtitle>전적 · 그룹 티어 · 사용자 평가를 합산해 계산 · {formatRelativeTime(tierTable?.lastUpdatedAt ?? null)}</Subtitle>
+          <HintRow>
+            <Title>티어표</Title>
+            <InfoTip>전적 · 그룹 티어 · 사용자 평가를 합산해 계산 · {formatRelativeTime(tierTable?.lastUpdatedAt ?? null)}</InfoTip>
+          </HintRow>
           {/* 그룹 전체 갱신: 한 명당 약 0.5초라 오래 걸릴 수 있어 진행·결과를 헤더에서 바로 알려줌 */}
           <div role="status" aria-live="polite">
             {refreshTiers.isPending ? (
@@ -401,20 +403,19 @@ export function TierTablePage() {
         <Stack $gap="section">
           <Grid>
             <Col $span={3}>
-              <Kpi label="인원" value={kpis.count.toLocaleString()} unit="명" sub={laneLabel} />
+              <Kpi label="인원" value={kpis.count.toLocaleString()} unit="명" />
             </Col>
             <Col $span={3}>
               <Kpi
                 label={position === 'ALL' ? '평균 MMR' : `평균 ${position} MMR`}
                 value={kpis.avg !== null ? kpis.avg.toLocaleString() : '—'}
-                sub={kpis.avg !== null ? '표시 중인 멤버 기준' : '티어표에 멤버가 없습니다'}
               />
             </Col>
             <Col $span={3}>
               <Kpi
                 label={position === 'ALL' ? '최고 MMR' : `최고 ${position} MMR`}
                 value={kpis.top ? shownMmr(kpis.top).toLocaleString() : '—'}
-                sub={kpis.top ? kpis.top.nickname : '티어표에 멤버가 없습니다'}
+                sub={kpis.top?.nickname}
               />
             </Col>
             <Col $span={3}>
@@ -425,11 +426,9 @@ export function TierTablePage() {
                   kpis.tier1Cut !== null ? (
                     <KpiSubRow>
                       <Badge tier={1} />
-                      {kpis.tier1Count.toLocaleString()}명 · 계정 MMR 기준
+                      {kpis.tier1Count.toLocaleString()}명
                     </KpiSubRow>
-                  ) : (
-                    '1티어 멤버가 없습니다'
-                  )
+                  ) : undefined
                 }
               />
             </Col>
@@ -453,7 +452,7 @@ export function TierTablePage() {
                         <TierCount>{members.length.toLocaleString()}명</TierCount>
                       </TierHeading>
                     }
-                    description={range}
+                    hint={range}
                   />
                   {members.length === 0 ? (
                     <EmptyRow>해당 티어 없음</EmptyRow>

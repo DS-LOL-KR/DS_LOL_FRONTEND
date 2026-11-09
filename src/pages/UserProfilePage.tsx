@@ -6,7 +6,6 @@ import { PageLayout } from '../components/layout/PageLayout';
 import {
   PageHeader as Header,
   PageTitle as Title,
-  PageSubtitle as Subtitle,
   HeaderActions,
 } from '../components/layout/PageHeader';
 import { Grid, Col, Stack } from '../components/layout/Grid';
@@ -29,7 +28,6 @@ import { useTierTable } from '../features/tiers/hooks';
 import { useActiveGroupId } from '../utils/activeGroup';
 import { useChampionName } from '../features/champions/hooks';
 import { resolveAssetUrl } from '../utils/assetUrl';
-import { formatDate } from '../utils/formatDateTime';
 import { ChampionStatsCard, LaneMmrCard, RecentMatchesCard, RecordKpis } from './StatsPage';
 
 const Identity = styled.div`
@@ -130,7 +128,6 @@ export function UserProfilePage() {
           <Avatar name={user?.nickname ?? '?'} imageUrl={resolveAssetUrl(user?.profileImageUrl)} size={56} />
           <div>
             <Title>{user?.nickname ?? (isLoading ? '불러오는 중...' : '알 수 없는 사용자')}</Title>
-            {user && <Subtitle>{formatDate(user.createdAt)} 가입</Subtitle>}
           </div>
         </Identity>
         {!isError && account && (
@@ -192,11 +189,9 @@ export function UserProfilePage() {
                 customRecord={
                   groupEntry ? { wins: groupEntry.customMatchWins, losses: groupEntry.customMatchLosses } : null
                 }
-                customEmptyHint={activeGroup ? `${activeGroup.name} 내전 기록이 없습니다` : '같은 그룹 기록이 없습니다'}
                 matches={recentMatches}
                 positionStats={positionStats}
                 mainPosition={mainPosition}
-                hasAccount
               />
             </Grid>
 

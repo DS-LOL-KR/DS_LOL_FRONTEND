@@ -5,7 +5,6 @@ import { PageLayout } from '../components/layout/PageLayout';
 import {
   PageHeader as Header,
   PageTitle as Title,
-  PageSubtitle as Subtitle,
   HeaderActions,
 } from '../components/layout/PageHeader';
 import { Grid, Col, Stack } from '../components/layout/Grid';
@@ -268,7 +267,6 @@ const EvalProgressRow = styled.div`
   justify-content: space-between;
   margin-top: var(--space-5);
   padding: var(--space-3) 0;
-  border-top: 1px solid ${({ theme }) => theme.color.border.base};
   font: ${({ theme }) => theme.type.label};
   color: ${({ theme }) => theme.color.text.secondary};
 `;
@@ -286,11 +284,6 @@ const TeammateRow = styled.div`
   align-items: center;
   gap: var(--space-3) var(--space-4);
   padding: var(--space-3) 0;
-  border-top: 1px solid ${({ theme }) => theme.color.border.base};
-
-  &:last-of-type {
-    border-bottom: 1px solid ${({ theme }) => theme.color.border.base};
-  }
 `;
 
 const TeammateInfo = styled.div`
@@ -541,8 +534,10 @@ export function MatchResultPage() {
     <PageLayout>
       <Header>
         <div>
-          <Title>내전 결과</Title>
-          <Subtitle>{match ? `${formatDateTime(match.createdAt)} · ${statusLabel}` : '불러오는 중...'}</Subtitle>
+          <HintRow>
+            <Title>내전 결과</Title>
+            {match && <InfoTip>{`${formatDateTime(match.createdAt)} · ${statusLabel}`}</InfoTip>}
+          </HintRow>
         </div>
         <HeaderActionColumn>
           <HeaderActions>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { PageLayout } from '../components/layout/PageLayout';
-import { PageHeader as Header, PageTitle as Title, PageSubtitle as Subtitle, HeaderActions } from '../components/layout/PageHeader';
+import { PageHeader as Header, PageTitle as Title, HeaderActions } from '../components/layout/PageHeader';
 import { Col, Grid } from '../components/layout/Grid';
 import { Card, SectionHeader, IconBox, CardTitle } from '../components/Card/Card';
 import { Badge } from '../components/Badge/Badge';
@@ -162,7 +162,6 @@ export function GroupsPage() {
       <Header>
         <div>
           <Title>내 그룹</Title>
-          <Subtitle>참여 중인 그룹 {rows.length.toLocaleString()}개</Subtitle>
         </div>
         <HeaderActions>
           <Button $variant="primary" onClick={() => setCreateOpen(true)}>

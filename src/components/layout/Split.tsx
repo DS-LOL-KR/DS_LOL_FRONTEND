@@ -27,11 +27,8 @@ export const SplitSecondary = styled.div`
   flex: 1;
   min-width: 0;
   padding: ${({ theme }) => theme.space.lg}px 0 ${({ theme }) => theme.space.lg}px 40px;
-  border-left: 1px solid ${({ theme }) => theme.color.border.base};
 
   ${({ theme }) => theme.media.mobile} {
     padding-left: 0;
-    border-left: none;
-    border-top: 1px solid ${({ theme }) => theme.color.border.base};
   }
 `;
