@@ -50,7 +50,9 @@ export const queryPersister = createSyncStoragePersister({
 });
 
 // 응답 모양이 바뀌는 배포를 하면 이 값을 올려서 예전 모양의 저장된 캐시를 버리게 함.
-export const PERSIST_BUSTER = 'v1';
+// v2: 챔피언 이름 캐시가 Map → 보통 객체로 바뀜(2026-11-09). v1에 저장된 깨진 {}를 버리려고 올림.
+// 캐시에 넣는 값은 JSON으로 저장되므로 Map·Set·Date 같은 건 queryFn에서 돌려주지 말 것.
+export const PERSIST_BUSTER = 'v2';
 
 // 로그아웃 시 메모리와 저장된 캐시를 둘 다 지움 — 같은 브라우저로 다른 사람이 로그인했을 때
 // 앞사람 데이터가 보이지 않게.
