@@ -1,0 +1,309 @@
+/*
+ * DS_LOL — Apple(Liquid Glass) 스킨
+ *
+ * 모든 규칙이 :root[data-skin='apple'] 아래에만 걸려 있다. data-skin이 'classic'이면
+ * 이 파일은 아무것도 바꾸지 않고, 원래 디자인(tokens.css · docs/design-system.md)이 그대로 나온다.
+ * 스위치는 src/styles/skin.ts.
+ *
+ * 방향: 거의 검은 바탕 + 레드/인디고 앰비언트 라이트, 반투명 유리 표면, 큰 라운드, 알약 버튼,
+ * 스프링 모션. 컴포넌트는 data-ui / data-variant 속성으로만 잡는다(클래스명은 해시라서).
+ */
+
+/* ───────── Tokens ───────── */
+:root[data-skin='apple'] {
+  /* Background — 표면은 반투명이라 뒤의 앰비언트 라이트가 비친다 */
+  --bg-canvas: transparent;
+  --bg-app: #0b0b0e;
+  --bg-sidebar: rgba(30, 30, 34, 0.72);
+  --bg-surface: rgba(255, 255, 255, 0.055);
+  --bg-surface-raised: rgba(255, 255, 255, 0.07);
+  --bg-hover: rgba(255, 255, 255, 0.12);
+  --bg-overlay: rgba(0, 0, 0, 0.5);
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-default: rgba(255, 255, 255, 0.12);
+
+  --text-primary: #f5f5f7;
+  --text-secondary: rgba(235, 235, 245, 0.64);
+  --text-muted: rgba(235, 235, 245, 0.46);
+  --text-on-primary: #000000;
+
+  /* Team — 블루 팀은 강조색(시스템 블루)과 겹치지 않게 인디고 */
+  --team-red: #ff453a;
+  --team-red-soft: rgba(255, 69, 58, 0.14);
+  --team-red-line: rgba(255, 69, 58, 0.35);
+  --team-blue: #7d7aff;
+  --team-blue-soft: rgba(125, 122, 255, 0.16);
+
+  --status-win: #30d158;
+  --status-win-soft: rgba(48, 209, 88, 0.16);
+  --status-lose: #ff453a;
+  --status-lose-soft: rgba(255, 69, 58, 0.14);
+
+  --tier-1: #64d2ff;
+  --tier-2: #30d158;
+  --tier-3: #ffd60a;
+  --tier-4: #aeaeb2;
+  --tier-5: #7c7c80;
+  --tier-1-soft: rgba(100, 210, 255, 0.14);
+  --tier-2-soft: rgba(48, 209, 88, 0.14);
+  --tier-3-soft: rgba(255, 214, 10, 0.14);
+  --tier-4-soft: rgba(174, 174, 178, 0.14);
+  --tier-5-soft: rgba(124, 124, 128, 0.12);
+
+  --chart-bar: rgba(255, 255, 255, 0.1);
+  --chart-bar-active: #0a84ff;
+  --chart-grid: rgba(255, 255, 255, 0.06);
+
+  --accent: #0a84ff;
+  --focus-ring: 0 0 0 2px #050507, 0 0 0 4px var(--accent);
+
+  /* Typography — SF Pro 우선, 한글은 Pretendard/Apple SD Gothic Neo */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Pretendard', 'Apple SD Gothic Neo',
+    'Malgun Gothic', system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Pretendard', 'Apple SD Gothic Neo',
+    'Malgun Gothic', system-ui, sans-serif;
+  --type-hero: 700 64px/1 var(--font-display);
+  --type-hero-tracking: -0.045em;
+  --type-display: 700 34px/1.15 var(--font-display);
+  --type-display-tracking: -0.03em;
+  --type-metric: 700 30px/1.1 var(--font-display);
+  --type-heading: 600 17px/1.35 var(--font-sans);
+
+  /* Spacing / sizes — 더 넉넉하게 */
+  /* card-padding은 20 그대로 — 표의 고정 폭 칸(예: 그룹 목록 '입장' 96px)이 이 값에 맞춰져 있음 */
+  --card-gap: 16px;
+  --section-gap: 48px;
+  --sidebar-width: 244px;
+  --sidebar-item-height: 36px;
+  --control-height: 40px;
+  --control-height-sm: 32px;
+  --table-row-height: 56px;
+
+  --radius-frame: 28px;
+  --radius-card: 22px;
+  --radius-control: 12px;
+  --radius-badge: 999px;
+
+  /* Motion — 스프링 */
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+  --duration-fast: 180ms;
+  --duration-base: 320ms;
+
+  /* Skin-only */
+  --glass-blur: blur(40px) saturate(170%);
+  --glass-strong: rgba(30, 30, 34, 0.78);
+  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --shadow-float: 0 30px 80px rgba(0, 0, 0, 0.45);
+  --orb-red: rgba(255, 59, 48, 0.2);
+  --orb-blue: rgba(94, 92, 230, 0.24);
+  --orb-accent: rgba(10, 132, 255, 0.12);
+}
+
+@media (max-width: 720px) {
+  :root[data-skin='apple'] {
+    --type-hero: 700 44px/1 var(--font-display);
+    --type-display: 700 30px/1.15 var(--font-display);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-skin='apple'] {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+  }
+}
+
+/* ───────── Base ───────── */
+:root[data-skin='apple'] body {
+  background:
+    radial-gradient(60vw 48vw at 6% -12%, var(--orb-red), transparent 70%),
+    radial-gradient(60vw 48vw at 100% -4%, var(--orb-blue), transparent 70%),
+    radial-gradient(70vw 50vw at 50% 115%, var(--orb-accent), transparent 70%),
+    #050507;
+  background-attachment: fixed;
+  letter-spacing: -0.012em;
+}
+
+:root[data-skin='apple'] ::selection {
+  background: rgba(10, 132, 255, 0.35);
+}
+
+:root[data-skin='apple'] :focus-visible {
+  outline-color: var(--accent);
+  outline-offset: 3px;
+}
+
+/* ───────── App shell ───────── */
+/* 앱 프레임: 보더/배경 없이 떠 있는 유리 사이드바 + 콘텐츠 */
+:root[data-skin='apple'] [data-ui='frame'] {
+  height: calc(100dvh - 24px);
+  margin: 12px;
+  gap: 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+:root[data-skin='apple'] [data-ui='sidebar'] {
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-subtle);
+  border-radius: 22px;
+  box-shadow: var(--glass-edge), var(--shadow-float);
+  padding: 18px 12px;
+}
+
+:root[data-skin='apple'] [data-ui='scroll'] {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+:root[data-skin='apple'] [data-ui='nav-item'] {
+  border-color: transparent;
+  border-radius: 11px;
+}
+
+:root[data-skin='apple'] [data-ui='nav-item'][aria-current='page'] {
+  background: var(--bg-hover);
+}
+
+:root[data-skin='apple'] [data-ui='popover'],
+:root[data-skin='apple'] [data-ui='tooltip'] {
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  box-shadow: var(--glass-edge), 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 720px) {
+  :root[data-skin='apple'] [data-ui='frame'] {
+    height: auto;
+    margin: 0;
+  }
+
+  :root[data-skin='apple'] [data-ui='topbar'] {
+    background: rgba(20, 20, 24, 0.72);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  :root[data-skin='apple'] [data-ui='drawer'] {
+    padding: 8px 0 8px 8px;
+  }
+
+  :root[data-skin='apple'] [data-ui='scrim'] {
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
+}
+
+/* ───────── Surfaces ───────── */
+/* 카드: 반투명 유리 + 윗변 하이라이트. 바탕이 부드러운 그라데이션이라 블러는 쓰지 않는다
+   (backdrop-filter는 쌓임 맥락을 만들어 카드 안 드롭다운을 가릴 수 있음). */
+:root[data-skin='apple'] [data-ui='card'] {
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--glass-edge);
+}
+
+/* ───────── Modal ───────── */
+:root[data-skin='apple'] [data-ui='modal-overlay'] {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+:root[data-skin='apple'] [data-ui='modal-panel'] {
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(50px) saturate(180%);
+  backdrop-filter: blur(50px) saturate(180%);
+  border: 1px solid var(--border-subtle);
+  border-radius: 28px;
+  padding: 28px;
+  box-shadow: var(--glass-edge), var(--shadow-float);
+  animation: apple-sheet-in 0.45s var(--ease-out);
+}
+
+@keyframes apple-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+}
+
+/* ───────── Button ───────── */
+:root[data-skin='apple'] [data-ui='button'] {
+  border-radius: 999px;
+  border-color: transparent;
+}
+
+:root[data-skin='apple'] [data-ui='button'][data-size='md'] {
+  padding: 0 18px;
+}
+
+:root[data-skin='apple'] [data-ui='button']:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+:root[data-skin='apple'] [data-ui='button'][data-variant='primary'],
+:root[data-skin='apple'] [data-ui='button'][data-variant='primary']:hover:not(:disabled) {
+  background: var(--text-primary);
+  color: var(--text-on-primary);
+}
+
+:root[data-skin='apple'] [data-ui='button'][data-variant='primary']:hover:not(:disabled) {
+  background: #ffffff;
+}
+
+:root[data-skin='apple'] [data-ui='button'][data-variant='secondary'] {
+  background: var(--bg-surface-raised);
+}
+
+:root[data-skin='apple'] [data-ui='button'][data-variant='secondary']:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+:root[data-skin='apple'] [data-ui='button'][data-variant='danger'],
+:root[data-skin='apple'] [data-ui='button'][data-variant='dangerGhost'] {
+  background: var(--team-red-soft);
+  color: var(--team-red);
+}
+
+:root[data-skin='apple'] [data-ui='button'][data-variant='danger']:hover:not(:disabled),
+:root[data-skin='apple'] [data-ui='button'][data-variant='dangerGhost']:hover:not(:disabled) {
+  background: rgba(255, 69, 58, 0.24);
+}
+
+/* ───────── Input ───────── */
+:root[data-skin='apple'] [data-ui='input'] {
+  border-color: transparent;
+  background: var(--bg-surface-raised);
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+:root[data-skin='apple'] [data-ui='input']:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.25);
+}
+
+:root[data-skin='apple'] [data-ui='input'][aria-invalid='true'] {
+  border-color: var(--team-red);
+}
+
+/* ───────── Avatar ───────── */
+/* 이니셜 아바타: 이름에서 뽑은 색상(--avatar-h)으로 그라데이션 */
+:root[data-skin='apple'] [data-ui='avatar'] {
+  color: #ffffff;
+  background: linear-gradient(
+    145deg,
+    hsl(var(--avatar-h, 220) 72% 60%),
+    hsl(calc(var(--avatar-h, 220) + 35) 62% 40%)
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}

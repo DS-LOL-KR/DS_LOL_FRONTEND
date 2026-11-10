@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
 import styled, { css } from 'styled-components';
+import { ui } from '../../styles/uiHook';
 import { InfoTip } from '../InfoTip/InfoTip';
 
 // docs/design-system.md → surface layer 2. 1px subtle border, no shadow; a
 // card never sits inside another card (use `raised` rows inside instead).
 // `$flush` drops the padding for cards whose content (a table) pads itself.
-export const CardBox = styled.section<{ $flush?: boolean }>`
+export const CardBox = styled.section.attrs(ui('card'))<{ $flush?: boolean }>`
   min-width: 0;
   background: ${({ theme }) => theme.color.surface.card};
   border-radius: ${({ theme }) => theme.radius.card}px;

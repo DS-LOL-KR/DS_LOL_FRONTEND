@@ -1,8 +1,9 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
+import { ui } from '../../styles/uiHook';
 
-const Overlay = styled.div`
+const Overlay = styled.div.attrs(ui('modal-overlay'))`
   position: fixed;
   inset: 0;
   display: flex;
@@ -18,7 +19,7 @@ const Overlay = styled.div`
   }
 `;
 
-const Panel = styled.div`
+const Panel = styled.div.attrs(ui('modal-panel'))`
   background: ${({ theme }) => theme.color.surface.card};
   border: 1px solid ${({ theme }) => theme.color.border.strong};
   border-radius: ${({ theme }) => theme.radius.card}px;

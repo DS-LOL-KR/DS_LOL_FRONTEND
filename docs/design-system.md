@@ -845,3 +845,13 @@ body {
 1. ~~**폰트 크기 축소 폭.**~~ **결정 (2026-09-27):** body를 15px로 올림(`--type-body`, `--type-body-strong`). label 13px, caption 12px은 유지. 기존 `theme.ts`의 body 19px보다는 여전히 작으므로 전환 후 가독성 피드백을 다시 본다.
 2. ~~**`--text-muted` 대비.**~~ **결정 (2026-09-27):** `#6A6F7B` → `#7D828E`. 대비는 sidebar 4.9:1, surface 4.7:1로 AA 통과, surface-raised 위에서는 4.4:1로 살짝 미달이다. **raised 위에서 muted는 텍스트 자체로 의미가 전달되는 곳(패 칩의 "패")에만 쓰고, 읽어야 하는 정보는 secondary로 올린다.** `--tier-5`는 `#6A6F7B` 그대로 두었다(티어 색은 배지 배경과 함께 읽히는 값이라 별도 결정).
 3. **레드팀 = 패배 색.** 두 토큰이 같은 hex다. 규칙(텍스트 배지로 승패 표기)으로 막았지만, 분리하려면 `--status-lose`를 `#E5484D` 등으로 살짝 옮기는 방법이 있다.
+
+---
+
+## 스킨과 움직임 스위치
+
+이 문서의 규칙은 **classic** 스킨(기본, 원래 다크 모노크롬 디자인) 기준이다. 스위치는 `src/styles/skin.ts`.
+
+- **SKIN** (`VITE_SKIN`): 생김새. `classic`(기본) | `apple` — `src/styles/skins/apple.css`(Liquid Glass)가 `:root[data-skin='apple']` 아래에서만 토큰과 일부 컴포넌트를 덮어쓴다. 둥글기 px 값은 `theme.ts`의 `RADIUS`가 스킨별로 고른다.
+- **MOTION** (`VITE_MOTION`): 움직임만. `apple`(기본) | `none` — `src/styles/skins/apple-motion.css`가 `:root[data-motion='apple']` 아래에서 스프링 이징, 버튼 눌림, 페이지 진입, 모달·드롭다운 등장, 오버레이 블러를 더한다. 색·표면은 바꾸지 않는다.
+- 바깥 CSS가 컴포넌트를 잡는 고리는 `data-ui` 속성(`src/styles/uiHook.ts`)과 Button의 `data-variant`/`data-size`, 사이드바의 `aria-current`뿐이다.

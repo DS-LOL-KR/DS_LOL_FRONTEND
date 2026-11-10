@@ -3,7 +3,15 @@
 // tokens.css apply without a JS media query. Old key names are kept so existing
 // call sites keep compiling; new code should prefer the semantic keys
 // (`surface.card`, `text.muted`, `type.*`).
+import { SKIN } from './skin';
+
 const SANS = 'var(--font-sans)';
+
+// 스킨마다 둥글기가 달라서 px 숫자를 여기서 고름 (styled-components가 ${radius.card}px 로 씀).
+const RADIUS =
+  SKIN === 'apple'
+    ? { sm: 10, md: 16, lg: 22, xl: 28, badge: 999, control: 12, card: 22 }
+    : { sm: 8, md: 12, lg: 16, xl: 16, badge: 6, control: 8, card: 12 };
 
 export const theme = {
   color: {
@@ -65,7 +73,7 @@ export const theme = {
       strong: 'var(--border-default)',
     },
   },
-  radius: { sm: 8, md: 12, lg: 16, xl: 16, badge: 6, control: 8, card: 12 },
+  radius: RADIUS,
   media: {
     wide: '@media (max-width: 1100px)',
     mobile: '@media (max-width: 720px)',
