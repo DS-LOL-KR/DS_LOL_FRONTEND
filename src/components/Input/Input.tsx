@@ -1,4 +1,5 @@
 import styled, { css } from 'styled-components';
+import { ui } from '../../styles/uiHook';
 
 // Same control spec as Button: 36px, raised fill, default border, radius 8.
 // Focus goes neutral (no blue — it reads as team blue).
@@ -30,7 +31,7 @@ const control = css`
   }
 `;
 
-export const Input = styled.input`
+export const Input = styled.input.attrs(ui('input'))`
   ${control}
   height: var(--control-height);
   padding: 0 ${({ theme }) => theme.space.sm}px;
@@ -40,7 +41,7 @@ export const Input = styled.input`
   }
 `;
 
-export const Textarea = styled.textarea`
+export const Textarea = styled.textarea.attrs(ui('input'))`
   ${control}
   padding: 10px ${({ theme }) => theme.space.sm}px;
   resize: vertical;

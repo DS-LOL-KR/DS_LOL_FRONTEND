@@ -1,6 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
+import { ui } from '../../styles/uiHook';
 import { Icon } from '../Icon/Icon';
 
 // 부가 설명을 화면에 늘어놓지 않고 ⓘ 아이콘에 숨겨둠 — 마우스를 올리거나(PC), 탭하거나(모바일),
@@ -37,7 +38,7 @@ const Trigger = styled.button`
   }
 `;
 
-const Bubble = styled.div`
+const Bubble = styled.div.attrs(ui('tooltip'))`
   position: fixed;
   z-index: 110; /* 모달(100) 위 */
   max-width: min(280px, calc(100vw - ${EDGE * 2}px));

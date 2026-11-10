@@ -1,4 +1,5 @@
 import styled, { css } from 'styled-components';
+import { ui } from '../../styles/uiHook';
 
 // docs/design-system.md → Button.
 // `secondary` is the default on purpose: the white `primary` is one-per-screen
@@ -7,7 +8,9 @@ import styled, { css } from 'styled-components';
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerGhost';
 type Size = 'md' | 'sm';
 
-export const Button = styled.button<{ $variant?: Variant; $size?: Size }>`
+export const Button = styled.button.attrs<{ $variant?: Variant; $size?: Size }>((p) =>
+  ui('button', { 'data-variant': p.$variant ?? 'secondary', 'data-size': p.$size ?? 'md' }),
+)`
   display: inline-flex;
   align-items: center;
   justify-content: center;

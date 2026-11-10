@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
+import { ui } from '../../styles/uiHook';
 import { Icon } from '../Icon/Icon';
 import { Wordmark } from '../Wordmark/Wordmark';
 import { Sidebar } from './Sidebar';
@@ -8,7 +9,7 @@ import { Sidebar } from './Sidebar';
 // docs/design-system.md → App Shell. Desktop: an inset app frame (radius 16)
 // on the canvas, [sidebar 248 | content]. ≤720px: frame drops away, the
 // sidebar becomes a 56px top bar + slide-in drawer.
-const Frame = styled.div`
+const Frame = styled.div.attrs(ui('frame'))`
   display: grid;
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   height: calc(100dvh - 16px);
@@ -37,7 +38,7 @@ const DesktopSidebar = styled.div`
   }
 `;
 
-const Scroll = styled.div`
+const Scroll = styled.div.attrs(ui('scroll'))`
   min-width: 0;
   overflow-y: auto;
 
@@ -46,7 +47,7 @@ const Scroll = styled.div`
   }
 `;
 
-const Main = styled.main`
+const Main = styled.main.attrs(ui('main'))`
   width: 100%;
   max-width: var(--content-max);
   margin: 0 auto;
@@ -57,7 +58,7 @@ const Main = styled.main`
   }
 `;
 
-const TopBar = styled.header`
+const TopBar = styled.header.attrs(ui('topbar'))`
   display: none;
 
   ${({ theme }) => theme.media.mobile} {
@@ -90,14 +91,14 @@ const IconButton = styled.button`
   }
 `;
 
-const Scrim = styled.div`
+const Scrim = styled.div.attrs(ui('scrim'))`
   position: fixed;
   inset: 0;
   z-index: 40;
   background: ${({ theme }) => theme.color.overlay};
 `;
 
-const Drawer = styled.div`
+const Drawer = styled.div.attrs(ui('drawer'))`
   position: fixed;
   top: 0;
   bottom: 0;

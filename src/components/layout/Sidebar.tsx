@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
+import { ui } from '../../styles/uiHook';
 import { useMe } from '../../features/auth/hooks';
 import { useGroupMembers, useGroups } from '../../features/groups/hooks';
 import { setActiveGroupId, useActiveGroupId } from '../../utils/activeGroup';
@@ -13,7 +14,7 @@ import { Wordmark } from '../Wordmark/Wordmark';
 // 그룹원 → 디스코드 상태. No primary button lives here.
 const MEMBER_LIMIT = 8;
 
-const Aside = styled.aside`
+const Aside = styled.aside.attrs(ui('sidebar'))`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.space.md}px;
@@ -97,7 +98,7 @@ const GroupName = styled.span`
   white-space: nowrap;
 `;
 
-const Popover = styled.div`
+const Popover = styled.div.attrs(ui('popover'))`
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
@@ -147,7 +148,7 @@ const Nav = styled.nav`
   gap: 2px;
 `;
 
-const NavItem = styled(Link)<{ $active?: boolean; $disabled?: boolean }>`
+const NavItem = styled(Link).attrs(ui('nav-item'))<{ $active?: boolean; $disabled?: boolean }>`
   display: flex;
   align-items: center;
   gap: 8px;
