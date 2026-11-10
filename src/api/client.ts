@@ -33,3 +33,9 @@ apiClient.interceptors.response.use(
     return Promise.reject(message ? new ApiError(message, error?.response?.status) : error);
   },
 );
+
+// 개발 전용 목 API: .env.development.local에 VITE_MOCK=1 → 백엔드/로그인 없이 가짜 데이터로 화면 확인.
+// import.meta.env.DEV가 false인 프로덕션 빌드에서는 이 분기와 목 파일이 통째로 빠진다.
+if (import.meta.env.DEV && import.meta.env.VITE_MOCK === '1') {
+  apiClient.defaults.adapter = async (config) => (await import('../mocks/mockAdapter')).mockAdapter(config);
+}
